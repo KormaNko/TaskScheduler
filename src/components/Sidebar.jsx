@@ -3,9 +3,13 @@ import { CheckSquare, Calendar, Users, LayoutDashboard } from "lucide-react";
 
 export default function Sidebar() {
     return (
-        <aside className="w-64 bg-white border-r min-h-screen p-6">
+        // increase top padding (pt-10) so logo/title are lower
+        <aside className="w-64 bg-white border-r border-gray-200 min-h-screen pt-10 px-6 relative">
+            {/* thin divider (extra element to ensure consistent 1px line on all browsers) */}
+            <div className="absolute top-0 right-0 h-full w-px bg-gray-200 pointer-events-none" />
+
             {/* Logo / Názov */}
-            <div className="flex items-center gap-2 mb-8">
+            <div className="flex items-center gap-2 mb-16 ">
                 <CheckSquare className="text-blue-600" />
                 <h1 className="font-semibold text-lg">Task Manager</h1>
             </div>

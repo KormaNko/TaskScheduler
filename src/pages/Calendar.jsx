@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function CalendarPage() {
+export default function Calendar() {
     return (
         <div className="min-h-screen">
         </div>
