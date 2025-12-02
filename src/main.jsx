@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Calendar from "./pages/Calendar.jsx";
 import Users from "./pages/Users.jsx";
 import Sidebar from "./components/Sidebar.jsx";
+import Login from "./pages/Login.jsx"; // NOVÉ
 import '../index.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
                 <Sidebar />
                 <main className="flex-1 p-6">
                     <Routes>
+                        <Route path="/login" element={<Login />} /> {/* NOVÉ */}
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/calendar" element={<Calendar />} />
                         <Route path="/users" element={<Users />} />
