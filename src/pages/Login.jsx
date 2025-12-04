@@ -1,14 +1,14 @@
 import { useState } from "react";
 
-// Ak chceš, môžeš nastaviť VITE_API_BASE v .env (napr. VITE_API_BASE=http://localhost:8080).
-// Ak nie je nastavené, použije sa http://localhost (port 80).
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost").replace(/\/$/, "");
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    // errors: { email?: string, password?: string, general?: string }
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState("");
 
     function validateClientSide() {
         const e = {};
@@ -20,6 +20,8 @@ export default function Login() {
     async function handleSubmit(e) {
         e.preventDefault();
         setErrors({});
+        setSuccess("");
+
         const clientErrors = validateClientSide();
         if (Object.keys(clientErrors).length > 0) {
             setErrors(clientErrors);
@@ -28,39 +30,51 @@ export default function Login() {
 
         setLoading(true);
         try {
-            // Dôležité: ak tvoj backend beží na port 80, toto bude: http://localhost/?c=login&a=login
-            // Ak beží inde (napr. 8080), nastav VITE_API_BASE v .env na správny host:port.
             const url = `${API_BASE}/?c=login&a=login`;
 
             const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                credentials: "include", // ponechaj ak používaš sessions/cookies
+                credentials: "include", // dôležité pre session cookies
                 body: JSON.stringify({ email, password }),
             });
 
-            let data;
+            let data = null;
             try {
                 data = await res.json();
             } catch {
+                // ak server nevráti JSON
                 setErrors({ general: `Chyba servera: ${res.status}` });
                 setLoading(false);
                 return;
             }
 
             if (!res.ok) {
+                // Field-specific errors from backend
                 if (data.errors && typeof data.errors === "object") {
                     setErrors(data.errors);
                 } else {
-                    setErrors({ general: data.message || "Neznáma chyba servera" });
+                    // Status-specific messages
+                    if (res.status === 401) {
+                        setErrors({ general: data.message || "Nesprávne prihlasovacie údaje" });
+                    } else if (res.status === 403) {
+                        setErrors({ general: data.message || "Účet nie je povolený / email nie je overený" });
+                    } else {
+                        setErrors({ general: data.message || "Neznáma chyba servera" });
+                    }
                 }
                 setLoading(false);
                 return;
             }
 
+            // success
             setErrors({});
+            setSuccess(data.message || "Prihlásenie úspešné");
+
+            // optional: redirect after successful login
+            // window.location.href = '/?c=Home&a=index';
+
             setLoading(false);
-            alert(data.message || "Prihlásenie úspešné");
         } catch (err) {
             setErrors({ general: "Nepodarilo sa spojiť so serverom" });
             setLoading(false);
@@ -72,14 +86,20 @@ export default function Login() {
             <h2 className="text-2xl font-bold mb-4">Prihlásenie</h2>
 
             {errors.general && <div className="mb-4 text-sm text-red-600">{errors.general}</div>}
+            {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
 
             <label className="block mb-3">
                 <span className="text-sm font-medium">Email</span>
                 <input
+                    autoFocus
                     type="email"
                     placeholder="Email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrors((prev) => ({ ...prev, email: undefined }));
+                        setSuccess("");
+                    }}
                     className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"}`}
                 />
                 {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
@@ -91,7 +111,11 @@ export default function Login() {
                     type="password"
                     placeholder="Heslo"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErrors((prev) => ({ ...prev, password: undefined }));
+                        setSuccess("");
+                    }}
                     className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"}`}
                 />
                 {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
