@@ -1,5 +1,6 @@
 // Import React hooku useState, ktorý slúži na ukladanie stavových premenných
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 // Hlavná React komponenta pre registráciu používateľa
 export default function Register() {
@@ -166,124 +167,91 @@ export default function Register() {
 
     // HTML (JSX) rozhranie registračného formulára
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-
-            {/* Samotný registračný formulár */}
-            <form
-                onSubmit={handleSubmit}
-                className="w-full max-w-md bg-white shadow rounded p-6"
-                noValidate
-            >
+        <div className="flex flex-col items-center w-full">
+            <form onSubmit={handleSubmit} className="w-full max-w-xl min-h-[400px] mx-auto p-8 bg-white shadow rounded-xl flex flex-col justify-center" noValidate>
 
                 {/* Nadpis formulára */}
-                <h1 className="text-2xl font-bold mb-4">Registration</h1>
+                <h2 className="text-2xl font-bold mb-4">Registrácia</h2>
 
                 {/* Všeobecná chyba zo servera */}
-                {errors.general && (
-                    <p className="text-red-600 text-sm mb-3">{errors.general}</p>
-                )}
+                {errors.general && <div className="mb-4 text-sm text-red-600">{errors.general}</div>}
 
-                {/* Úspešná správa po registrácii */}
-                {success && (
-                    <p className="text-green-600 text-sm mb-3">{success}</p>
-                )}
+                {/* Správa pri úspešnej registrácii */}
+                {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
 
-                {/* Input pre krstné meno */}
+                {/* Pole pre meno */}
                 <label className="block mb-3">
-                    <span className="text-sm font-medium">First name</span>
+                    <span className="text-sm font-medium">Meno</span>
                     <input
                         type="text"
+                        placeholder="Meno"
                         value={form.firstName}
                         onChange={onChange("firstName")}
-                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${
-                            errors.firstName ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="John"
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.firstName && (
-                        <p className="text-red-500 text-sm mt-1">
-                            {errors.firstName}
-                        </p>
-                    )}
+                    {errors.firstName && <p className="text-red-500 text-sm mt-1">{errors.firstName}</p>}
                 </label>
 
-                {/* Input pre priezvisko */}
+                {/* Pole pre priezvisko */}
                 <label className="block mb-3">
-                    <span className="text-sm font-medium">Last name</span>
+                    <span className="text-sm font-medium">Priezvisko</span>
                     <input
                         type="text"
+                        placeholder="Priezvisko"
                         value={form.lastName}
                         onChange={onChange("lastName")}
-                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${
-                            errors.lastName ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="Doe"
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.lastName && (
-                        <p className="text-red-500 text-sm mt-1">
-                            {errors.lastName}
-                        </p>
-                    )}
+                    {errors.lastName && <p className="text-red-500 text-sm mt-1">{errors.lastName}</p>}
                 </label>
 
-                {/* Input pre email */}
+                {/* Pole pre email */}
                 <label className="block mb-3">
                     <span className="text-sm font-medium">Email</span>
                     <input
                         type="email"
+                        placeholder="Email"
                         value={form.email}
                         onChange={onChange("email")}
-                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${
-                            errors.email ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="john.doe@example.com"
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.email && (
-                        <p className="text-red-500 text-sm mt-1">
-                            {errors.email}
-                        </p>
-                    )}
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                 </label>
 
-                {/* Input pre heslo */}
+                {/* Pole pre heslo */}
                 <label className="block mb-3">
-                    <span className="text-sm font-medium">Password</span>
+                    <span className="text-sm font-medium">Heslo</span>
                     <input
                         type="password"
+                        placeholder="Heslo"
                         value={form.password}
                         onChange={onChange("password")}
-                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${
-                            errors.password ? "border-red-500" : "border-gray-300"
-                        }`}
-                        placeholder="********"
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"}`}
                     />
-                    {errors.password && (
-                        <p className="text-red-500 text-sm mt-1">
-                            {errors.password}
-                        </p>
-                    )}
+                    {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
                 </label>
 
                 {/* Checkbox pre študenta */}
-                <label className="flex items-center gap-2 mb-4">
+                <label className="flex items-center mb-4">
                     <input
                         type="checkbox"
                         checked={form.isStudent}
                         onChange={onChange("isStudent")}
-                        className="h-4 w-4"
+                        className="mr-2"
                     />
-                    <span className="text-sm font-medium">I am a student</span>
+                    <span className="text-sm">Som študent</span>
                 </label>
 
                 {/* Tlačidlo na odoslanie formulára */}
-                <button
-                    type="submit"
-                    className="w-full p-2 bg-blue-600 text-white rounded disabled:opacity-60"
-                    disabled={loading}
-                >
-                    {loading ? "Submitting..." : "Register"}
+                <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded disabled:opacity-60" disabled={loading}>
+                    {loading ? "Odosielam..." : "Registrovať"}
                 </button>
 
+                {/* Odkaz na prihlásenie */}
+                <div className="mt-6 text-center">
+                    <span className="text-gray-600">Máte účet? </span>
+                    <Link to="/login" className="text-blue-600 hover:underline font-medium">Prihláste sa</Link>
+                </div>
             </form>
         </div>
     );

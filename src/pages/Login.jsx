@@ -1,5 +1,6 @@
 // Import React hooku useState na prácu so stavom komponentu
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 // Základná URL adresa backendu z .env súboru alebo fallback na localhost
 // Zároveň sa odstraňuje lomka na konci URL, ak tam je
@@ -22,6 +23,8 @@ export default function Login() {
 
     // Stav pre úspešnú správu po prihlásení
     const [success, setSuccess] = useState("");
+
+    const navigate = useNavigate(); // na presmerovanie po prihlásení
 
     // Funkcia na validáciu údajov na strane klienta
     function validateClientSide() {
@@ -112,12 +115,11 @@ export default function Login() {
             // Ak bolo prihlásenie úspešné
             setErrors({});
             setSuccess(data.message || "Prihlásenie úspešné");
-
-            // Voliteľné presmerovanie po úspešnom prihlásení
-            // window.location.href = '/?c=Home&a=index';
-
-            // Vypnutie načítavania
+            // Nastav prihlásenie a presmeruj na dashboard
+            localStorage.setItem("isLoggedIn", "1");
             setLoading(false);
+            navigate("/dashboard");
+            return;
 
         } catch (err) {
             // Ak sa nepodarilo spojiť so serverom
@@ -128,59 +130,66 @@ export default function Login() {
 
     // Vykreslenie formulára
     return (
-        <form onSubmit={handleSubmit} className="max-w-md mx-auto p-6 bg-white shadow rounded" noValidate>
+        <div className="flex flex-col items-center w-full">
+            <form onSubmit={handleSubmit} className="w-full max-w-xl min-h-[400px] mx-auto p-8 bg-white shadow rounded-xl flex flex-col justify-center" noValidate>
 
-            {/* Nadpis formulára */}
-            <h2 className="text-2xl font-bold mb-4">Prihlásenie</h2>
+                {/* Nadpis formulára */}
+                <h2 className="text-2xl font-bold mb-4">Prihlásenie</h2>
 
-            {/* Všeobecná chyba zo servera */}
-            {errors.general && <div className="mb-4 text-sm text-red-600">{errors.general}</div>}
+                {/* Všeobecná chyba zo servera */}
+                {errors.general && <div className="mb-4 text-sm text-red-600">{errors.general}</div>}
 
-            {/* Správa pri úspešnom prihlásení */}
-            {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
+                {/* Správa pri úspešnom prihlásení */}
+                {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
 
-            {/* Pole pre email */}
-            <label className="block mb-3">
-                <span className="text-sm font-medium">Email</span>
-                <input
-                    autoFocus // Automaticky nastaví kurzor do poľa
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => {
-                        setEmail(e.target.value); // Ukladá email do stavu
-                        setErrors((prev) => ({ ...prev, email: undefined })); // Odstráni chybu emailu
-                        setSuccess(""); // Zruší úspešnú správu
-                    }}
-                    className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"}`}
-                />
-                {/* Chybová hláška pre email */}
-                {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
-            </label>
+                {/* Pole pre email */}
+                <label className="block mb-3">
+                    <span className="text-sm font-medium">Email</span>
+                    <input
+                        autoFocus // Automaticky nastaví kurzor do poľa
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => {
+                            setEmail(e.target.value); // Ukladá email do stavu
+                            setErrors((prev) => ({ ...prev, email: undefined })); // Odstráni chybu emailu
+                            setSuccess(""); // Zruší úspešnú správu
+                        }}
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.email ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {/* Chybová hláška pre email */}
+                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                </label>
 
-            {/* Pole pre heslo */}
-            <label className="block mb-4">
-                <span className="text-sm font-medium">Heslo</span>
-                <input
-                    type="password"
-                    placeholder="Heslo"
-                    value={password}
-                    onChange={(e) => {
-                        setPassword(e.target.value); // Ukladá heslo do stavu
-                        setErrors((prev) => ({ ...prev, password: undefined })); // Odstráni chybu hesla
-                        setSuccess(""); // Zruší úspešnú správu
-                    }}
-                    className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"}`}
-                />
-                {/* Chybová hláška pre heslo */}
-                {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
-            </label>
+                {/* Pole pre heslo */}
+                <label className="block mb-4">
+                    <span className="text-sm font-medium">Heslo</span>
+                    <input
+                        type="password"
+                        placeholder="Heslo"
+                        value={password}
+                        onChange={(e) => {
+                            setPassword(e.target.value); // Ukladá heslo do stavu
+                            setErrors((prev) => ({ ...prev, password: undefined })); // Odstráni chybu hesla
+                            setSuccess(""); // Zruší úspešnú správu
+                        }}
+                        className={`mt-1 block w-full p-2 border rounded focus:outline-none ${errors.password ? "border-red-500" : "border-gray-300"}`}
+                    />
+                    {/* Chybová hláška pre heslo */}
+                    {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+                </label>
 
-            {/* Tlačidlo na odoslanie formulára */}
-            <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded disabled:opacity-60" disabled={loading}>
-                {loading ? "Posielam..." : "Prihlásiť"}
-            </button>
+                {/* Tlačidlo na odoslanie formulára */}
+                <button type="submit" className="w-full p-2 bg-blue-600 text-white rounded disabled:opacity-60" disabled={loading}>
+                    {loading ? "Posielam..." : "Prihlásiť"}
+                </button>
 
-        </form>
+                {/* Odkaz na registráciu */}
+                <div className="mt-6 text-center">
+                    <span className="text-gray-600">Nemáte účet? </span>
+                    <Link to="/register" className="text-blue-600 hover:underline font-medium">Zaregistrujte sa</Link>
+                </div>
+            </form>
+        </div>
     );
 }
