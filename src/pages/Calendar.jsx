@@ -12,6 +12,11 @@ export default function Calendar() {
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
 
+    // view mode: 'day' | '3day' | 'week' | 'month'
+    const [viewMode, setViewMode] = useState('month');
+    // base date for day/3day/week views
+    const [baseDate, setBaseDate] = useState(new Date());
+
      const [showCreate, setShowCreate] = useState(false);
      const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category: '' });
      const [editing, setEditing] = useState(null);
@@ -69,6 +74,62 @@ export default function Calendar() {
         const inputVal = `${yyyy}-${mm}-${dd}T00:00`;
         setForm((s) => ({ ...s, deadline: inputVal }));
         setShowCreate(true);
+    }
+
+    // helper: group tasks by date key 'YYYY-MM-DD'
+    const dateKey = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const buildEventsByDate = (list) => {
+        const map = {};
+        for (const t of list || []) {
+            const raw = t.deadline ?? t.date ?? t.start ?? null;
+            if (!raw) continue;
+            const d = new Date(String(raw).replace(' ', 'T'));
+            if (isNaN(d.getTime())) continue;
+            const k = dateKey(d);
+            if (!map[k]) map[k] = [];
+            map[k].push(t);
+        }
+        return map;
+    };
+
+    const eventsByDate = buildEventsByDate(tasks);
+
+    // helper: get list of dates for view starting at baseDate
+    function getDisplayDates() {
+        if (viewMode === 'month') return null;
+        const start = new Date(baseDate);
+        const count = viewMode === 'week' ? 7 : viewMode === '3day' ? 3 : 1;
+        const arr = [];
+        for (let i = 0; i < count; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            arr.push(d);
+        }
+        return arr;
+    }
+
+    const displayDates = getDisplayDates();
+
+    // navigate baseDate by view chunk (for day/3day/week)
+    function changeBaseDate(delta) {
+        const d = new Date(baseDate);
+        if (viewMode === 'month') {
+            // move by months
+            d.setMonth(d.getMonth() + delta);
+            d.setDate(1);
+            setBaseDate(d);
+            return;
+        }
+        const step = viewMode === 'week' ? 7 : viewMode === '3day' ? 3 : 1;
+        d.setDate(d.getDate() + delta * step);
+        setBaseDate(d);
+    }
+
+    function fmtTime(raw) {
+        if (!raw) return '';
+        const d = new Date(String(raw).replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     async function createTask(e) {
@@ -137,14 +198,51 @@ export default function Calendar() {
         <div className="min-h-screen">
             <div className="flex items-center justify-between p-6">
                 <h1 className = "left-3 top-3 text-2xl font-bold">Kalendar</h1>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => changeBaseDate(-1)} className="px-3 py-1 rounded bg-gray-200">Prev</button>
+                    <button onClick={() => { setViewMode('day'); setBaseDate(new Date()); }} className={`px-3 py-1 rounded ${viewMode==='day' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Day</button>
+                    <button onClick={() => { setViewMode('3day'); setBaseDate(new Date()); }} className={`px-3 py-1 rounded ${viewMode==='3day' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>3 Days</button>
+                    <button onClick={() => { setViewMode('week'); setBaseDate(new Date()); }} className={`px-3 py-1 rounded ${viewMode==='week' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Week</button>
+                    <button onClick={() => { setViewMode('month'); }} className={`px-3 py-1 rounded ${viewMode==='month' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>Month</button>
+                    <button onClick={() => changeBaseDate(1)} className="px-3 py-1 rounded bg-gray-200">Next</button>
+                </div>
             </div>
 
-            {error && <div className="mb-4 text-sm text-red-600 px-6">{error}</div>}
-            {success && <div className="mb-4 text-sm text-green-600 px-6">{success}</div>}
-            {loading && <div className="mb-4 text-sm text-gray-700 px-6">Loading tasks...</div>}
+             {error && <div className="mb-4 text-sm text-red-600 px-6">{error}</div>}
+             {success && <div className="mb-4 text-sm text-green-600 px-6">{success}</div>}
+             {loading && <div className="mb-4 text-sm text-gray-700 px-6">Loading tasks...</div>}
 
-            <div className="p-6 mt-6">
-                <KalendarMesiac rows={5} cols={7} tasks={tasks} onEventClick={openEdit} loading={loading} onDayClick={handleDayClick} />
+             <div className="p-6 mt-6">
+                {viewMode === 'month' ? (
+                    <KalendarMesiac rows={5} cols={7} month={baseDate.getMonth()+1} year={baseDate.getFullYear()} tasks={tasks} onEventClick={openEdit} loading={loading} onDayClick={handleDayClick} />
+                ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${displayDates ? displayDates.length : 1}, minmax(0, 1fr))`, gap: '1rem' }}>
+                        {(displayDates || []).map((d) => {
+                             const k = dateKey(d);
+                             const list = eventsByDate[k] || [];
+                             return (
+                                 <div key={k} className="bg-white p-4 rounded shadow">
+                                     <div className="font-semibold mb-2">{d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}</div>
+                                     {list.length === 0 ? (
+                                         <div className="text-sm text-gray-500">No tasks</div>
+                                     ) : (
+                                         list.map((t) => (
+                                             <div key={t.id} className="mb-3 p-2 border rounded">
+                                                 <div className="font-medium">{t.title}</div>
+                                                 <div className="text-xs text-gray-600">{fmtTime(t.deadline)} {t.category ? `· ${t.category}` : ''}</div>
+                                                 {t.description ? <div className="text-sm text-gray-700 mt-1">{t.description}</div> : null}
+                                                 <div className="mt-2 flex gap-2">
+                                                     <button onClick={() => openEdit(t)} className="px-2 py-1 bg-blue-600 text-white rounded text-sm">Edit</button>
+                                                     <button onClick={() => handleDelete(t.id)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
+                                                 </div>
+                                             </div>
+                                         ))
+                                     )}
+                                 </div>
+                             );
+                         })}
+                     </div>
+                 )}
              </div>
 
             {showCreate && (

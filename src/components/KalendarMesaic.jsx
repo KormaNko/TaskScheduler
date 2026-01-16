@@ -17,8 +17,16 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     const [currentMonth, setCurrentMonth] = useState(month ?? new Date().getMonth() + 1);
     const [currentYear, setCurrentYear] = useState(year ?? new Date().getFullYear());
 
-    // Zmena mesiaca o delta (-1 alebo +1)
+    // If parent supplies month/year, use them as effective values (controlled mode)
+    const effectiveMonth = (typeof month === 'number') ? month : currentMonth;
+    const effectiveYear = (typeof year === 'number') ? year : currentYear;
+
+    // Zmena mesiaca o delta (-1 alebo +1) - only update internal state when uncontrolled
     function changeMonth(delta) {
+        if (typeof month === 'number' && typeof year === 'number') {
+            // controlled by parent - no internal change
+            return;
+        }
         let m = currentMonth + delta;
         let y = currentYear;
         if (m < 1) { m = 12; y -= 1; }
@@ -27,10 +35,10 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
         setCurrentYear(y);
     }
 
-    // Výpočty potrebné pre vykreslenie dní
-    const monthIndex = Math.max(0, Math.min(11, currentMonth - 1));
-    const daysInMonth = new Date(currentYear, monthIndex + 1, 0).getDate();
-    const firstJsDay = new Date(currentYear, monthIndex, 1).getDay();
+    // Výpočty potrebné pre vykreslenie dní - use effectiveMonth/effectiveYear
+    const monthIndex = Math.max(0, Math.min(11, effectiveMonth - 1));
+    const daysInMonth = new Date(effectiveYear, monthIndex + 1, 0).getDate();
+    const firstJsDay = new Date(effectiveYear, monthIndex, 1).getDay();
     const firstDayMondayIndex = (firstJsDay + 6) % 7;
     const leading = Array.from({ length: firstDayMondayIndex }, () => null);
     const dateCells = Array.from({ length: daysInMonth }, (_, i) => i + 1);
@@ -49,7 +57,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
             if (!raw) continue;
             const d = new Date(String(raw).replace(' ', 'T'));
             if (isNaN(d.getTime())) continue;
-            if (d.getFullYear() !== currentYear) continue;
+            if (d.getFullYear() !== effectiveYear) continue;
             if (d.getMonth() !== monthIndex) continue;
             const day = d.getDate();
             if (!eventsByDay[day]) eventsByDay[day] = [];
@@ -84,16 +92,23 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
             {/* Horný ovládací panel kalendára */}
             <div style={controlBarStyle}>
                 <div style={controlGroupStyle}>
-                    <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" style={buttonStyle}>Prev</button>
-                    <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" style={{ ...buttonStyle, background: '#ffffff' }}>Dnes</button>
-                </div>
+                    {/* Only show internal controls when not controlled by parent */}
+                    {!(typeof month === 'number' && typeof year === 'number') && (
+                        <>
+                            <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" style={buttonStyle}>Prev</button>
+                            <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" style={{ ...buttonStyle, background: '#ffffff' }}>Dnes</button>
+                        </>
+                    )}
+                 </div>
 
-                <div style={titleStyle}><div style={{ fontWeight: 700 }}>{months[currentMonth - 1]} {currentYear}</div></div>
+                <div style={titleStyle}><div style={{ fontWeight: 700 }}>{months[monthIndex]} {effectiveYear}</div></div>
 
                 <div style={controlGroupStyle}>
-                    <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" style={buttonStyle}>Next</button>
-                </div>
-            </div>
+                    {!(typeof month === 'number' && typeof year === 'number') && (
+                        <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" style={buttonStyle}>Next</button>
+                    )}
+                 </div>
+             </div>
 
             {loading && (<div style={{ padding: 8, color: '#374151', fontSize: 13 }}>Loading tasks...</div>)}
 
@@ -106,28 +121,28 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
                     {/* Dni mesiaca */}
                     {displayCells.map((v, i) => (
-                        <div key={i} style={cellCombinedStyle(v === null)} onClick={() => { if (v !== null) onDayClick(v, currentMonth, currentYear); }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                <div style={dateNumberStyle}>{v !== null ? v : ''}</div>
-                            </div>
+                        <div key={i} style={cellCombinedStyle(v === null)} onClick={() => { if (v !== null) onDayClick(v, effectiveMonth, effectiveYear); }}>
+                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                 <div style={dateNumberStyle}>{v !== null ? v : ''}</div>
+                             </div>
 
-                            <div style={eventsStyle}>
+                             <div style={eventsStyle}>
                                 {v !== null && eventsByDay[v] ? (
-                                    <>
-                                        {eventsByDay[v].slice(0,2).map((ev, idx) => (
-                                            <span key={String(ev.id) + '-' + idx} style={eventPillStyle} title={ev.title} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
-                                                {ev.title}
-                                            </span>
-                                        ))}
-                                        {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} more</div>) : null}
-                                    </>
-                                ) : null}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                                     <>
+                                         {eventsByDay[v].slice(0,2).map((ev, idx) => (
+                                             <span key={String(ev.id) + '-' + idx} style={eventPillStyle} title={ev.title} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
+                                                 {ev.title}
+                                             </span>
+                                         ))}
+                                         {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} more</div>) : null}
+                                     </>
+                                 ) : null}
+                             </div>
+                         </div>
+                     ))}
+                 </div>
+             </div>
 
-        </div>
-    );
+         </div>
+     );
 }
