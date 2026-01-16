@@ -1,10 +1,9 @@
 // Import React knižnice a hooku useState na prácu so stavom komponentu
 import React, { useState } from "react";
 
-// Komponent mesačného kalendára - mobile-first a responzívny
-// Props: rows (default 6), cols (default 7), month (1-12), year
-export default function KalendarMesiac({ rows = 6, cols = 7, month, year }) {
-
+// Komponent mesačného kalendára
+// Props: rows, cols, month, year, tasks (array), onEventClick(fn), loading, onDayClick
+export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
     // Názvy mesiacov v slovenčine
     const months = [
         'Január', 'Február', 'Marec', 'Apríl', 'Máj', 'Jún',
@@ -41,117 +40,40 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year }) {
     const displayCells = [...leading, ...dateCells];
     while (displayCells.length < totalGridCells) displayCells.push(null);
 
-    // ------------------
-    // ŠTÝLY (samostatné objekty)
-    // ------------------
-
-    // Hlavný kontajner
-    const containerStyle = {
-        width: '100%',
-        maxWidth: '1100px',
-        margin: '0 auto',
-        padding: '12px',
-        boxSizing: 'border-box',
-    };
-
-    // Horný ovládací panel
-    const controlBarStyle = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '12px',
-    };
-
-    // Skupina tlačidiel
-    const controlGroupStyle = {
-        display: 'flex',
-        gap: '8px',
-        alignItems: 'center',
-    };
-
-    // Tlačidlo (jednoduché)
-    const buttonStyle = {
-        padding: '8px 10px',
-        borderRadius: '6px',
-        background: '#f3f4f6',
-        border: '1px solid #e5e7eb',
-        cursor: 'pointer',
-        fontSize: '14px',
-    };
-
-    // Nadpis mesiaca
-    const titleStyle = {
-        textAlign: 'center',
-        fontWeight: 600,
-        flex: 1,
-    };
-
-    // Wrapper pre grid
-    const gridWrapperStyle = {
-        overflow: 'hidden',
-        borderRadius: '8px',
-        maxWidth: '100%',
-    };
-
-    // Dynamická šablóna stĺpcov (gridTemplateColumns) + obecné vlastnosti gridu
-    const gridStyle = {
-        display: 'grid',
-        gap: '6px',
-        padding: '6px',
-        background: 'transparent',
-        ...{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` },
-    };
-
-    // Štýl hlavičky dní
-    const headerStyle = {
-        height: '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontWeight: 600,
-        background: '#ffffff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '6px',
-        color: '#111827',
-    };
-
-    // Štýl jednej bunky (deň)
-    const cellStyle = {
-        background: '#f9fafb',
-        border: '1px solid #e5e7eb',
-        borderRadius: '6px',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '8px',
-        minHeight: '48px',
-        boxSizing: 'border-box',
-        fontSize: '14px',
-        color: '#111827',
-    };
-
-    const dateNumberStyle = {
-        fontSize: '12px',
-        fontWeight: 500,
-        color: '#374151',
-    };
-
-    const eventsStyle = {
-        marginTop: '6px',
-        fontSize: '12px',
-        color: '#6b7280',
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-    };
-
-    // Dynamický inline style pre jednotlivú bunku, aby sme vedeli odlíšiť prázdne
-    function cellCombinedStyle(isEmpty) {
-        return {
-            ...cellStyle,
-            background: isEmpty ? 'transparent' : cellStyle.background,
-        };
+    // Build events map for current month
+    const eventsByDay = {};
+    if (Array.isArray(tasks) && tasks.length) {
+        for (const t of tasks) {
+            if (!t) continue;
+            const raw = t.deadline ?? t.date ?? t.start ?? null;
+            if (!raw) continue;
+            const d = new Date(String(raw).replace(' ', 'T'));
+            if (isNaN(d.getTime())) continue;
+            if (d.getFullYear() !== currentYear) continue;
+            if (d.getMonth() !== monthIndex) continue;
+            const day = d.getDate();
+            if (!eventsByDay[day]) eventsByDay[day] = [];
+            eventsByDay[day].push(t);
+        }
     }
+
+    // styles
+    const cellMinHeight = `calc((100vh - 260px) / ${rows})`;
+    const containerStyle = { width: '100%', maxWidth: '100%', margin: '0 auto', padding: '12px', boxSizing: 'border-box' };
+    const controlBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '12px' };
+    const controlGroupStyle = { display: 'flex', gap: '8px', alignItems: 'center' };
+    const buttonStyle = { padding: '8px 10px', borderRadius: '6px', background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' };
+    const titleStyle = { textAlign: 'center', fontWeight: 600, flex: 1 };
+    const gridWrapperStyle = { overflow: 'auto', borderRadius: '8px', maxWidth: '100%', height: `calc(100vh - 220px)` };
+    const gridStyle = { display: 'grid', gap: '6px', padding: '6px', background: 'transparent', ...{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }, alignContent: 'start', height: '100%' };
+    const headerStyle = { height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px', color: '#111827' };
+    const cellStyle = { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', display: 'flex', flexDirection: 'column', padding: '8px', minHeight: cellMinHeight, boxSizing: 'border-box', fontSize: '14px', color: '#111827' };
+    const dateNumberStyle = { fontSize: '12px', fontWeight: 500, color: '#374151' };
+    const eventsStyle = { marginTop: '6px', fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+    function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background }; }
+    const eventPillStyle = { display: 'block', padding: '2px 6px', borderRadius: '999px', background: '#e6f4ea', color: '#065f46', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
+
+    const fmtTime = (raw) => { if (!raw) return ''; const d = new Date(String(raw).replace(' ', 'T')); if (isNaN(d.getTime())) return ''; return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
 
     // ------------------
     // Render
@@ -162,61 +84,47 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year }) {
             {/* Horný ovládací panel kalendára */}
             <div style={controlBarStyle}>
                 <div style={controlGroupStyle}>
-                    <button
-                        onClick={() => changeMonth(-1)}
-                        aria-label="Predchádzajúci mesiac"
-                        style={buttonStyle}
-                    >
-                        Prev
-                    </button>
-
-                    <button
-                        onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }}
-                        aria-label="Dnešný mesiac"
-                        style={{ ...buttonStyle, background: '#ffffff' }}
-                    >
-                        Dnes
-                    </button>
+                    <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" style={buttonStyle}>Prev</button>
+                    <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" style={{ ...buttonStyle, background: '#ffffff' }}>Dnes</button>
                 </div>
 
-                <div style={titleStyle}>
-                    <div style={{ fontWeight: 700 }}>{months[currentMonth - 1]} {currentYear}</div>
-                </div>
+                <div style={titleStyle}><div style={{ fontWeight: 700 }}>{months[currentMonth - 1]} {currentYear}</div></div>
 
                 <div style={controlGroupStyle}>
-                    <button
-                        onClick={() => changeMonth(1)}
-                        aria-label="Nasledujúci mesiac"
-                        style={buttonStyle}
-                    >
-                        Next
-                    </button>
+                    <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" style={buttonStyle}>Next</button>
                 </div>
             </div>
+
+            {loading && (<div style={{ padding: 8, color: '#374151', fontSize: 13 }}>Loading tasks...</div>)}
 
             {/* Grid s dňami */}
             <div style={gridWrapperStyle}>
                 <div style={gridStyle}>
 
                     {/* Hlavička dní */}
-                    {daysOfWeek.slice(0, cols).map((d, i) => (
-                        <div key={`header-${i}`} style={headerStyle}>
-                            {d}
-                        </div>
-                    ))}
+                    {daysOfWeek.slice(0, cols).map((d, i) => (<div key={`header-${i}`} style={headerStyle}>{d}</div>))}
 
                     {/* Dni mesiaca */}
                     {displayCells.map((v, i) => (
-                        <div key={i} style={cellCombinedStyle(v === null)}>
+                        <div key={i} style={cellCombinedStyle(v === null)} onClick={() => { if (v !== null) onDayClick(v, currentMonth, currentYear); }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                 <div style={dateNumberStyle}>{v !== null ? v : ''}</div>
-                                {/* miesto pre ikony/indikátory */}
                             </div>
 
-                            <div style={eventsStyle}>{/* sem sa dajú pridať eventy */}</div>
+                            <div style={eventsStyle}>
+                                {v !== null && eventsByDay[v] ? (
+                                    <>
+                                        {eventsByDay[v].slice(0,2).map((ev, idx) => (
+                                            <span key={String(ev.id) + '-' + idx} style={eventPillStyle} title={ev.title} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
+                                                {ev.title}
+                                            </span>
+                                        ))}
+                                        {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} more</div>) : null}
+                                    </>
+                                ) : null}
+                            </div>
                         </div>
                     ))}
-
                 </div>
             </div>
 
