@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { CheckSquare, Calendar, Users, LayoutDashboard } from "lucide-react";
+import { CheckSquare, Calendar, Users, LayoutDashboard, Tag } from "lucide-react";
 import LogoutButton from "./LogoutButton.jsx";
 
 export default function Sidebar() {
@@ -23,6 +23,7 @@ export default function Sidebar() {
                 <nav className="flex flex-col gap-2 text-gray-700">
                     <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" />
                     <NavItem to="/calendar" icon={<Calendar size={18} />} label="Kalendár" />
+                    <NavItem to="/categories" icon={<Tag size={18} />} label="Kategórie" />
                     <NavItem to="/users" icon={<Users size={18} />} label="Správa používateľov" />
                 </nav>
 
