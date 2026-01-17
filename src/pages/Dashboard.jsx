@@ -12,17 +12,11 @@ const STATUS_OPTIONS = [
     { value: 'completed', label: 'Completed' },
 ];
 
-const CATEGORY_OPTIONS = [
-    { value: '', label: '—' },
-    { value: 'school', label: 'School' },
-    { value: 'work', label: 'Work' },
-    { value: 'free_time', label: 'Free time' },
-    { value: 'personal', label: 'Personal' },
-    { value: 'other', label: 'Other' },
-];
+// CATEGORY_OPTIONS come from the backend user categories. We will fetch them on mount.
 
 export default function Dashboard() {
     const [tasks, setTasks] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -34,6 +28,9 @@ export default function Dashboard() {
 
     useEffect(() => { fetchTasks(); }, []);
 
+    // fetch categories on mount
+    useEffect(() => { fetchCategories(); }, []);
+
     async function fetchTasks() {
         setLoading(true); setError(null); setSuccess(null);
         try {
@@ -44,6 +41,18 @@ export default function Dashboard() {
             console.error('fetchTasks', e);
             setError(e.message || 'Failed to load tasks');
         } finally { setLoading(false); }
+    }
+
+    async function fetchCategories() {
+        try {
+            const data = await api.get('/?c=category&a=index');
+            const list = Array.isArray(data) ? data : data?.data ?? [];
+            setCategories(Array.isArray(list) ? list : []);
+        } catch (e) {
+            console.error('fetchCategories', e);
+            // non-fatal: categories might be empty
+            setCategories([]);
+        }
     }
 
     function updateForm(k, v) { setForm((s) => ({ ...s, [k]: v })); }
@@ -169,7 +178,11 @@ export default function Dashboard() {
 
                             <label className="block text-sm font-medium mt-2">Category</label>
                             <select className="mt-1 block w-full border p-2 rounded" value={form.category} onChange={(e) => updateForm('category', e.target.value)}>
-                                {CATEGORY_OPTIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                <option value="">—</option>
+                                {categories.map((c) => (
+                                    // prefer id if available, otherwise use name
+                                    <option key={c.id ?? c.name} value={c.id ?? c.name}>{c.name ?? String(c)}</option>
+                                ))}
                             </select>
 
                             <label className="block text-sm font-medium mt-2">Deadline</label>
@@ -204,10 +217,12 @@ export default function Dashboard() {
                         <tr><td colSpan={9} className="p-4">Loading...</td></tr>
                     ) : tasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No tasks</td></tr>
-                    ) : tasks.map((t) => <TaskCard key={t.id} task={t} onEdit={openEdit} onDelete={handleDelete} />)}
-                    </tbody>
-                </table>
-            </section>
+                    ) : tasks.length === 0 ? (
+                        <tr><td colSpan={9} className="p-4">No tasks</td></tr>
+                    ) : tasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
+                     </tbody>
+                 </table>
+             </section>
 
             {editing && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
@@ -222,7 +237,8 @@ export default function Dashboard() {
                                 </select>
                                 <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border p-2 w-28" />
                                 <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border p-2">
-                                    {CATEGORY_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                                    <option value="">—</option>
+                                    {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? c.name}>{c.name ?? String(c)}</option>)}
                                 </select>
                                 <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2" />
                             </div>
