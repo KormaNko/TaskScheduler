@@ -1,6 +1,8 @@
 // Import React hooku useState na prácu so stavom komponentu
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 // Základná URL adresa backendu z .env súboru alebo fallback na localhost
 // Zároveň sa odstraňuje lomka na konci URL, ak tam je
@@ -25,6 +27,13 @@ export default function Login() {
     const [success, setSuccess] = useState("");
 
     const navigate = useNavigate(); // na presmerovanie po prihlásení
+    const { setAuth } = useAuth();
+
+    // Redirect to dashboard if already authenticated
+    const { auth, loading: authLoading } = useAuth();
+    React.useEffect(() => {
+        if (!authLoading && auth) navigate('/');
+    }, [auth, authLoading]);
 
     // Funkcia na validáciu údajov na strane klienta
     function validateClientSide() {
@@ -67,64 +76,26 @@ export default function Login() {
         setLoading(true);
 
         try {
-            // Zostavenie URL adresy pre backend
-            const url = `${API_BASE}/?c=login&a=login`;
-
             // Odoslanie POST požiadavky na server
-            const res = await fetch(url, {
-                method: "POST", // Typ HTTP metódy
-                headers: { "Content-Type": "application/json" }, // Nastavenie hlavičky pre JSON
-                credentials: "include", // Povolenie cookies (session)
-                body: JSON.stringify({ email, password }), // Odoslanie emailu a hesla ako JSON
-            });
-
-            let data = null;
-
-            try {
-                // Pokus o načítanie JSON odpovede zo servera
-                data = await res.json();
-            } catch {
-                // Ak server nevráti JSON, zobrazí sa všeobecná chyba
-                setErrors({ general: `Chyba servera: ${res.status}` });
-                setLoading(false);
-                return;
-            }
-
-            // Ak HTTP odpoveď nie je úspešná (napr. 400, 401, 403)
-            if (!res.ok) {
-
-                // Ak server vrátil konkrétne chyby k poliam
-                if (data.errors && typeof data.errors === "object") {
-                    setErrors(data.errors);
-                } else {
-                    // Spracovanie rôznych stavových kódov
-                    if (res.status === 401) {
-                        setErrors({ general: data.message || "Nesprávne prihlasovacie údaje" });
-                    } else if (res.status === 403) {
-                        setErrors({ general: data.message || "Účet nie je povolený / email nie je overený" });
-                    } else {
-                        setErrors({ general: data.message || "Neznáma chyba servera" });
-                    }
-                }
-
-                // Vypnutie načítavania
-                setLoading(false);
-                return;
-            }
+            const data = await api.post(`/?c=login&a=login`, { email, password });
 
             // Ak bolo prihlásenie úspešné
             setErrors({});
-            setSuccess(data.message || "Prihlásenie úspešné");
-            // Nastav prihlásenie a presmeruj na dashboard
-            localStorage.setItem("isLoggedIn", "1");
+            setSuccess(data?.message || "Prihlásenie úspešné");
+            try { localStorage.setItem("isLoggedIn", "1"); } catch (e) {}
+            try { setAuth(true); } catch (e) {}
             setLoading(false);
-            navigate("/dashboard");
+            navigate('/');
             return;
 
         } catch (err) {
-            // Ak sa nepodarilo spojiť so serverom
-            setErrors({ general: "Nepodarilo sa spojiť so serverom" });
             setLoading(false);
+            // err.status === 401 -> invalid credentials
+            if (err.status === 401) {
+                setErrors({ general: err.message || 'Nesprávne prihlasovacie údaje' });
+            } else {
+                setErrors({ general: err.message || 'Nepodarilo sa spojiť so serverom' });
+            }
         }
     }
 

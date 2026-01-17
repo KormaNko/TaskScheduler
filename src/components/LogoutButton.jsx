@@ -1,63 +1,33 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
+import api from '../lib/api';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 export default function LogoutButton() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-
-    // Use same default API base as other pages (matches Dashboard.jsx)
-    const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost').replace(/\/$/, '');
+    const { setAuth } = useAuth();
 
     async function handleLogout(e) {
         e?.preventDefault?.();
         if (loading) return;
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/?c=logout&a=index`, {
-                method: 'POST',
-                credentials: 'include', // send cookies (PHP session)
-                headers: { 'Content-Type': 'application/json' },
-            });
-            if (res.ok) {
-                try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (err) {}
-                console.debug('Logout POST ok, checking server session...');
-                // verify server session is destroyed by requesting the tasks endpoint
-                try {
-                    const check = await fetch(`${API_BASE}/?c=task&a=index`, { method: 'GET', credentials: 'include', headers: { Accept: 'application/json' } });
-                    if (check.ok) {
-                        // server still returns data -> logout probably failed
-                        const json = await check.json().catch(() => null);
-                        const list = Array.isArray(json) ? json : json?.data ?? json;
-                        if (Array.isArray(list) && list.length > 0) {
-                            alert('Logout appears to have failed on the server — you are still authenticated. Try again.');
-                            setLoading(false);
-                            return;
-                        }
-                    }
-                    console.debug('Session check returned', check.status);
-                } catch (err) {
-                    // network error on check - still navigate + reload to be safe
-                    console.warn('Error checking session after logout', err);
-                }
-
-                // Notify app to clear in-memory data immediately
-                try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
-                // If we reach here, logout succeeded server-side or check failed; navigate and reload to reset app state
-                try { navigate('/login', { replace: true }); } catch (e) { /* ignore */ }
-                window.location.reload();
-                return;
-            }
-            // if server returned non-ok, still navigate to login and reload so app resets
-            const json = await res.json().catch(() => ({}));
-            console.warn('Logout failed:', json);
+            await api.post('/?c=logout&a=index', {});
+            try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (err) {}
+            // notify app and set auth false
+            try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
+            try { setAuth(false); } catch (e) {}
             navigate('/login', { replace: true });
-            window.location.reload();
+            return;
         } catch (err) {
-            console.error('Logout error', err);
-            // on error also navigate to login
+            console.warn('Logout request failed', err);
+            // still clear client state as fallback
+            try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (e) {}
+            try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
+            try { setAuth(false); } catch (e) {}
             navigate('/login', { replace: true });
-            window.location.reload();
         } finally {
             setLoading(false);
         }

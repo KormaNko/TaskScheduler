@@ -1,5 +1,6 @@
 // Import React knižnice a hookov useState a useEffect
 import React, { useEffect, useState } from "react"; // React a základné hooky
+import api from '../lib/api';
 
 // Základná adresa backendu – buď z .env súboru alebo localhost
 const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost").replace(/\/$/, ""); // odstráni trailing slash
@@ -74,27 +75,13 @@ export default function UsersPage() {
         setError("");          // vymaže sa stará chyba
 
         try {
-            // Odoslanie GET požiadavky na backend
-            const res = await fetch(`${API_BASE}/?c=users&a=list`, {
-                method: "GET", // GET požiadavka
-                credentials: "include", // kvôli session cookies
-            });
-
-            // Pokus o načítanie JSON odpovede
-            const data = await res.json().catch(() => null); // bezpečný parse
-
-            // Ak odpoveď nie je OK (status != 200)
-            if (!res.ok) {
-                setError(data?.message || `Načítanie zlyhalo (${res.status})`); // nastav chybovú správu
-            } else {
-                // Uloženie používateľov do stavu
-                setUsers(data.data || []); // ulož pole (alebo prázdne)
-            }
-        } catch (e) {
-            setError("Nepodarilo sa načítať používateľov"); // sieť alebo iná chyba
-        } finally {
-            setLoadingList(false); // vypne sa loading
-        }
+            const data = await api.get('/?c=users&a=list');
+            setUsers(data?.data || data || []);
+         } catch (e) {
+             setError("Nepodarilo sa načítať používateľov"); // sieť alebo iná chyba
+         } finally {
+             setLoadingList(false); // vypne sa loading
+         }
     }
 
     // ============================
@@ -194,27 +181,20 @@ export default function UsersPage() {
         try {
             // ===== VYTVÁRANIE =====
             if (!isEditing) {
-                const res = await fetch(`${API_BASE}/?c=users&a=create`, {
-                    method: "POST", // POST pre vytvorenie
-                    headers: {"Content-Type": "application/json"}, // JSON
-                    credentials: "include", // cookies
-                    body: JSON.stringify({
-                        firstName: form.firstName.trim(), // trimni meno
-                        lastName: form.lastName.trim(), // trimni priezvisko
-                        email: form.email.trim(), // trimni email
-                        password: form.password, // heslo
-                        isStudent: form.isStudent ? 1 : 0, // backend očakáva 1/0
-                    }),
-                });
-
-                const data = await res.json().catch(() => null); // parse alebo null
-
-                if (!res.ok) {
-                    if (data?.errors) setFieldErrors(data.errors); // field errors z backendu
-                    else setError(data?.message || "Vytvorenie zlyhalo"); // iná chyba
-                } else {
-                    setShowForm(false); // zatvor formulár
-                    fetchUsers(); // refresh zoznamu
+                const payload = {
+                    firstName: form.firstName.trim(),
+                    lastName: form.lastName.trim(),
+                    email: form.email.trim(),
+                    password: form.password,
+                    isStudent: form.isStudent ? 1 : 0,
+                };
+                try {
+                    const data = await api.post('/?c=users&a=create', payload);
+                    setShowForm(false);
+                    await fetchUsers();
+                } catch (err) {
+                    if (err.status === 422 && err.errors) setFieldErrors(err.errors);
+                    else setError(err.message || 'Vytvorenie zlyhalo');
                 }
             }
             // ===== ÚPRAVA =====
@@ -228,24 +208,13 @@ export default function UsersPage() {
 
                 if (form.password) body.password = form.password; // pridaj heslo len ak je zadané
 
-                const res = await fetch(
-                    `${API_BASE}/?c=users&a=update&id=${encodeURIComponent(form.id)}`,
-                    {
-                        method: "POST", // POST pre update
-                        headers: {"Content-Type": "application/json"},
-                        credentials: "include",
-                        body: JSON.stringify(body), // telo s upravenými dátami
-                    }
-                );
-
-                const data = await res.json().catch(() => null); // parse alebo null
-
-                if (!res.ok) {
-                    if (data?.errors) setFieldErrors(data.errors); // nastav field errors
-                    else setError(data?.message || "Úprava zlyhala"); // iná chyba
-                } else {
-                    setShowForm(false); // zatvor formulár
-                    fetchUsers(); // reload zoznamu
+                try {
+                    const data = await api.post(`/?c=users&a=update&id=${encodeURIComponent(form.id)}`, body);
+                    setShowForm(false);
+                    await fetchUsers();
+                } catch (err) {
+                    if (err.status === 422 && err.errors) setFieldErrors(err.errors);
+                    else setError(err.message || 'Úprava zlyhala');
                 }
             }
         } catch (e) {
@@ -266,17 +235,11 @@ export default function UsersPage() {
         setError(""); // vymaž chybu
 
         try {
-            const res = await fetch(
-                `${API_BASE}/?c=users&a=delete&id=${encodeURIComponent(id)}`,
-                { method: "POST", credentials: "include" } // POST pre delete
-            );
-
-            const data = await res.json().catch(() => null); // parse alebo null
-
-            if (!res.ok) {
-                setError(data?.message || "Mazanie zlyhalo"); // nastav chybu
-            } else {
-                fetchUsers(); // refresh zoznamu
+            try {
+                await api.post(`/?c=users&a=delete&id=${encodeURIComponent(id)}`, {});
+                await fetchUsers();
+            } catch (err) {
+                setError(err.message || 'Mazanie zlyhalo');
             }
         } catch (e) {
             setError("Odstránenie zlyhalo"); // sieťová chyba

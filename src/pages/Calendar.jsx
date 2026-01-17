@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import KalendarMesiac   from '../components/KalendarMesaic.jsx';
-
-// Vite env
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost').replace(/\/$/, '');
+import api from '../lib/api';
 
 export default function Calendar() {
 
@@ -21,34 +19,12 @@ export default function Calendar() {
      const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category: '' });
      const [editing, setEditing] = useState(null);
 
-    // small API helper (same idea as Dashboard)
-    async function api(path, opts = {}) {
-        // quick client-side auth guard: if frontend considers user logged out, fail fast
-        if (!localStorage.getItem('isLoggedIn')) {
-            throw new Error('Not authenticated (client)');
-        }
-        const res = await fetch(`${API_BASE}${path}`, {
-            credentials: 'include',
-            headers: { Accept: 'application/json', ...(opts.headers || {}) },
-            ...opts,
-        });
-        if (!res.ok) {
-            // try json message, otherwise try text
-            let data = null;
-            try { data = await res.json(); } catch (e) { /* ignore */ }
-            if (data) throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
-            const txt = await res.text().catch(() => null);
-            throw new Error(txt ? `Server returned HTML. Excerpt: ${txt.slice(0,200)}` : `Request failed (${res.status})`);
-        }
-        try { return await res.json(); } catch { return null; }
-    }
-
     useEffect(() => { fetchTasks(); }, []);
 
     async function fetchTasks() {
         setLoading(true); setError(null); setSuccess(null);
         try {
-            const data = await api('/?c=task&a=index', { method: 'GET' });
+            const data = await api.get('/?c=task&a=index');
             const list = Array.isArray(data) ? data : data?.data ?? data;
             setTasks(Array.isArray(list) ? list : []);
         } catch (e) {
@@ -148,7 +124,7 @@ export default function Calendar() {
             if (form.deadline) params.append('deadline', fromInputDateTimeToBackend(form.deadline));
             if (form.category) params.append('category', form.category);
 
-            await api('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setShowCreate(false);
             setForm({ title: '', description: '', priority: 2, deadline: '', category: '' });
@@ -164,7 +140,7 @@ export default function Calendar() {
         setError(null);
         try {
             const p = new URLSearchParams(); p.append('id', String(id));
-            await api('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+            await api.request('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
             setTasks((prev) => prev.filter((t) => String(t.id) !== String(id)));
             setSuccess('Task deleted');
         } catch (err) {
@@ -188,7 +164,7 @@ export default function Calendar() {
             params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
             if (editing.category !== undefined && editing.category !== null) params.append('category', editing.category);
 
-            await api('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setEditing(null);
             setSuccess('Task updated');

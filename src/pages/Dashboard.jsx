@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TaskCard from '../components/TaskCard';
 import NewTaskButton from '../components/NewTaskButton';
+import api from '../lib/api';
 
 // Vite env (like your UsersPage)
 const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost').replace(/\/$/, '');
@@ -31,32 +32,12 @@ export default function Dashboard() {
     const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category: '' });
     const [editing, setEditing] = useState(null);
 
-    // small helper to reduce fetch boilerplate
-    async function api(path, opts = {}) {
-        // quick client-side auth guard: if frontend considers user logged out, fail fast
-        if (!localStorage.getItem('isLoggedIn')) {
-            throw new Error('Not authenticated (client)');
-        }
-        const res = await fetch(`${API_BASE}${path}`, {
-            credentials: 'include',
-            headers: { Accept: 'application/json', ...(opts.headers || {}) },
-            ...opts,
-        });
-        if (!res.ok) {
-            // try to get json message, otherwise throw status
-            let data = null;
-            try { data = await res.json(); } catch (e) { /* ignore */ }
-            throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
-        }
-        try { return await res.json(); } catch { return null; }
-    }
-
     useEffect(() => { fetchTasks(); }, []);
 
     async function fetchTasks() {
         setLoading(true); setError(null); setSuccess(null);
         try {
-            const data = await api('/?c=task&a=index', { method: 'GET' });
+            const data = await api.get('/?c=task&a=index');
             const list = Array.isArray(data) ? data : data?.data ?? data;
             setTasks(Array.isArray(list) ? list : []);
         } catch (e) {
@@ -96,7 +77,7 @@ export default function Dashboard() {
             if (form.deadline) params.append('deadline', fromInputDateTimeToBackend(form.deadline));
             if (form.category) params.append('category', form.category);
 
-            await api('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setShowCreate(false);
             setForm({ title: '', description: '', priority: 2, deadline: '', category: '' });
@@ -112,7 +93,7 @@ export default function Dashboard() {
         setError(null); setActionLoading(true);
         try {
             const p = new URLSearchParams(); p.append('id', String(id));
-            await api('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+            await api.request('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
             setTasks((prev) => prev.filter((t) => String(t.id) !== String(id)));
             setSuccess('Task deleted');
         } catch (err) {
@@ -137,7 +118,7 @@ export default function Dashboard() {
             params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
             if (editing.category !== undefined && editing.category !== null) params.append('category', editing.category);
 
-            await api('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setEditing(null);
             setSuccess('Task updated');
