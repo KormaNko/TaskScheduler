@@ -10,15 +10,21 @@ import Register from "./pages/Register.jsx";
 import "../index.css"; // fix: correct path inside src
 
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
-import RequireAuth from './components/RequireAuth.jsx';
+
+function Spinner() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+            <div style={{ width: 36, height: 36, border: '4px solid rgba(0,0,0,0.1)', borderTop: '4px solid #6366F1', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+        </div>
+    );
+}
 
 function AppInner() {
     const { auth, loading } = useAuth();
 
-    console.debug('[AppInner] auth=', auth, 'loading=', loading);
-
-    // While auth is being checked, show a full-screen loader to avoid any protected content rendering
-    if (loading) return <div className="min-h-screen flex items-center justify-center">Loading app...</div>;
+    // While auth is being checked, show a small spinner to avoid any protected content rendering
+    if (loading) return <Spinner />;
 
     // If not authenticated, expose only public routes (login/register). Any other path redirects to /login.
     if (!auth) {

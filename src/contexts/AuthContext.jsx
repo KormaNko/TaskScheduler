@@ -13,17 +13,14 @@ export function AuthProvider({ children }) {
 
     async function check() {
       setLoading(true);
-      console.debug('[Auth] starting session-check');
       try {
         // try a protected endpoint to verify session
         // use users list endpoint which is protected server-side to reliably detect auth
         const data = await api.get('/?c=users&a=list');
-        console.debug('[Auth] session-check success, data:', data);
         if (cancelled) return;
         setAuth(true);
         try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
       } catch (err) {
-        console.debug('[Auth] session-check failed:', err);
         if (cancelled) return;
         setAuth(false);
         try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
