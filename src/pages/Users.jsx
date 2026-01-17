@@ -26,6 +26,20 @@ export default function UsersPage() {
     // Chyby konkrétnych polí formulára
     const [fieldErrors, setFieldErrors] = useState({}); // objekt mapujúci pole -> chyba
 
+    // Clear in-memory users when app logs out
+    React.useEffect(() => {
+        function onLoggedOut() {
+            setUsers([]);
+            setLoadingList(false);
+            setLoadingAction(false);
+            setError("");
+            setFieldErrors({});
+            setShowForm(false);
+        }
+        window.addEventListener('app:logged-out', onLoggedOut);
+        return () => window.removeEventListener('app:logged-out', onLoggedOut);
+    }, []);
+
     // Preddefinovaný prázdny formulár
     const emptyForm = {
         id: null, // id pre editáciu

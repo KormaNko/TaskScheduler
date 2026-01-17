@@ -33,6 +33,10 @@ export default function Dashboard() {
 
     // small helper to reduce fetch boilerplate
     async function api(path, opts = {}) {
+        // quick client-side auth guard: if frontend considers user logged out, fail fast
+        if (!localStorage.getItem('isLoggedIn')) {
+            throw new Error('Not authenticated (client)');
+        }
         const res = await fetch(`${API_BASE}${path}`, {
             credentials: 'include',
             headers: { Accept: 'application/json', ...(opts.headers || {}) },
@@ -142,6 +146,19 @@ export default function Dashboard() {
             setError(err.message || 'Update failed');
         } finally { setActionLoading(false); }
     }
+
+    // Clear in-memory tasks immediately when the app dispatches a logout event
+    React.useEffect(() => {
+        function onLoggedOut() {
+            setTasks([]);
+            setLoading(false);
+            setActionLoading(false);
+            setError(null);
+            setSuccess(null);
+        }
+        window.addEventListener('app:logged-out', onLoggedOut);
+        return () => window.removeEventListener('app:logged-out', onLoggedOut);
+    }, []);
 
     return (
         <div className="p-6">

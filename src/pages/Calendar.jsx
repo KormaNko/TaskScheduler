@@ -23,6 +23,10 @@ export default function Calendar() {
 
     // small API helper (same idea as Dashboard)
     async function api(path, opts = {}) {
+        // quick client-side auth guard: if frontend considers user logged out, fail fast
+        if (!localStorage.getItem('isLoggedIn')) {
+            throw new Error('Not authenticated (client)');
+        }
         const res = await fetch(`${API_BASE}${path}`, {
             credentials: 'include',
             headers: { Accept: 'application/json', ...(opts.headers || {}) },
