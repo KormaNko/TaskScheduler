@@ -24,6 +24,7 @@ export default function Dashboard() {
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
+    const [viewMode, setViewMode] = useState('detailed'); // 'simple' | 'detailed'
 
     // filtered tasks by search (id or title)
     const filteredTasks = useMemo(() => {
@@ -270,6 +271,14 @@ export default function Dashboard() {
                             <option value="time_desc">Deadline: latest first</option>
                         </optgroup>
                     </select>
+                    <button
+                        type="button"
+                        onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
+                        className="px-2 py-2 border rounded"
+                        title="Toggle view"
+                    >
+                        {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
+                    </button>
                     <NewTaskButton onOpen={() => setShowCreate(true)} />
                 </div>
             </div>
@@ -317,17 +326,23 @@ export default function Dashboard() {
             <section className="bg-white rounded shadow">
                 <table className="w-full table-auto">
                     <thead className="bg-gray-100">
-                    <tr>
-                        <th className="p-3 text-left">ID</th>
-                        <th className="p-3 text-left">Title</th>
-                        <th className="p-3 text-left">Status</th>
-                        <th className="p-3 text-left">Prio</th>
-                        <th className="p-3 text-left">Category</th>
-                        <th className="p-3 text-left">Deadline</th>
-                        <th className="p-3 text-left">Created</th>
-                        <th className="p-3 text-left">Updated</th>
-                        <th className="p-3 text-left">Actions</th>
-                    </tr>
+                    {viewMode === 'simple' ? (
+                        <tr>
+                            <th colSpan={9} className="p-3 text-left">Tasks</th>
+                        </tr>
+                    ) : (
+                        <tr>
+                            <th className="p-3 text-left">ID</th>
+                            <th className="p-3 text-left">Title</th>
+                            <th className="p-3 text-left">Status</th>
+                            <th className="p-3 text-left">Prio</th>
+                            <th className="p-3 text-left">Category</th>
+                            <th className="p-3 text-left">Deadline</th>
+                            <th className="p-3 text-left">Created</th>
+                            <th className="p-3 text-left">Updated</th>
+                            <th className="p-3 text-left">Actions</th>
+                        </tr>
+                    )}
                     </thead>
                     <tbody>
                     {loading ? (
@@ -336,10 +351,12 @@ export default function Dashboard() {
                         <tr><td colSpan={9} className="p-4">No tasks</td></tr>
                     ) : filteredTasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
-                    ) : displayedTasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
-                     </tbody>
-                 </table>
-             </section>
+                    ) : displayedTasks.map((t) => (
+                        <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} viewMode={viewMode} />
+                    ))}
+                      </tbody>
+                  </table>
+              </section>
 
             {editing && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center">

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {} }) {
+export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, viewMode = 'detailed' }) {
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
 
     const fmt = (v) => {
@@ -71,12 +71,43 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         } catch (e) { return '#ffffff'; }
     };
 
+    // resolve category metadata once so both views can use it
+    const categoryMeta = resolveCategoryMeta(category);
+
+    // Simple view: single row with one cell spanning all columns showing only title + description
+    if (viewMode === 'simple') {
+        return (
+            <tr className="border-t">
+                <td colSpan={9} className="p-3">
+                    <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                            <div className="font-semibold">{title || '-'}</div>
+                            {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
+                        </div>
+                        {categoryMeta?.name ? (
+                            categoryMeta.color ? (
+                                <span className="inline-block px-2 py-1 rounded-full text-xs ml-3 flex-shrink-0" style={{ background: categoryMeta.color, color: textColorForBg(categoryMeta.color) }}>{categoryMeta.name}</span>
+                            ) : (
+                                <span className="text-sm text-gray-600 ml-3 flex-shrink-0">{categoryMeta.name}</span>
+                            )
+                        ) : null}
+                    </div>
+                </td>
+            </tr>
+        );
+    }
+
+    // Detailed view (existing layout)
     return (
         <tr className="border-t">
             <td className="p-3">{id}</td>
             <td className="p-3 min-w-[220px]">
                 <div className="font-semibold">{title || '-'}</div>
-                {description ? <div className="text-sm text-gray-600">{description}</div> : null}
+                {description ? (
+                    <div className="text-sm text-gray-600">
+                        <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
+                    </div>
+                ) : null}
             </td>
             <td className="p-3">{status || '-'}</td>
             <td className="p-3 text-center">{priority ?? '-'}</td>
