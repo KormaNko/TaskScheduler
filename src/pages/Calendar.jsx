@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import KalendarMesiac from '../components/KalendarMesaic.jsx';
+import KalendarDen from '../components/KalendarDen.jsx';
+import Kalendar3Dni from '../components/Kalendar3Dni.jsx';
+import KalendarTyzden from '../components/KalendarTyzden.jsx';
 import api from '../lib/api';
 
 export default function Calendar() {
@@ -8,7 +11,6 @@ export default function Calendar() {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
 
     const [viewMode, setViewMode] = useState('month');
     const [baseDate, setBaseDate] = useState(new Date());
@@ -59,24 +61,41 @@ export default function Calendar() {
         return found ? found.name : '';
     }
 
-    /* ========= DATE HELPERS ========= */
-    const dateKey = d =>
-        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    /* ========= NAVIGATION HELPERS ========= */
+    function navigate(delta) {
+        setBaseDate(d => {
+            const n = new Date(d);
+            if (viewMode === 'month') {
+                n.setMonth(n.getMonth() + delta);
+            } else if (viewMode === 'week') {
+                n.setDate(n.getDate() + (delta * 7));
+            } else if (viewMode === '3days') {
+                n.setDate(n.getDate() + (delta * 3));
+            } else { // day
+                n.setDate(n.getDate() + delta);
+            }
+            return n;
+        });
+    }
 
-    const buildEventsByDate = list => {
-        const map = {};
-        for (const t of list) {
-            if (!t.deadline) continue;
-            const d = new Date(t.deadline.replace(' ', 'T'));
-            if (isNaN(d)) continue;
-            const k = dateKey(d);
-            if (!map[k]) map[k] = [];
-            map[k].push(t);
-        }
-        return map;
-    };
+    function setToToday() {
+        setBaseDate(new Date());
+    }
 
-    const eventsByDate = buildEventsByDate(tasks);
+    const pad = n => String(n).padStart(2, '0');
+    function openCreateForDate(day, month, year) {
+        // month is 1-based here
+        const hhmm = '09:00';
+        const s = `${year}-${pad(month)}-${pad(day)}T${hhmm}`;
+        setForm(f => ({ ...f, deadline: s }));
+        setShowCreate(true);
+    }
+    function openCreateForDateFromDate(d) {
+        const y = d.getFullYear();
+        const m = d.getMonth() + 1;
+        const day = d.getDate();
+        openCreateForDate(day, m, y);
+    }
 
     /* ========= UI ACTIONS ========= */
     async function createTask(e) {
@@ -110,12 +129,23 @@ export default function Calendar() {
                 <h1 className="text-2xl font-bold">Kalendár</h1>
                 <div className="flex gap-2">
                     <button onClick={() => setViewMode('day')} className="btn">Day</button>
+                    <button onClick={() => setViewMode('3days')} className="btn">3 Days</button>
                     <button onClick={() => setViewMode('week')} className="btn">Week</button>
                     <button onClick={() => setViewMode('month')} className="btn">Month</button>
                 </div>
             </div>
 
             {error && <div className="px-6 text-red-600">{error}</div>}
+
+            {/* Navigation controls */}
+            <div className="px-6 flex items-center justify-between gap-2">
+                <div className="flex gap-2">
+                    <button className="btn" onClick={() => navigate(-1)}>Prev</button>
+                    <button className="btn" onClick={setToToday}>Today</button>
+                    <button className="btn" onClick={() => navigate(1)}>Next</button>
+                </div>
+                <div className="text-sm text-gray-600">Viewing: {viewMode} • {baseDate.toLocaleDateString()}</div>
+            </div>
 
             <div className="p-6">
                 {viewMode === 'month' && (
@@ -129,7 +159,43 @@ export default function Calendar() {
                         resolveCategory={resolveCategory}
                         loading={loading}
                         onEventClick={setEditing}
-                        onDayClick={() => setShowCreate(true)}
+                        onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
+                    />
+                )}
+
+                {viewMode === 'week' && (
+                    <KalendarTyzden
+                        startDate={baseDate}
+                        tasks={tasks}
+                        categories={categories}
+                        resolveCategory={resolveCategory}
+                        loading={loading}
+                        onEventClick={setEditing}
+                        onDayClick={(d) => openCreateForDateFromDate(d)}
+                    />
+                )}
+
+                {viewMode === '3days' && (
+                    <Kalendar3Dni
+                        startDate={baseDate}
+                        tasks={tasks}
+                        categories={categories}
+                        resolveCategory={resolveCategory}
+                        loading={loading}
+                        onEventClick={setEditing}
+                        onDayClick={(d) => openCreateForDateFromDate(d)}
+                    />
+                )}
+
+                {viewMode === 'day' && (
+                    <KalendarDen
+                        date={baseDate}
+                        tasks={tasks}
+                        categories={categories}
+                        resolveCategory={resolveCategory}
+                        loading={loading}
+                        onEventClick={setEditing}
+                        onDayClick={(d) => openCreateForDateFromDate(d)}
                     />
                 )}
             </div>
@@ -161,6 +227,21 @@ export default function Calendar() {
                         </div>
                     </div>
                 </form>
+            )}
+
+            {/* EDIT MODAL */}
+            {editing && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+                    <div className="bg-white p-4 rounded w-full max-w-md">
+                        <div className="text-lg font-semibold mb-2">{editing.title}</div>
+                        <div className="text-sm text-gray-500 mb-2">{editing.deadline ? new Date(String(editing.deadline).replace(' ', 'T')).toLocaleString() : ''}</div>
+                        <div className="mb-2">{resolveCategory(editing.category)}</div>
+                        {editing.description ? <div className="mb-4 text-gray-700">{editing.description}</div> : null}
+                        <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditing(null)} className="bg-gray-200 px-4 py-2 rounded">Close</button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>

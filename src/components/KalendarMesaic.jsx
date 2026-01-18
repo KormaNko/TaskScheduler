@@ -70,7 +70,6 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     const containerStyle = { width: '100%', maxWidth: '100%', margin: '0 auto', padding: '12px', boxSizing: 'border-box' };
     const controlBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '12px' };
     const controlGroupStyle = { display: 'flex', gap: '8px', alignItems: 'center' };
-    const buttonStyle = { padding: '8px 10px', borderRadius: '6px', background: '#f3f4f6', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '14px' };
     const titleStyle = { textAlign: 'center', fontWeight: 600, flex: 1 };
     const gridWrapperStyle = { overflow: 'auto', borderRadius: '8px', maxWidth: '100%', height: `calc(100vh - 220px)` };
     const gridStyle = { display: 'grid', gap: '6px', padding: '6px', background: 'transparent', ...{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }, alignContent: 'start', height: '100%' };
@@ -80,8 +79,6 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     const eventsStyle = { marginTop: '6px', fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
     function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background }; }
     const eventPillStyle = { display: 'block', padding: '2px 6px', borderRadius: '999px', background: '#e6f4ea', color: '#065f46', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
-
-    const fmtTime = (raw) => { if (!raw) return ''; const d = new Date(String(raw).replace(' ', 'T')); if (isNaN(d.getTime())) return ''; return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); };
 
     // ------------------
     // Render
@@ -95,8 +92,8 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                     {/* Only show internal controls when not controlled by parent */}
                     {!(typeof month === 'number' && typeof year === 'number') && (
                         <>
-                            <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" style={buttonStyle}>Prev</button>
-                            <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" style={{ ...buttonStyle, background: '#ffffff' }}>Dnes</button>
+                            <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" className="btn">Prev</button>
+                            <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" className="btn" style={{ background: '#ffffff' }}>Dnes</button>
                         </>
                     )}
                  </div>
@@ -105,7 +102,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
                 <div style={controlGroupStyle}>
                     {!(typeof month === 'number' && typeof year === 'number') && (
-                        <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" style={buttonStyle}>Next</button>
+                        <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" className="btn">Next</button>
                     )}
                  </div>
              </div>
