@@ -10,17 +10,49 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
     };
 
-    // resolve category: backend might store id or name; categories is an array of {id, name}
+    // resolve category: backend might store id, name, or an object; also try alternate fields on task
     const resolveCategory = (cat) => {
-        if (!cat) return '-';
-        // if categories provided, try to find name by id or value
-        if (Array.isArray(categories) && categories.length > 0) {
-            const foundById = categories.find(c => String(c.id) === String(cat));
-            if (foundById) return foundById.name ?? String(cat);
-            const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat).toLowerCase());
-            if (foundByName) return foundByName.name;
+        // if direct value provided, use it (object or primitive)
+        const pickNameFromObject = (obj) => { if (!obj) return null; return obj.name ?? null; };
+
+        if (cat !== null && cat !== undefined && cat !== '') {
+            // If category is a JSON string like '{"id":1,"name":"X"}', parse it to object
+            if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+                try { cat = JSON.parse(cat); } catch (e) { /* ignore parse error */ }
+            }
+            if (typeof cat === 'object') {
+                const n = pickNameFromObject(cat);
+                return n ?? String(cat);
+            }
+            // try to resolve by id or name from provided categories
+            if (Array.isArray(categories) && categories.length > 0) {
+                const foundById = categories.find(c => String(c.id) === String(cat));
+                if (foundById) return foundById.name ?? String(cat);
+                const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat).toLowerCase());
+                if (foundByName) return foundByName.name;
+            }
+            return String(cat);
         }
-        return String(cat);
+
+        // if no direct category, try common alternate fields on task object
+        const altCandidates = [task?.category_id, task?.cat, task?.cat_id, task?.category];
+        for (const alt of altCandidates) {
+            if (alt === null || alt === undefined || alt === '') continue;
+            if (typeof alt === 'object') {
+                const n = pickNameFromObject(alt);
+                if (n) return n;
+            } else {
+                if (Array.isArray(categories) && categories.length > 0) {
+                    const found = categories.find(c => String(c.id) === String(alt));
+                    if (found) return found.name;
+                    const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(alt).toLowerCase());
+                    if (foundByName) return foundByName.name;
+                }
+                return String(alt);
+            }
+        }
+
+        return '-';
     };
 
     return (

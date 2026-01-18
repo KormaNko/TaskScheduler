@@ -3,7 +3,26 @@ import React, { useState } from "react";
 
 // Komponent mesačného kalendára
 // Props: rows, cols, month, year, tasks (array), onEventClick(fn), loading, onDayClick
-export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
+export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], categories = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
+    // helper: get category color by id (cat can be id or name)
+    const getCategoryColor = (catId) => {
+        if (!categories || !categories.length) return null;
+        const found = categories.find(c => String(c.id) === String(catId) || String(c.name) === String(catId));
+        return found?.color || null;
+    };
+
+    const textColorForBg = (hex) => {
+        if (!hex) return '#111827';
+        try {
+            const h = hex.replace('#','');
+            const r = parseInt(h.substring(0,2),16)/255;
+            const g = parseInt(h.substring(2,4),16)/255;
+            const b = parseInt(h.substring(4,6),16)/255;
+            const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+            return lum > 0.6 ? '#111827' : '#ffffff';
+        } catch (e) { return '#ffffff'; }
+    };
+
     // Názvy mesiacov v slovenčine
     const months = [
         'Január', 'Február', 'Marec', 'Apríl', 'Máj', 'Jún',
@@ -78,7 +97,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     const dateNumberStyle = { fontSize: '12px', fontWeight: 500, color: '#374151' };
     const eventsStyle = { marginTop: '6px', fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
     function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background }; }
-    const eventPillStyle = { display: 'block', padding: '2px 6px', borderRadius: '999px', background: '#e6f4ea', color: '#065f46', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
+    const eventPillStyleBase = { display: 'block', padding: '2px 6px', borderRadius: '999px', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
 
     // ------------------
     // Render
@@ -126,11 +145,18 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                              <div style={eventsStyle}>
                                 {v !== null && eventsByDay[v] ? (
                                      <>
-                                         {eventsByDay[v].slice(0,2).map((ev, idx) => (
-                                             <span key={String(ev.id) + '-' + idx} style={eventPillStyle} title={ev.title} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
-                                                 {ev.title}
-                                             </span>
-                                         ))}
+                                         {eventsByDay[v].slice(0,2).map((ev, idx) => {
+                                             const stripe = getCategoryColor(ev.category) || '#e6f4ea';
+                                             return (
+                                                 <div key={String(ev.id) + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} title={ev.title}>
+                                                     <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
+                                                     <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                         <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                                                         <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                                     </div>
+                                                 </div>
+                                             );
+                                         })}
                                          {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} more</div>) : null}
                                      </>
                                  ) : null}
@@ -142,4 +168,4 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
          </div>
      );
-}
+ }

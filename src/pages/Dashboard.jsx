@@ -17,6 +17,7 @@ const STATUS_OPTIONS = [
 export default function Dashboard() {
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [showDebug, setShowDebug] = useState(false);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -35,18 +36,55 @@ export default function Dashboard() {
         setLoading(true); setError(null); setSuccess(null);
         try {
             const data = await api.get('/?c=task&a=index');
+            console.debug('fetchTasks: raw response', data);
             const list = Array.isArray(data) ? data : data?.data ?? data;
-            setTasks(Array.isArray(list) ? list : []);
-        } catch (e) {
-            console.error('fetchTasks', e);
-            setError(e.message || 'Failed to load tasks');
-        } finally { setLoading(false); }
+            console.debug('fetchTasks: normalized list', list);
+            // Normalize tasks: ensure category is a primitive id or name when possible
+            const normalize = (t) => {
+                const task = { ...t };
+                // if category is a JSON string, parse it
+                try {
+                    if (typeof task.category === 'string' && (task.category.trim().startsWith('{') || task.category.trim().startsWith('['))) {
+                        task.category = JSON.parse(task.category);
+                    }
+                } catch (e) { /* ignore */ }
+
+                // if category is object, prefer id or name
+                if (task.category && typeof task.category === 'object') {
+                    task._categoryObj = task.category;
+                    task.category = task.category.id ?? task.category.name ?? task.category;
+                }
+
+                // if no category present, try alternate fields
+                if (!task.category || task.category === '') {
+                    if (task.category_id) task.category = task.category_id;
+                    else if (task.cat) task.category = task.cat;
+                    else if (task.cat_id) task.category = task.cat_id;
+                }
+
+                // coerce primitive category values to string so select controls match option values
+                if (task.category !== undefined && task.category !== null && typeof task.category !== 'object') {
+                    task.category = String(task.category);
+                }
+
+                return task;o
+
+            };
+
+            const finalList = Array.isArray(list) ? list.map(normalize) : [];
+            setTasks(finalList);
+         } catch (e) {
+             console.error('fetchTasks', e);
+             setError(e.message || 'Failed to load tasks');
+         } finally { setLoading(false); }
     }
 
     async function fetchCategories() {
         try {
             const data = await api.get('/?c=category&a=index');
+            console.debug('fetchCategories: raw response', data);
             const list = Array.isArray(data) ? data : data?.data ?? [];
+            console.debug('fetchCategories: normalized list', list);
             setCategories(Array.isArray(list) ? list : []);
         } catch (e) {
             console.error('fetchCategories', e);
@@ -84,7 +122,14 @@ export default function Dashboard() {
             params.append('description', form.description || '');
             params.append('priority', String(form.priority ?? 2));
             if (form.deadline) params.append('deadline', fromInputDateTimeToBackend(form.deadline));
-            if (form.category) params.append('category', form.category);
+            if (form.category) {
+                // send both 'category' and 'category_id' when category is numeric to support different backend expectations
+                const catStr = String(form.category);
+                params.append('category', form.category);
+                if (/^\d+$/.test(catStr)) params.append('category_id', catStr);
+            }
+
+            console.debug('createTask: sending params', Object.fromEntries(params.entries()));
 
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
@@ -111,7 +156,7 @@ export default function Dashboard() {
         } finally { setActionLoading(false); }
     }
 
-    function openEdit(task) { setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '' }); }
+    function openEdit(task) { setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category: task?.category !== undefined && task?.category !== null ? String(task.category) : '' }); }
 
     async function saveEdit(e) {
         e?.preventDefault?.();
@@ -125,7 +170,11 @@ export default function Dashboard() {
             if (editing.status !== undefined && editing.status !== null) params.append('status', editing.status);
             if (editing.priority !== undefined && editing.priority !== null) params.append('priority', String(editing.priority));
             params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
-            if (editing.category !== undefined && editing.category !== null) params.append('category', editing.category);
+            if (editing.category !== undefined && editing.category !== null) {
+                const catStr = String(editing.category);
+                params.append('category', editing.category);
+                if (/^\d+$/.test(catStr)) params.append('category_id', catStr);
+            }
 
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
@@ -154,11 +203,23 @@ export default function Dashboard() {
         <div className="p-6">
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
-                <NewTaskButton onOpen={() => setShowCreate(true)} />
+                <div className="flex items-center gap-2">
+                    <NewTaskButton onOpen={() => setShowCreate(true)} />
+                    <button type="button" onClick={() => setShowDebug(s => !s)} className="px-3 py-2 bg-gray-100 border rounded">{showDebug ? 'Hide debug' : 'Show debug'}</button>
+                </div>
             </div>
 
             {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
             {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
+
+            {showDebug && (
+                <div className="mb-4 p-3 bg-gray-50 border rounded text-sm overflow-auto">
+                    <div className="mb-2 font-semibold">Categories (raw)</div>
+                    <pre className="text-xs mb-2">{JSON.stringify(categories, null, 2)}</pre>
+                    <div className="mb-2 font-semibold">Tasks (id + raw category)</div>
+                    <pre className="text-xs">{JSON.stringify(tasks.map(t => ({ id: t.id, category: t.category })), null, 2)}</pre>
+                </div>
+            )}
 
             {showCreate && (
                 <form onSubmit={createTask} className="mb-6 bg-white p-4 rounded shadow">
@@ -180,8 +241,8 @@ export default function Dashboard() {
                             <select className="mt-1 block w-full border p-2 rounded" value={form.category} onChange={(e) => updateForm('category', e.target.value)}>
                                 <option value="">—</option>
                                 {categories.map((c) => (
-                                    // prefer id if available, otherwise use name
-                                    <option key={c.id ?? c.name} value={c.id ?? c.name}>{c.name ?? String(c)}</option>
+                                    // prefer id if available, otherwise use name; ensure value is a string
+                                    <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>
                                 ))}
                             </select>
 
@@ -238,7 +299,7 @@ export default function Dashboard() {
                                 <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border p-2 w-28" />
                                 <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border p-2">
                                     <option value="">—</option>
-                                    {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? c.name}>{c.name ?? String(c)}</option>)}
+                                    {categories.map(c => <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>)}
                                 </select>
                                 <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2" />
                             </div>
