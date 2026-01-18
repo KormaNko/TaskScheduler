@@ -41,11 +41,6 @@ export default function Calendar() {
         });
     }, [tasks, categories]);
 
-    // temporary debug: print normalized tasks and categories so it's easy to inspect in browser console
-    if (typeof window !== 'undefined' && window?.console) {
-        console.debug('Calendar: normalizedTasks', normalizedTasks);
-        console.debug('Calendar: categories', categories);
-    }
 
     async function fetchTasks() {
         setLoading(true); setError(null);

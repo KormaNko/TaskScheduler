@@ -62,7 +62,6 @@ export default function CategoryManager() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [errorDetails, setErrorDetails] = useState(null);
-    const [useMock, setUseMock] = useState(false);
 
     // form state for create/edit
     const [editing, setEditing] = useState(null); // null or category object
@@ -70,26 +69,11 @@ export default function CategoryManager() {
     const [color, setColor] = useState('');
     const [saving, setSaving] = useState(false);
 
-    // sample mock data for offline dev
-    const mockSample = [
-        { id: 1, name: 'General', color: '#6366F1' },
-        { id: 2, name: 'Work', color: '#10B981' },
-        { id: 3, name: 'Personal', color: '#F59E0B' },
-    ];
-
     // fetch categories
     const fetchCategories = async () => {
         setLoading(true);
         setError(null);
         setErrorDetails(null);
-
-        if (useMock) {
-            setTimeout(() => {
-                setCategories(mockSample);
-                setLoading(false);
-            }, 200);
-            return;
-        }
 
         try {
             const res = await fetch(apiUrl('index'), { credentials: 'include' });
@@ -148,7 +132,7 @@ export default function CategoryManager() {
 
     useEffect(() => {
         fetchCategories();
-    }, [useMock]);
+    }, []);
 
     const resetForm = () => {
         setEditing(null);
@@ -171,12 +155,6 @@ export default function CategoryManager() {
         if (!window.confirm(`Delete category "${cat.name}"?`)) return;
         setError(null);
         try {
-            if (useMock) {
-                setCategories(prev => prev.filter(c => c.id !== cat.id));
-                if (editing && editing.id === cat.id) resetForm();
-                return;
-            }
-
             // Backend expects POST with id in query param (?c=category&a=delete&id=ID)
             const res = await fetch(apiUrl('delete', cat.id), {
                 method: 'POST',
@@ -212,17 +190,7 @@ export default function CategoryManager() {
         try {
             const payload = { name: trimmedName, color: color === '' ? null : color };
 
-            if (useMock) {
-                if (editing && editing.id) {
-                    setCategories(prev => prev.map(c => (c.id === editing.id ? { ...c, ...payload } : c)));
-                } else {
-                    const newId = Math.max(0, ...categories.map(c => c.id || 0)) + 1;
-                    setCategories(prev => [{ id: newId, ...payload }, ...prev]);
-                }
-                resetForm();
-                return;
-            }
-
+            // perform real save via API
             let res;
             if (editing && editing.id) {
                 // Backend expects POST for update with id in query string
@@ -246,7 +214,6 @@ export default function CategoryManager() {
             if (!res.ok) {
                 throw new Error(body?.message || `Save failed (${res.status})`);
             }
-
             const saved = body?.data ?? body;
             if (editing && editing.id) {
                 setCategories(prev => prev.map(c => (c.id === saved.id ? saved : c)));
@@ -267,14 +234,10 @@ export default function CategoryManager() {
                 <h1 className="text-2xl font-semibold">Category Manager</h1>
                 <div className="flex items-center gap-2">
                     <button onClick={startCreate} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">New Category</button>
-                    <button onClick={fetchCategories} className="px-3 py-2 bg-white border rounded">Refresh</button>
-                    <label className="ml-4 text-sm flex items-center gap-2"><input type="checkbox" checked={useMock} onChange={e => setUseMock(e.target.checked)} />Use mock data</label>
                 </div>
             </div>
 
-            {useMock && (
-                <div className="mb-4 p-3 bg-yellow-50 border rounded text-sm">Mock mode enabled — actions are local only and not sent to any server.</div>
-            )}
+            {loading && <div className="mb-4 text-sm text-gray-600">Loading categories…</div>}
 
             {error && <div className="mb-4 text-red-600 font-medium">{error}</div>}
             {errorDetails && (

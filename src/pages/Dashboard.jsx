@@ -17,7 +17,6 @@ const STATUS_OPTIONS = [
 export default function Dashboard() {
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [showDebug, setShowDebug] = useState(false);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -36,9 +35,7 @@ export default function Dashboard() {
         setLoading(true); setError(null); setSuccess(null);
         try {
             const data = await api.get('/?c=task&a=index');
-            console.debug('fetchTasks: raw response', data);
             const list = Array.isArray(data) ? data : data?.data ?? data;
-            console.debug('fetchTasks: normalized list', list);
             // Normalize tasks: ensure category is a primitive id or name when possible
             const normalize = (t) => {
                 const task = { ...t };
@@ -82,9 +79,7 @@ export default function Dashboard() {
     async function fetchCategories() {
         try {
             const data = await api.get('/?c=category&a=index');
-            console.debug('fetchCategories: raw response', data);
             const list = Array.isArray(data) ? data : data?.data ?? [];
-            console.debug('fetchCategories: normalized list', list);
             setCategories(Array.isArray(list) ? list : []);
         } catch (e) {
             console.error('fetchCategories', e);
@@ -128,8 +123,6 @@ export default function Dashboard() {
                 params.append('category', form.category);
                 if (/^\d+$/.test(catStr)) params.append('category_id', catStr);
             }
-
-            console.debug('createTask: sending params', Object.fromEntries(params.entries()));
 
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
@@ -205,21 +198,11 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
                 <div className="flex items-center gap-2">
                     <NewTaskButton onOpen={() => setShowCreate(true)} />
-                    <button type="button" onClick={() => setShowDebug(s => !s)} className="px-3 py-2 bg-gray-100 border rounded">{showDebug ? 'Hide debug' : 'Show debug'}</button>
                 </div>
             </div>
 
             {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
             {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
-
-            {showDebug && (
-                <div className="mb-4 p-3 bg-gray-50 border rounded text-sm overflow-auto">
-                    <div className="mb-2 font-semibold">Categories (raw)</div>
-                    <pre className="text-xs mb-2">{JSON.stringify(categories, null, 2)}</pre>
-                    <div className="mb-2 font-semibold">Tasks (id + raw category)</div>
-                    <pre className="text-xs">{JSON.stringify(tasks.map(t => ({ id: t.id, category: t.category })), null, 2)}</pre>
-                </div>
-            )}
 
             {showCreate && (
                 <form onSubmit={createTask} className="mb-6 bg-white p-4 rounded shadow">
