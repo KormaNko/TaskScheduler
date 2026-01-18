@@ -3,9 +3,6 @@ import TaskCard from '../components/TaskCard';
 import NewTaskButton from '../components/NewTaskButton';
 import api from '../lib/api';
 
-// Vite env (like your UsersPage)
-const API_BASE = (import.meta.env.VITE_API_BASE || 'http://localhost').replace(/\/$/, '');
-
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
     { value: 'in_progress', label: 'In progress' },
@@ -26,6 +23,7 @@ export default function Dashboard() {
     const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category: '' });
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
+    const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
 
     // filtered tasks by search (id or title)
     const filteredTasks = useMemo(() => {
@@ -34,12 +32,50 @@ export default function Dashboard() {
         return (tasks || []).filter(t => {
             if (!t) return false;
             const idStr = String(t.id ?? '');
-            if (idStr.includes(q)) return true;
             const title = String(t.title ?? '').toLowerCase();
-            if (title.includes(q)) return true;
-            return false;
+            return idStr.includes(q) || title.includes(q);
         });
     }, [tasks, search]);
+
+    // apply sorting to the filtered tasks (priority, title, remaining time)
+    const displayedTasks = useMemo(() => {
+        const arr = Array.isArray(filteredTasks) ? filteredTasks.slice() : [];
+
+        const parseDeadlineTs = (t) => {
+            if (!t) return Number.POSITIVE_INFINITY;
+            const val = (t.deadline ?? t.deadline_at ?? t.deadline_date ?? t) || '';
+            if (!val) return Number.POSITIVE_INFINITY;
+            // try to handle common formats: "YYYY-MM-DD HH:mm:ss" or ISO
+            const s = String(val).trim().replace(' ', 'T');
+            const ms = Date.parse(s);
+            return isNaN(ms) ? Number.POSITIVE_INFINITY : ms;
+        };
+
+        switch (sortOrder) {
+            case 'priority_asc':
+                arr.sort((a, b) => (Number(a.priority ?? 0) - Number(b.priority ?? 0)));
+                break;
+            case 'priority_desc':
+                arr.sort((a, b) => (Number(b.priority ?? 0) - Number(a.priority ?? 0)));
+                break;
+            case 'title_asc':
+                arr.sort((a, b) => String(a.title ?? '').localeCompare(String(b.title ?? ''), undefined, { sensitivity: 'base' }));
+                break;
+            case 'title_desc':
+                arr.sort((a, b) => String(b.title ?? '').localeCompare(String(a.title ?? ''), undefined, { sensitivity: 'base' }));
+                break;
+            case 'time_asc': // soonest deadline first (smallest timestamp)
+                arr.sort((a, b) => parseDeadlineTs(a) - parseDeadlineTs(b));
+                break;
+            case 'time_desc': // latest/no-deadline first
+                arr.sort((a, b) => parseDeadlineTs(b) - parseDeadlineTs(a));
+                break;
+            default:
+                // none: preserve original order
+                break;
+        }
+        return arr;
+    }, [filteredTasks, sortOrder]);
 
     useEffect(() => { fetchTasks(); }, []);
 
@@ -219,6 +255,21 @@ export default function Dashboard() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
+                    <select className="px-2 py-2 border rounded" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
+                        <option value="none">Sort: none</option>
+                        <optgroup label="Priority">
+                            <option value="priority_asc">Priority ↑</option>
+                            <option value="priority_desc">Priority ↓</option>
+                        </optgroup>
+                        <optgroup label="Title">
+                            <option value="title_asc">Title A → Z</option>
+                            <option value="title_desc">Title Z → A</option>
+                        </optgroup>
+                        <optgroup label="Remaining time">
+                            <option value="time_asc">Deadline: soonest first</option>
+                            <option value="time_desc">Deadline: latest first</option>
+                        </optgroup>
+                    </select>
                     <NewTaskButton onOpen={() => setShowCreate(true)} />
                 </div>
             </div>
@@ -285,7 +336,7 @@ export default function Dashboard() {
                         <tr><td colSpan={9} className="p-4">No tasks</td></tr>
                     ) : filteredTasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
-                    ) : filteredTasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
+                    ) : displayedTasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
                      </tbody>
                  </table>
              </section>
