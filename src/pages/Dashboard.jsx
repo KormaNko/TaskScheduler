@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import TaskCard from '../components/TaskCard';
 import NewTaskButton from '../components/NewTaskButton';
 import api from '../lib/api';
@@ -25,6 +25,21 @@ export default function Dashboard() {
     const [showCreate, setShowCreate] = useState(false);
     const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category: '' });
     const [editing, setEditing] = useState(null);
+    const [search, setSearch] = useState('');
+
+    // filtered tasks by search (id or title)
+    const filteredTasks = useMemo(() => {
+        const q = String(search || '').trim().toLowerCase();
+        if (!q) return tasks;
+        return (tasks || []).filter(t => {
+            if (!t) return false;
+            const idStr = String(t.id ?? '');
+            if (idStr.includes(q)) return true;
+            const title = String(t.title ?? '').toLowerCase();
+            if (title.includes(q)) return true;
+            return false;
+        });
+    }, [tasks, search]);
 
     useEffect(() => { fetchTasks(); }, []);
 
@@ -197,6 +212,13 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
                 <div className="flex items-center gap-2">
+                    <input
+                        type="text"
+                        className="px-3 py-2 border rounded w-64"
+                        placeholder="Search by title or ID"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                     <NewTaskButton onOpen={() => setShowCreate(true)} />
                 </div>
             </div>
@@ -261,9 +283,9 @@ export default function Dashboard() {
                         <tr><td colSpan={9} className="p-4">Loading...</td></tr>
                     ) : tasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No tasks</td></tr>
-                    ) : tasks.length === 0 ? (
-                        <tr><td colSpan={9} className="p-4">No tasks</td></tr>
-                    ) : tasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
+                    ) : filteredTasks.length === 0 ? (
+                        <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
+                    ) : filteredTasks.map((t) => <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} />)}
                      </tbody>
                  </table>
              </section>
