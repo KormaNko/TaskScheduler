@@ -8,8 +8,21 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
     const key = dateKey(date);
 
     const getCategoryColor = (catId) => {
+        // catId may be an object, JSON string, numeric id or name.
         if (!categories || !categories.length) return null;
-        const found = categories.find(c => String(c.id) === String(catId) || String(c.name) === String(catId));
+        let cat = catId;
+        if (cat && typeof cat === 'object') {
+            if (cat.color) return cat.color;
+            const byId = categories.find(c => String(c.id) === String(cat.id));
+            if (byId) return byId.color ?? null;
+            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
+            if (byName) return byName.color ?? null;
+            return null;
+        }
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
+        }
+        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
         return found?.color || null;
     };
 
@@ -40,14 +53,15 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
 
             <div className="flex flex-col gap-2">
                 {events.map(ev => {
-                    const stripe = getCategoryColor(ev.category) || '#e6f4ea';
+                    const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
+                    const stripe = getCategoryColor(catKey) || '#e6f4ea';
                     return (
                         <div key={ev.id} className="p-2 border rounded bg-white shadow-sm cursor-pointer" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
                             <div className="flex items-start gap-3">
                                 <div style={{ width: 6, minHeight: 36, background: stripe, borderRadius: 4 }} />
                                 <div className="flex-1">
                                     <div className="font-medium">{ev.title}</div>
-                                    <div className="text-sm text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} • {resolveCategory(ev.category)}</div>
+                                    <div className="text-sm text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} • {resolveCategory(catKey)}</div>
                                     {ev.description ? <div className="text-sm text-gray-700 mt-1">{ev.description}</div> : null}
                                 </div>
                             </div>

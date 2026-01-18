@@ -6,8 +6,21 @@ import React, { useState } from "react";
 export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], categories = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
     // helper: get category color by id (cat can be id or name)
     const getCategoryColor = (catId) => {
+        // catId may be an object, JSON string, numeric id or name.
         if (!categories || !categories.length) return null;
-        const found = categories.find(c => String(c.id) === String(catId) || String(c.name) === String(catId));
+        let cat = catId;
+        if (cat && typeof cat === 'object') {
+            if (cat.color) return cat.color;
+            const byId = categories.find(c => String(c.id) === String(cat.id));
+            if (byId) return byId.color ?? null;
+            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
+            if (byName) return byName.color ?? null;
+            return null;
+        }
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
+        }
+        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
         return found?.color || null;
     };
 
@@ -146,12 +159,19 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                                 {v !== null && eventsByDay[v] ? (
                                      <>
                                          {eventsByDay[v].slice(0,2).map((ev, idx) => {
-                                             const stripe = getCategoryColor(ev.category) || '#e6f4ea';
+                                            const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
+                                            const stripe = getCategoryColor(catKey) || '#e6f4ea';
+                                            const catColor = getCategoryColor(catKey) || null;
+                                            const catName = (function() { if (!catKey && catKey !== 0) return ''; try { if (typeof catKey === 'string' && (catKey.trim().startsWith('{')||catKey.trim().startsWith('['))) { return JSON.parse(catKey)?.name ?? String(catKey); } if (typeof catKey === 'object') return catKey.name ?? ''; return (categories.find(c=>String(c.id)===String(catKey) || String(c.name)===String(catKey)) || {}).name ?? String(catKey); } catch (e) { return String(catKey); } })();
+                                            const pillTextColor = textColorForBg(catColor);
                                              return (
                                                  <div key={String(ev.id) + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} title={ev.title}>
                                                      <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
                                                      <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                         <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                             <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                                                             {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
+                                                         </div>
                                                          <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
                                                      </div>
                                                  </div>

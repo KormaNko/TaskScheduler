@@ -26,8 +26,21 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
     });
 
     const getCategoryColor = (catId) => {
+        // catId may be an object, JSON string, numeric id or name.
         if (!categories || !categories.length) return null;
-        const found = categories.find(c => String(c.id) === String(catId) || String(c.name) === String(catId));
+        let cat = catId;
+        if (cat && typeof cat === 'object') {
+            if (cat.color) return cat.color;
+            const byId = categories.find(c => String(c.id) === String(cat.id));
+            if (byId) return byId.color ?? null;
+            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
+            if (byName) return byName.color ?? null;
+            return null;
+        }
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
+        }
+        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
         return found?.color || null;
     };
     const textColorForBg = (hex) => {
@@ -56,13 +69,15 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
                         {loading && <div className="text-sm text-gray-500">Loading...</div>}
                         <div className="flex flex-col gap-2">
                             {eventsFor(d).map(ev => {
-                                const bg = getCategoryColor(ev.category) || '#e6f4ea';
+                                const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
+                                const bg = getCategoryColor(catKey) || '#e6f4ea';
                                 const color = textColorForBg(bg);
+                                const name = resolveCategory(catKey);
                                 return (
                                     <div key={ev.id} className="p-1 rounded bg-white cursor-pointer" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
                                         <div className="flex items-center gap-2">
                                             <span style={{ background: bg, color }} className="px-2 py-0.5 rounded-full text-xs overflow-hidden" title={ev.title}>{ev.title}</span>
-                                            <div className="text-xs text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} • {resolveCategory(ev.category)}</div>
+                                            <div className="text-xs text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} • {name}</div>
                                         </div>
                                     </div>
                                 );

@@ -10,49 +10,65 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
     };
 
-    // resolve category: backend might store id, name, or an object; also try alternate fields on task
-    const resolveCategory = (cat) => {
-        // if direct value provided, use it (object or primitive)
-        const pickNameFromObject = (obj) => { if (!obj) return null; return obj.name ?? null; };
+    // Return both name and color when possible
+    const resolveCategoryMeta = (cat) => {
+        const pickFromObject = (obj) => {
+            if (!obj) return null;
+            return { name: obj.name ?? null, color: obj.color ?? null, id: obj.id ?? null };
+        };
 
-        if (cat !== null && cat !== undefined && cat !== '') {
-            // If category is a JSON string like '{"id":1,"name":"X"}', parse it to object
-            if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
-                try { cat = JSON.parse(cat); } catch (e) { /* ignore parse error */ }
-            }
-            if (typeof cat === 'object') {
-                const n = pickNameFromObject(cat);
-                return n ?? String(cat);
-            }
-            // try to resolve by id or name from provided categories
-            if (Array.isArray(categories) && categories.length > 0) {
-                const foundById = categories.find(c => String(c.id) === String(cat));
-                if (foundById) return foundById.name ?? String(cat);
-                const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat).toLowerCase());
-                if (foundByName) return foundByName.name;
-            }
-            return String(cat);
+        // Normalize JSON string
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { cat = JSON.parse(cat); } catch (e) { /* ignore */ }
         }
 
-        // if no direct category, try common alternate fields on task object
-        const altCandidates = [task?.category_id, task?.cat, task?.cat_id, task?.category];
+        if (cat !== null && cat !== undefined && cat !== '') {
+            if (typeof cat === 'object') {
+                const meta = pickFromObject(cat);
+                return { name: meta?.name ?? String(cat), color: meta?.color ?? null };
+            }
+
+            if (Array.isArray(categories) && categories.length > 0) {
+                const foundById = categories.find(c => String(c.id) === String(cat));
+                if (foundById) return { name: foundById.name ?? String(cat), color: foundById.color ?? null };
+                const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat).toLowerCase());
+                if (foundByName) return { name: foundByName.name, color: foundByName.color ?? null };
+            }
+
+            return { name: String(cat), color: null };
+        }
+
+        // try alternate fields on task
+        const altCandidates = [task?.category, task?.category_id, task?.cat, task?.cat_id];
         for (const alt of altCandidates) {
             if (alt === null || alt === undefined || alt === '') continue;
             if (typeof alt === 'object') {
-                const n = pickNameFromObject(alt);
-                if (n) return n;
+                const meta = pickFromObject(alt);
+                if (meta?.name) return { name: meta.name, color: meta.color ?? null };
             } else {
                 if (Array.isArray(categories) && categories.length > 0) {
                     const found = categories.find(c => String(c.id) === String(alt));
-                    if (found) return found.name;
+                    if (found) return { name: found.name, color: found.color ?? null };
                     const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(alt).toLowerCase());
-                    if (foundByName) return foundByName.name;
+                    if (foundByName) return { name: foundByName.name, color: foundByName.color ?? null };
                 }
-                return String(alt);
+                return { name: String(alt), color: null };
             }
         }
 
-        return '-';
+        return { name: '-', color: null };
+    };
+
+    const textColorForBg = (hex) => {
+        if (!hex) return '#111827';
+        try {
+            const h = hex.replace('#','');
+            const r = parseInt(h.substring(0,2),16)/255;
+            const g = parseInt(h.substring(2,4),16)/255;
+            const b = parseInt(h.substring(4,6),16)/255;
+            const lum = 0.2126*r + 0.7152*g + 0.0722*b;
+            return lum > 0.6 ? '#111827' : '#ffffff';
+        } catch (e) { return '#ffffff'; }
     };
 
     return (
@@ -64,7 +80,18 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
             </td>
             <td className="p-3">{status || '-'}</td>
             <td className="p-3 text-center">{priority ?? '-'}</td>
-            <td className="p-3">{resolveCategory(category)}</td>
+            <td className="p-3">
+                {(() => {
+                    const meta = resolveCategoryMeta(category);
+                    if (meta?.color) {
+                        const tc = textColorForBg(meta.color);
+                        return (
+                            <span className="inline-block px-2 py-1 rounded-full text-xs" style={{ background: meta.color, color: tc }}>{meta.name}</span>
+                        );
+                    }
+                    return meta?.name ?? '-';
+                })()}
+            </td>
             <td className="p-3">{fmt(deadline)}</td>
             <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
             <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>

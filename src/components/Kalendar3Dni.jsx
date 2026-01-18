@@ -22,8 +22,27 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
     });
 
     const getCategoryColor = (catId) => {
+        // catId may be an object, JSON string, numeric id or name.
         if (!categories || !categories.length) return null;
-        const found = categories.find(c => String(c.id) === String(catId) || String(c.name) === String(catId));
+        let cat = catId;
+        // if object with color, return it directly
+        if (cat && typeof cat === 'object') {
+            if (cat.color) return cat.color;
+            // maybe it's { id, name }
+            const byId = categories.find(c => String(c.id) === String(cat.id));
+            if (byId) return byId.color ?? null;
+            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
+            if (byName) return byName.color ?? null;
+            return null;
+        }
+
+        // if JSON string, try parse
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
+        }
+
+        // primitive (id or name)
+        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
         return found?.color || null;
     };
     const textColorForBg = (hex) => {
@@ -56,19 +75,29 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
                         <div className="flex flex-col gap-2 mt-2">
                             {eventsFor(d).map(ev => {
                                 const stripe = getCategoryColor(ev.category) || '#e6f4ea';
-                                return (
-                                    <div key={ev.id} className="p-2 border rounded bg-white cursor-pointer" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
-                                        <div className="flex items-start gap-3">
-                                            <div style={{ width: 6, minHeight: 36, background: stripe, borderRadius: 4 }} />
-                                            <div className="flex-1">
-                                                <div className="font-medium">{ev.title}</div>
-                                                <div className="text-sm text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''} • {resolveCategory(ev.category)}</div>
-                                                {ev.description ? <div className="text-sm text-gray-700 mt-1">{ev.description}</div> : null}
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                                const catColor = getCategoryColor(ev.category) || null;
+                                const catName = resolveCategory(ev.category);
+                                const pillTextColor = textColorForBg(catColor);
+                                 return (
+                                     <div key={ev.id} className="p-2 border rounded bg-white cursor-pointer" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
+                                         <div className="flex items-start gap-3">
+                                             <div style={{ width: 6, minHeight: 36, background: stripe, borderRadius: 4 }} />
+                                             <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-medium">{ev.title}</div>
+                                                    {catColor ? (
+                                                        <span className={pillBase} style={{ background: catColor, color: pillTextColor }}>{catName}</span>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-500">{catName}</span>
+                                                    )}
+                                                </div>
+                                                <div className="text-sm text-gray-500">{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                                 {ev.description ? <div className="text-sm text-gray-700 mt-1">{ev.description}</div> : null}
+                                             </div>
+                                         </div>
+                                     </div>
+                                 );
+                             })}
                         </div>
                     </div>
                 ))}

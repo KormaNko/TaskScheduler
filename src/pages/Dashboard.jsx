@@ -67,7 +67,7 @@ export default function Dashboard() {
                     task.category = String(task.category);
                 }
 
-                return task;o
+                return task;
 
             };
 

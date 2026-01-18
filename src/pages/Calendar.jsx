@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import KalendarMesiac from '../components/KalendarMesaic.jsx';
 import KalendarDen from '../components/KalendarDen.jsx';
 import Kalendar3Dni from '../components/Kalendar3Dni.jsx';
@@ -23,8 +23,29 @@ export default function Calendar() {
 
     useEffect(() => { fetchTasks(); }, []);
     useEffect(() => { fetchCategories(); }, []);
-    // touch `editing` in an effect so static analyzers recognize it's in use (used for edit modal rendering)
-    useEffect(() => { /* editing state toggles the edit modal - no-op here */ }, [editing]);
+
+    // normalize tasks to attach category object and ensure category is string for consistent rendering
+    const normalizedTasks = useMemo(() => {
+        if (!Array.isArray(tasks)) return [];
+        return tasks.map(t => {
+            const task = { ...t };
+            // prefer any provided object-like category on the task
+            const catObj = task.category && typeof task.category === 'object' ? task.category : null;
+            // try to find matching category from categories list by id or name
+            const match = (catObj && (categories.find(c => String(c.id) === String(catObj.id) || String(c.name) === String(catObj.name))))
+                || categories.find(c => String(c.id) === String(task.category) || String(c.name) === String(task.category) || String(c.id) === String(task.category_id) || String(c.name) === String(task.category_id));
+            if (match) task._categoryObj = match;
+            // ensure primitive category is a string when present
+            if (task.category !== undefined && task.category !== null && typeof task.category !== 'object') task.category = String(task.category);
+            return task;
+        });
+    }, [tasks, categories]);
+
+    // temporary debug: print normalized tasks and categories so it's easy to inspect in browser console
+    if (typeof window !== 'undefined' && window?.console) {
+        console.debug('Calendar: normalizedTasks', normalizedTasks);
+        console.debug('Calendar: categories', categories);
+    }
 
     async function fetchTasks() {
         setLoading(true); setError(null);
@@ -60,9 +81,18 @@ export default function Calendar() {
 
     /* ========= CATEGORY RESOLVER ========= */
     function resolveCategory(catId) {
-        if (!catId) return '';
-        const found = categories.find(c => String(c.id) === String(catId));
-        return found ? found.name : '';
+        if (!catId && catId !== 0) return '';
+        // if it's an object, prefer its name
+        let cat = catId;
+        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
+            try { cat = JSON.parse(cat); } catch (e) { /* ignore */ }
+        }
+        if (cat && typeof cat === 'object') {
+            return cat.name ?? '';
+        }
+        // try to find by id or name
+        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
+        return found ? (found.name || '') : '';
     }
 
     /* ========= NAVIGATION HELPERS ========= */
@@ -160,23 +190,23 @@ export default function Calendar() {
             <div className="p-6">
                 {viewMode === 'month' && (
                     <KalendarMesiac
-                        rows={5}
-                        cols={7}
-                        month={baseDate.getMonth()+1}
-                        year={baseDate.getFullYear()}
-                        tasks={tasks}
-                        categories={categories}
-                        resolveCategory={resolveCategory}
-                        loading={loading}
-                        onEventClick={setEditing}
-                        onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
-                    />
+                     rows={5}
+                     cols={7}
+                     month={baseDate.getMonth()+1}
+                     year={baseDate.getFullYear()}
+                     tasks={normalizedTasks}
+                     categories={categories}
+                     resolveCategory={resolveCategory}
+                     loading={loading}
+                     onEventClick={setEditing}
+                     onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
+                 />
                 )}
 
                 {viewMode === 'week' && (
                     <KalendarTyzden
                         startDate={baseDate}
-                        tasks={tasks}
+                        tasks={normalizedTasks}
                         categories={categories}
                         resolveCategory={resolveCategory}
                         loading={loading}
@@ -188,7 +218,7 @@ export default function Calendar() {
                 {viewMode === '3days' && (
                     <Kalendar3Dni
                         startDate={baseDate}
-                        tasks={tasks}
+                        tasks={normalizedTasks}
                         categories={categories}
                         resolveCategory={resolveCategory}
                         loading={loading}
@@ -200,7 +230,7 @@ export default function Calendar() {
                 {viewMode === 'day' && (
                     <KalendarDen
                         date={baseDate}
-                        tasks={tasks}
+                        tasks={normalizedTasks}
                         categories={categories}
                         resolveCategory={resolveCategory}
                         loading={loading}
