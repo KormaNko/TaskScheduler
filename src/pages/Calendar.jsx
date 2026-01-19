@@ -158,116 +158,163 @@ export default function Calendar() {
     }
 
     return (
-        <div className="min-h-screen">
+        <div className="p-6 bg-gradient-to-b from-slate-50 to-white min-h-screen">
+            <div className="mx-auto max-w-7xl">
 
-            <div className="flex justify-between p-6">
-                <h1 className="text-2xl font-bold">Kalendár</h1>
-                <div className="flex gap-2">
-                    <button onClick={() => setViewMode('day')} className="px-3 py-2 bg-white border rounded">Day</button>
-                    <button onClick={() => setViewMode('3days')} className="px-3 py-2 bg-white border rounded">3 Days</button>
-                    <button onClick={() => setViewMode('week')} className="px-3 py-2 bg-white border rounded">Week</button>
-                    <button onClick={() => setViewMode('month')} className="px-3 py-2 bg-white border rounded">Month</button>
+            <div className="px-6 flex items-center justify-between mb-4 gap-4 flex-wrap">
+                 <div className="flex items-center gap-2 w-full md:w-auto min-w-0 self-center">
+                     <h1 className="text-2xl font-bold leading-none m-0">Kalendár</h1>
+                 </div>
+
+                {/* view buttons: keep side-by-side even on small screens and use Dashboard-style rounded pills */}
+                <div className="flex items-center gap-2 w-full md:w-auto self-center">
+                     <div className="bg-gradient-to-r from-indigo-50 via-white to-sky-50 py-1.5 px-3 rounded-xl shadow-md flex items-center gap-2 flex-nowrap overflow-x-auto border border-gray-100">
+                        <button
+                            onClick={() => setViewMode('day')}
+                            className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'day' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
+                        >Deň</button>
+
+                        <button
+                            onClick={() => setViewMode('3days')}
+                            className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === '3days' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
+                        >3 Dni</button>
+
+                        <button
+                            onClick={() => setViewMode('week')}
+                            className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'week' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
+                        >Týždeň</button>
+
+                        <button
+                            onClick={() => setViewMode('month')}
+                            className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'month' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
+                        >Mesiac</button>
+                    </div>
                 </div>
-            </div>
+             </div>
 
-            {error && <div className="px-6 text-red-600">{error}</div>}
+             {error && <div className="px-6 text-red-600">{error}</div>}
 
-            {/* Navigation controls */}
+             {/* Navigation controls */}
             <div className="px-6 flex items-center justify-between gap-2">
-                <div className="flex gap-2">
-                    <button className="px-3 py-2 bg-white border rounded" onClick={() => navigate(-1)}>Prev</button>
-                    <button className="px-3 py-2 bg-white border rounded" onClick={setToToday}>Today</button>
-                    <button className="px-3 py-2 bg-white border rounded" onClick={() => navigate(1)}>Next</button>
+                <div className="flex gap-2 items-center">
+                    <button
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
+                        onClick={() => navigate(-1)}
+                        title="Predchádzajúci"
+                    >
+                        <span className="text-lg">←</span>
+                        <span className="hidden sm:inline">Pred</span>
+                    </button>
+
+                    <button
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
+                        onClick={setToToday}
+                        title="Dnes"
+                    >
+                        <span className="text-lg">⦿</span>
+                        <span className="hidden sm:inline">Dnes</span>
+                    </button>
+
+                    <button
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
+                        onClick={() => navigate(1)}
+                        title="Nasledujúci"
+                    >
+                        <span className="text-lg">→</span>
+                        <span className="hidden sm:inline">Nasl</span>
+                    </button>
                 </div>
-                <div className="text-sm text-gray-600">Viewing: {viewMode} • {baseDate.toLocaleDateString()}</div>
+                <div className="text-sm text-gray-600">Zobrazenie: <strong className="text-indigo-700">{viewMode === 'day' ? 'Deň' : viewMode === '3days' ? '3 dni' : viewMode === 'week' ? 'Týždeň' : 'Mesiac'}</strong> • {baseDate.toLocaleDateString()}</div>
             </div>
 
             <div className="p-6">
-                {viewMode === 'month' && (
-                    <KalendarMesiac
-                     rows={5}
-                     cols={7}
-                     month={baseDate.getMonth()+1}
-                     year={baseDate.getFullYear()}
-                     tasks={normalizedTasks}
-                     categories={categories}
-                     resolveCategory={resolveCategory}
-                     loading={loading}
-                     onEventClick={setEditing}
-                     onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
-                 />
-                )}
+                <div className="bg-white/80 rounded-lg shadow overflow-hidden border border-gray-100 p-4">
+                    {viewMode === 'month' && (
+                        <KalendarMesiac
+                         rows={5}
+                         cols={7}
+                         month={baseDate.getMonth()+1}
+                         year={baseDate.getFullYear()}
+                         tasks={normalizedTasks}
+                         categories={categories}
+                         resolveCategory={resolveCategory}
+                         loading={loading}
+                         onEventClick={setEditing}
+                         onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
+                     />
+                    )}
 
-                {viewMode === 'week' && (
-                    <KalendarTyzden
-                        startDate={baseDate}
-                        tasks={normalizedTasks}
-                        categories={categories}
-                        resolveCategory={resolveCategory}
-                        loading={loading}
-                        onEventClick={setEditing}
-                        onDayClick={(d) => openCreateForDateFromDate(d)}
-                    />
-                )}
+                    {viewMode === 'week' && (
+                        <KalendarTyzden
+                            startDate={baseDate}
+                            tasks={normalizedTasks}
+                            categories={categories}
+                            resolveCategory={resolveCategory}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDateFromDate(d)}
+                        />
+                    )}
 
-                {viewMode === '3days' && (
-                    <Kalendar3Dni
-                        startDate={baseDate}
-                        tasks={normalizedTasks}
-                        categories={categories}
-                        resolveCategory={resolveCategory}
-                        loading={loading}
-                        onEventClick={setEditing}
-                        onDayClick={(d) => openCreateForDateFromDate(d)}
-                    />
-                )}
+                    {viewMode === '3days' && (
+                        <Kalendar3Dni
+                            startDate={baseDate}
+                            tasks={normalizedTasks}
+                            categories={categories}
+                            resolveCategory={resolveCategory}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDateFromDate(d)}
+                        />
+                    )}
 
-                {viewMode === 'day' && (
-                    <KalendarDen
-                        date={baseDate}
-                        tasks={normalizedTasks}
-                        categories={categories}
-                        resolveCategory={resolveCategory}
-                        loading={loading}
-                        onEventClick={setEditing}
-                        onDayClick={(d) => openCreateForDateFromDate(d)}
-                    />
-                )}
+                    {viewMode === 'day' && (
+                        <KalendarDen
+                            date={baseDate}
+                            tasks={normalizedTasks}
+                            categories={categories}
+                            resolveCategory={resolveCategory}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDateFromDate(d)}
+                        />
+                    )}
+                </div>
             </div>
 
-            {/* CREATE MODAL */}
-            {showCreate && (
-                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="bg-white p-4 rounded w-full max-w-2xl">
+             {/* CREATE MODAL */}
+             {showCreate && (
+                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="relative bg-white w-full max-w-3xl mx-4 rounded-xl shadow-lg p-6 z-10">
                         {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
                         {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium">Title</label>
-                                <input className="mt-1 block w-full border p-2 rounded" placeholder="Title" value={form.title} onChange={e => updateForm('title', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700">Title</label>
+                                <input className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Title" value={form.title} onChange={e => updateForm('title', e.target.value)} />
 
-                                <label className="block text-sm font-medium mt-3">Description</label>
-                                <textarea className="mt-1 block w-full border p-2 rounded" value={form.description} onChange={e => updateForm('description', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700 mt-3">Description</label>
+                                <textarea rows={6} className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={e => updateForm('description', e.target.value)} />
                             </div>
 
                             <div>
                                 <div className="text-sm text-gray-700 py-2">Create task</div>
 
-                                <label className="block text-sm font-medium mt-2">Priority</label>
-                                <input type="number" min="1" max="5" className="mt-1 block w-32 border p-2 rounded" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Priority</label>
+                                <input type="number" min="1" max="5" className="mt-1 block w-32 border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
 
-                                <label className="block text-sm font-medium mt-2">Category</label>
-                                <select className="mt-1 block w-full border p-2 rounded" value={form.category} onChange={e => updateForm('category', e.target.value)}>
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Category</label>
+                                <select className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.category} onChange={e => updateForm('category', e.target.value)}>
                                     <option value="">—</option>
                                     {categories.map(c => <option key={c.id ?? c.name} value={c.id ?? c.name}>{c.name ?? String(c)}</option>)}
                                 </select>
 
-                                <label className="block text-sm font-medium mt-2">Deadline</label>
-                                <input type="datetime-local" className="mt-1 block w-full border p-2 rounded" value={form.deadline} onChange={e => updateForm('deadline', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Deadline</label>
+                                <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={e => updateForm('deadline', e.target.value)} />
 
                                 <div className="mt-4 flex gap-2">
-                                    <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-green-600 text-white rounded">{actionLoading ? 'Creating...' : 'Create'}</button>
-                                    <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                                    <button type="submit" disabled={actionLoading} className={`inline-flex items-center gap-2 px-4 py-2 ${actionLoading?"bg-green-500":"bg-green-600"} text-white rounded-md shadow-sm`}>{actionLoading ? 'Creating...' : 'Create'}</button>
+                                    <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-md bg-white text-gray-700">Cancel</button>
                                 </div>
                              </div>
                          </div>
@@ -275,9 +322,9 @@ export default function Calendar() {
                  </form>
              )}
 
-            {/* EDIT MODAL */}
-            {editing && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+             {/* EDIT MODAL */}
+             {editing && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                     <div className="bg-white p-4 rounded w-full max-w-md">
                         <div className="text-lg font-semibold mb-2">{editing.title}</div>
                         <div className="text-sm text-gray-500 mb-2">{editing.deadline ? new Date(String(editing.deadline).replace(' ', 'T')).toLocaleString() : ''}</div>
@@ -288,8 +335,9 @@ export default function Calendar() {
                         </div>
                     </div>
                 </div>
-            )}
+             )}
 
+            </div>
         </div>
-    );
-}
+     );
+ }
