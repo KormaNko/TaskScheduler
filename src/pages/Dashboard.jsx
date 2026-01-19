@@ -25,18 +25,21 @@ export default function Dashboard() {
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
     const [viewMode, setViewMode] = useState('detailed'); // 'simple' | 'detailed'
+    const [statusFilter, setStatusFilter] = useState(''); // '' | 'pending' | 'in_progress' | 'completed'
 
     // filtered tasks by search (id or title)
     const filteredTasks = useMemo(() => {
         const q = String(search || '').trim().toLowerCase();
-        if (!q) return tasks;
         return (tasks || []).filter(t => {
             if (!t) return false;
+            // filter by status if set
+            if (statusFilter && String(t.status || '') !== String(statusFilter)) return false;
+            if (!q) return true;
             const idStr = String(t.id ?? '');
             const title = String(t.title ?? '').toLowerCase();
             return idStr.includes(q) || title.includes(q);
         });
-    }, [tasks, search]);
+    }, [tasks, search, statusFilter]);
 
     // apply sorting to the filtered tasks (priority, title, remaining time)
     const displayedTasks = useMemo(() => {
@@ -201,6 +204,22 @@ export default function Dashboard() {
         } finally { setActionLoading(false); }
     }
 
+    async function changeStatus(id, newStatus) {
+        if (!id) return;
+        setError(null); setActionLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.append('id', String(id));
+            params.append('status', String(newStatus));
+            await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            await fetchTasks();
+            setSuccess('Status updated');
+        } catch (err) {
+            console.error('changeStatus', err);
+            setError(err.message || 'Failed to update status');
+        } finally { setActionLoading(false); }
+    }
+
     function openEdit(task) { setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category: task?.category !== undefined && task?.category !== null ? String(task.category) : '' }); }
 
     async function saveEdit(e) {
@@ -271,6 +290,12 @@ export default function Dashboard() {
                             <option value="time_desc">Deadline: latest first</option>
                         </optgroup>
                     </select>
+                    <div className="flex items-center gap-1">
+                        <button type="button" onClick={() => setStatusFilter('')} className={`px-2 py-2 rounded border ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-white'}`}>All</button>
+                        <button type="button" onClick={() => setStatusFilter('pending')} className={`px-2 py-2 rounded border ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Pending</button>
+                        <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-2 py-2 rounded border ${statusFilter === 'in_progress' ? 'bg-blue-600 text-white' : 'bg-white'}`}>In progress</button>
+                        <button type="button" onClick={() => setStatusFilter('completed')} className={`px-2 py-2 rounded border ${statusFilter === 'completed' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Completed</button>
+                    </div>
                     <button
                         type="button"
                         onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
@@ -352,7 +377,17 @@ export default function Dashboard() {
                     ) : filteredTasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
                     ) : displayedTasks.map((t) => (
-                        <TaskCard key={t.id} task={t} categories={categories} onEdit={openEdit} onDelete={handleDelete} viewMode={viewMode} />
+
+                        <TaskCard
+                            key={t.id}
+                            task={t}
+                            categories={categories}
+                            onEdit={openEdit}
+                            onDelete={handleDelete}
+                            onChangeStatus={changeStatus}
+                            actionLoading={actionLoading}
+                            viewMode={viewMode}
+                        />
                     ))}
                       </tbody>
                   </table>

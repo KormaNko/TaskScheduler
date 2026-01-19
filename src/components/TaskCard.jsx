@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, viewMode = 'detailed' }) {
+export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed' }) {
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
 
     const fmt = (v) => {
@@ -79,23 +79,51 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         try { return Number(priority) >= 5; } catch (e) { return false; }
     })();
 
+    // compute row background class based on status (status has precedence for bg), fallback to high-priority
+    const rowBgClass = (() => {
+        if (String(status) === 'completed') return 'bg-green-50';
+        if (String(status) === 'in_progress') return 'bg-yellow-50';
+        if (isHighPriority) return 'bg-red-50';
+        return '';
+    })();
+
     // Simple view: single row with one cell spanning all columns showing only title + description
     if (viewMode === 'simple') {
         return (
-            <tr className={"border-t " + (isHighPriority ? 'bg-red-50' : '')}>
-                <td colSpan={9} className="p-3">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0 flex-1">
-                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
-                            {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
-                        </div>
-                        {categoryMeta?.name ? (
+            <tr className={"border-t " + rowBgClass}>
+                 <td colSpan={9} className="p-3">
+                     <div className="flex items-start justify-between gap-4">
+                         <div className="min-w-0 flex-1">
+-                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
++                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
+                             {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
+                         </div>
+                         {categoryMeta?.name ? (
                             categoryMeta.color ? (
                                 <span className="inline-block px-2 py-1 rounded-full text-xs ml-3 flex-shrink-0" style={{ background: categoryMeta.color, color: textColorForBg(categoryMeta.color) }}>{categoryMeta.name}</span>
                             ) : (
                                 <span className="text-sm text-gray-600 ml-3 flex-shrink-0">{categoryMeta.name}</span>
                             )
                         ) : null}
+                     </div>
+                     {/* action buttons for simple view: Start (pending -> in_progress) and Complete */}
+                     <div className="mt-3 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            onClick={() => onChangeStatus(id, 'in_progress')}
+                            disabled={actionLoading || status === 'in_progress' || status === 'completed'}
+                            className={"px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                        >
+                            Start
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onChangeStatus(id, 'completed')}
+                            disabled={actionLoading || status === 'completed'}
+                            className={"px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                        >
+                            Complete
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -104,9 +132,9 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
 
     // Detailed view (existing layout)
     return (
-        <tr className={"border-t " + (isHighPriority ? 'bg-red-50' : '')}>
-             <td className="p-3">{id}</td>
-             <td className="p-3 min-w-[220px]">
+        <tr className={"border-t " + rowBgClass}>
+              <td className="p-3">{id}</td>
+              <td className="p-3 min-w-[220px]">
                 <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
                  {description ? (
                      <div className="text-sm text-gray-600">
@@ -132,6 +160,16 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
              <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
              <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
              <td className="p-3 whitespace-nowrap">
+                <button
+                    onClick={() => onChangeStatus(id, 'in_progress')}
+                    disabled={actionLoading || status === 'in_progress' || status === 'completed'}
+                    className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                >Start</button>
+                <button
+                    onClick={() => onChangeStatus(id, 'completed')}
+                    disabled={actionLoading || status === 'completed'}
+                    className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                >Complete</button>
                 <button onClick={() => onEdit(task)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
                 <button onClick={() => onDelete(id)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
              </td>
