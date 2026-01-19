@@ -20,8 +20,11 @@ async function request(path, opts = {}) {
     throw e;
   }
 
-  // If server returns 401, dispatch app-wide logged-out event so UI can clear state
-  if (res.status === 401) {
+  // If server redirected to a login page (common when session expired), treat it as unauthorized
+  // fetch sets `res.redirected` when a redirect was followed; some backends may return 301/302 with a Location header
+  const locationHeader = res.headers && typeof res.headers.get === 'function' ? res.headers.get('location') : null;
+  const redirectedToLogin = res.redirected || (locationHeader && /auth&a=login/.test(locationHeader));
+  if (res.status === 401 || redirectedToLogin) {
     try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) { /* ignore */ }
     const err = new Error('Unauthorized');
     err.status = 401;

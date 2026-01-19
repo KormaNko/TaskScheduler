@@ -8,6 +8,7 @@ import Sidebar from "./components/Sidebar.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import CategoryManager from "./pages/CategoryManager.jsx";
+import Options from "./pages/Options.jsx";
 import "../index.css"; // fix: correct path inside src
 
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
@@ -52,6 +53,7 @@ function AppInner() {
                     <Route path="/calendar" element={<Calendar />} />
                     <Route path="/categories" element={<CategoryManager />} />
                     <Route path="/users" element={<Users />} />
+                    <Route path="/options" element={<Options />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
 

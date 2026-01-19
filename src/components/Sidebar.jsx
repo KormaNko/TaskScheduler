@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { CheckSquare, Calendar, Users, LayoutDashboard, Tag } from "lucide-react";
+import { CheckSquare, Calendar, Users, LayoutDashboard, Tag, Settings } from "lucide-react";
 import LogoutButton from "./LogoutButton.jsx";
 
 export default function Sidebar() {
@@ -42,6 +42,7 @@ export default function Sidebar() {
                     <NavItem to="/calendar" icon={<Calendar size={18} />} label="Kalendár" />
                     <NavItem to="/categories" icon={<Tag size={18} />} label="Kategórie" />
                     <NavItem to="/users" icon={<Users size={18} />} label="Správa používateľov" />
+                    <NavItem to="/options" icon={<Settings size={18} />} label="Nastavenia" />
                 </nav>
 
                 {/* spacer - nav ends here. Logout is placed absolutely so it's always visible */}
