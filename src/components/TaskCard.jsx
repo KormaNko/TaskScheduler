@@ -74,14 +74,19 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
     // resolve category metadata once so both views can use it
     const categoryMeta = resolveCategoryMeta(category);
 
+    // determine high priority
+    const isHighPriority = (() => {
+        try { return Number(priority) >= 5; } catch (e) { return false; }
+    })();
+
     // Simple view: single row with one cell spanning all columns showing only title + description
     if (viewMode === 'simple') {
         return (
-            <tr className="border-t">
+            <tr className={"border-t " + (isHighPriority ? 'bg-red-50' : '')}>
                 <td colSpan={9} className="p-3">
                     <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
-                            <div className="font-semibold">{title || '-'}</div>
+                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
                             {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
                         </div>
                         {categoryMeta?.name ? (
@@ -99,19 +104,19 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
 
     // Detailed view (existing layout)
     return (
-        <tr className="border-t">
-            <td className="p-3">{id}</td>
-            <td className="p-3 min-w-[220px]">
-                <div className="font-semibold">{title || '-'}</div>
-                {description ? (
-                    <div className="text-sm text-gray-600">
-                        <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
-                    </div>
-                ) : null}
-            </td>
-            <td className="p-3">{status || '-'}</td>
-            <td className="p-3 text-center">{priority ?? '-'}</td>
-            <td className="p-3">
+        <tr className={"border-t " + (isHighPriority ? 'bg-red-50' : '')}>
+             <td className="p-3">{id}</td>
+             <td className="p-3 min-w-[220px]">
+                <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
+                 {description ? (
+                     <div className="text-sm text-gray-600">
+                         <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
+                     </div>
+                 ) : null}
+             </td>
+             <td className="p-3">{status || '-'}</td>
+             <td className="p-3 text-center">{priority ?? '-'}</td>
+             <td className="p-3">
                 {(() => {
                     const meta = resolveCategoryMeta(category);
                     if (meta?.color) {
@@ -122,14 +127,14 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                     }
                     return meta?.name ?? '-';
                 })()}
-            </td>
-            <td className="p-3">{fmt(deadline)}</td>
-            <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
-            <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
-            <td className="p-3 whitespace-nowrap">
+             </td>
+             <td className="p-3">{fmt(deadline)}</td>
+             <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
+             <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
+             <td className="p-3 whitespace-nowrap">
                 <button onClick={() => onEdit(task)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
                 <button onClick={() => onDelete(id)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
-            </td>
+             </td>
         </tr>
     );
 }
