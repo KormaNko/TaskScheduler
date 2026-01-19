@@ -402,12 +402,12 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2 w-full md:w-auto min-w-0">
                             <input
                                 type="text"
-                                className="px-3 py-2 border rounded w-full md:w-64 min-w-0"
+                                className="px-4 py-2 border border-gray-200 rounded-full w-full md:w-64 min-w-0 shadow-sm bg-white"
                                 placeholder="Search by title or ID"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
-                            <select className="px-2 py-2 border rounded w-full md:w-auto min-w-0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
+                            <select className="px-3 py-2 border border-gray-200 rounded-full bg-white shadow-sm w-full md:w-auto min-w-0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
                                 <option value="none">Sort: none</option>
                                 <optgroup label="Priority">
                                     <option value="priority_asc">Priority ↑</option>
@@ -425,11 +425,11 @@ export default function Dashboard() {
                         </div>
 
                         {/* Status filter buttons: placed below search+sort so they're visible even in wide (detailed) mode */}
-                        <div className="flex items-center gap-1 flex-wrap mt-2 md:mt-0">
-                            <button type="button" onClick={() => setStatusFilter('')} className={`px-2 py-2 rounded border ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-white'}`}>All</button>
-                            <button type="button" onClick={() => setStatusFilter('pending')} className={`px-2 py-2 rounded border ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Pending</button>
-                            <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-2 py-2 rounded border ${statusFilter === 'in_progress' ? 'bg-blue-600 text-white' : 'bg-white'}`}>In progress</button>
-                            <button type="button" onClick={() => setStatusFilter('completed')} className={`px-2 py-2 rounded border ${statusFilter === 'completed' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Completed</button>
+                        <div className="flex items-center gap-2 flex-wrap mt-2 md:mt-0">
+                            <button type="button" onClick={() => setStatusFilter('')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === '' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>All</button>
+                            <button type="button" onClick={() => setStatusFilter('pending')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'pending' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>Pending</button>
+                            <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'in_progress' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>In progress</button>
+                            <button type="button" onClick={() => setStatusFilter('completed')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'completed' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>Completed</button>
                         </div>
                     </div>
 
@@ -439,7 +439,7 @@ export default function Dashboard() {
                             <button
                                 type="button"
                                 onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
-                                className="px-2 py-2 border rounded"
+                                className="px-3 py-1 rounded-full border border-gray-200 bg-white shadow-sm"
                                 title="Toggle view"
                             >
                                 {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
@@ -456,23 +456,23 @@ export default function Dashboard() {
             {success && <div className="mb-4 text-sm text-green-600">{success}</div>}
 
             {showCreate && (
-                <form onSubmit={createTask} className="mb-6 bg-white p-4 rounded shadow">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <form onSubmit={createTask} className="mb-6 bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label className="block text-sm font-medium">Title</label>
-                            <input className="mt-1 block w-full border p-2 rounded" value={form.title} onChange={(e) => updateForm('title', e.target.value)} />
-                            <label className="block text-sm font-medium mt-2">Description</label>
-                            <textarea className="mt-1 block w-full border p-2 rounded" value={form.description} onChange={(e) => updateForm('description', e.target.value)} />
+                            <input className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.title} onChange={(e) => updateForm('title', e.target.value)} />
+                            <label className="block text-sm font-medium mt-4">Description</label>
+                            <textarea className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={(e) => updateForm('description', e.target.value)} />
                         </div>
 
                         <div>
                             <div className="text-sm text-gray-700 py-2">Status: <strong>Pending</strong></div>
 
                             <label className="block text-sm font-medium mt-2">Priority</label>
-                            <input type="number" min="1" max="5" className="mt-1 block w-32 border p-2 rounded" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
+                            <input type="number" min="1" max="5" className="mt-1 block w-32 border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
 
-                            <label className="block text-sm font-medium mt-2">Category</label>
-                            <select className="mt-1 block w-full border p-2 rounded" value={form.category} onChange={(e) => updateForm('category', e.target.value)}>
+                            <label className="block text-sm font-medium mt-4">Category</label>
+                            <select className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.category} onChange={(e) => updateForm('category', e.target.value)}>
                                 <option value="">—</option>
                                 {categories.map((c) => (
                                     // prefer id if available, otherwise use name; ensure value is a string
@@ -480,12 +480,12 @@ export default function Dashboard() {
                                 ))}
                             </select>
 
-                            <label className="block text-sm font-medium mt-2">Deadline</label>
-                            <input type="datetime-local" className="mt-1 block w-full border p-2 rounded" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
+                            <label className="block text-sm font-medium mt-4">Deadline</label>
+                            <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
 
-                            <div className="mt-4 flex gap-2">
-                                <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-green-600 text-white rounded">{actionLoading ? 'Creating...' : 'Create'}</button>
-                                <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
+                            <div className="mt-6 flex gap-2">
+                                <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm">{actionLoading ? 'Creating...' : 'Create'}</button>
+                                <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
                             </div>
                         </div>
                     </div>
@@ -574,7 +574,7 @@ export default function Dashboard() {
                     ref={modalRef}
                     className={"fixed inset-0 bg-black/40 flex " + (editFullScreen ? 'items-stretch' : 'items-end md:items-center') + " justify-center z-50 overflow-hidden"}
                 >
-                    <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-3 md:p-4 box-border flex flex-col overflow-hidden"}>
+                    <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-6 md:p-8 box-border flex flex-col overflow-hidden shadow-sm ring-1 ring-gray-100"}>
                         {/* header */}
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-semibold">Edit Task #{editing.id}</h3>
@@ -583,30 +583,30 @@ export default function Dashboard() {
 
                         {/* content (non-horizontal-scrollable). place formRef to measure height */}
                         <div className={"flex-1 " + (editFullScreen ? 'overflow-auto' : '')}>
-                             <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-3">
+                             <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-4">
                                  <label className="text-sm font-medium">Title</label>
-                                 <input className="border p-2 w-full rounded" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+                                 <input className="border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 w-full" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
 
                                  <label className="text-sm font-medium">Description</label>
-                                 <textarea className="border p-2 w-full rounded min-h-[100px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+                                 <textarea className="border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 w-full min-h-[120px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
 
-                                <div className="flex flex-col md:flex-row gap-2">
+                                <div className="flex flex-col md:flex-row gap-4">
                                     <div className="flex-1">
                                         <label className="text-sm font-medium">Status</label>
-                                        <select value={editing.status ?? ''} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="border p-2 w-full rounded">
+                                        <select value={editing.status ?? ''} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200">
                                             <option value="">—</option>
                                             {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                                         </select>
                                     </div>
 
-                                    <div className="w-full md:w-28">
+                                    <div className="w-full md:w-32">
                                         <label className="text-sm font-medium">Priority</label>
-                                        <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border p-2 w-full rounded" />
+                                        <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                     </div>
 
                                     <div className="flex-1">
                                         <label className="text-sm font-medium">Category</label>
-                                        <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border p-2 w-full rounded">
+                                        <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200">
                                             <option value="">—</option>
                                             {categories.map(c => <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>)}
                                         </select>
@@ -614,14 +614,14 @@ export default function Dashboard() {
 
                                     <div className="w-full md:w-auto">
                                         <label className="text-sm font-medium">Deadline</label>
-                                        <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2 w-full rounded" />
+                                        <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                     </div>
                                 </div>
 
                                 {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
                                 <div className="mt-2 flex justify-start md:justify-end gap-2">
-                                    <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded flex-shrink-0">Save</button>
-                                    <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 bg-gray-200 rounded flex-shrink-0">Cancel</button>
+                                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm flex-shrink-0">Save</button>
+                                    <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
                                 </div>
                              </form>
                          </div>

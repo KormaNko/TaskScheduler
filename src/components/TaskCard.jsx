@@ -172,19 +172,20 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
               <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
               <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
               <td className="p-3">
-                <div className="flex flex-wrap gap-2">
+                {/* Use a responsive grid so buttons are 2x2 on small widths and 4-in-row on md+; each button fills its cell */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                     disabled={actionLoading || status === 'in_progress' || status === 'completed'}
-                    className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
-                ><span aria-hidden>▶</span>Start</button>
+                    className={"w-full px-3 py-2 rounded text-sm inline-flex items-center gap-2 justify-center " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                ><span aria-hidden>▶</span><span>Start</span></button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                     disabled={actionLoading || status === 'completed'}
-                    className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
-                ><span aria-hidden>✔</span>Complete</button>
-                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0 inline-flex items-center gap-2"><span aria-hidden>✎</span>Edit</button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex-shrink-0 inline-flex items-center gap-2"><span aria-hidden>🗑</span>Delete</button>
+                    className={"w-full px-3 py-2 rounded text-sm inline-flex items-center gap-2 justify-center " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                ><span aria-hidden>✔</span><span>Complete</span></button>
+                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>✎</span><span>Edit</span></button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>🗑</span><span>Delete</span></button>
                 </div>
               </td>
         </tr>
