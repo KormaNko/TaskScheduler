@@ -87,6 +87,17 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         return '';
     })();
 
+    // helper: render a small status pill (visual only)
+    const renderStatusPill = (st) => {
+        if (!st) return null;
+        const s = String(st);
+        const label = s === 'completed' ? 'Completed' : s === 'in_progress' ? 'In progress' : s === 'pending' ? 'Pending' : s;
+        const base = 'inline-block text-xs px-2 py-0.5 rounded-full font-medium';
+        if (s === 'completed') return <span className={base + ' bg-green-100 text-green-800 ml-2'}>{label}</span>;
+        if (s === 'in_progress') return <span className={base + ' bg-yellow-100 text-yellow-800 ml-2'}>{label}</span>;
+        return <span className={base + ' bg-gray-100 text-gray-700 ml-2'}>{label}</span>;
+    };
+
     // Simple view: single row with one cell spanning all columns showing only title + description
     if (viewMode === 'simple') {
         return (
@@ -94,14 +105,14 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                  <td colSpan={9} className="p-3">
                      <div className="flex items-start justify-between gap-4">
                          <div className="min-w-0 flex-1">
-                             <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
+                             <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}</div>
                              {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
                          </div>
                          {categoryMeta?.name ? (
                             categoryMeta.color ? (
                                 <span className="inline-block px-2 py-1 rounded-full text-xs ml-3 flex-shrink-0" style={{ background: categoryMeta.color, color: textColorForBg(categoryMeta.color) }}>{categoryMeta.name}</span>
                             ) : (
-                                <span className="text-sm text-gray-600 ml-3 flex-shrink-0">{categoryMeta.name}</span>
+                                <span className="inline-block px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 ml-3 flex-shrink-0">{categoryMeta.name}</span>
                             )
                         ) : null}
                      </div>
@@ -111,17 +122,19 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                             disabled={actionLoading || status === 'in_progress' || status === 'completed'}
-                            className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                            className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
                         >
-                            Start
+                            <span aria-hidden>▶</span>
+                            <span>Start</span>
                         </button>
                         <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                             disabled={actionLoading || status === 'completed'}
-                            className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                            className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
                         >
-                            Complete
+                            <span aria-hidden>✔</span>
+                            <span>Complete</span>
                         </button>
                     </div>
                 </td>
@@ -134,7 +147,7 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
               <td className="p-3">{id}</td>
               <td className="p-3 min-w-0">
-                <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
+                <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}</div>
                   {description ? (
                       <div className="text-sm text-gray-600">
                           <div className="whitespace-pre-wrap break-words">{description}</div>
@@ -152,7 +165,7 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                              <span className="inline-block px-2 py-1 rounded-full text-xs" style={{ background: meta.color, color: tc }}>{meta.name}</span>
                          );
                      }
-                     return meta?.name ?? '-';
+                     return meta?.name ? <span className="inline-block px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">{meta.name}</span> : '-';
                  })()}
               </td>
               <td className="p-3">{fmt(deadline)}</td>
@@ -163,15 +176,15 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                     disabled={actionLoading || status === 'in_progress' || status === 'completed'}
-                    className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
-                >Start</button>
+                    className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                ><span aria-hidden>▶</span>Start</button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                     disabled={actionLoading || status === 'completed'}
-                    className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
-                >Complete</button>
-                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0">Edit</button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex-shrink-0">Delete</button>
+                    className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                ><span aria-hidden>✔</span>Complete</button>
+                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0 inline-flex items-center gap-2"><span aria-hidden>✎</span>Edit</button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex-shrink-0 inline-flex items-center gap-2"><span aria-hidden>🗑</span>Delete</button>
                 </div>
               </td>
         </tr>

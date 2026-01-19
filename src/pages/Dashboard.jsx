@@ -492,25 +492,25 @@ export default function Dashboard() {
                 </form>
             )}
 
-            <section className="bg-white rounded shadow">
+            <section className="bg-white rounded shadow-md ring-1 ring-indigo-50">
                 <div ref={tableWrapperRef} className="overflow-x-auto">
                 <table ref={tableRef} className="w-full table-auto">
-                     <thead className="bg-gray-100">
+                     <thead className="bg-indigo-50">
                     {viewMode === 'simple' ? (
                         <tr>
-                            <th colSpan={9} className="p-3 text-left">Tasks</th>
+                            <th colSpan={9} className="p-3 text-left text-sm font-semibold text-indigo-700">Tasks</th>
                         </tr>
                     ) : (
                         <tr>
-                            <th className="p-3 text-left">ID</th>
-                            <th className="p-3 text-left">Title</th>
-                            <th className="p-3 text-left">Status</th>
-                            <th className="p-3 text-left">Prio</th>
-                            <th className="p-3 text-left">Category</th>
-                            <th className="p-3 text-left">Deadline</th>
-                            <th className="p-3 text-left">Created</th>
-                            <th className="p-3 text-left">Updated</th>
-                            <th className="p-3 text-left">Actions</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">ID</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Title</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Status</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Prio</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Category</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Deadline</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Created</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Updated</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Actions</th>
                         </tr>
                     )}
                     </thead>
