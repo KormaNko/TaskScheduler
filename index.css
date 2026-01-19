@@ -1,1 +1,46 @@
 @import "tailwindcss";
+
+/* calendar responsiveness: ensure calendars never cause horizontal scrolling
+   - .calendar-root constrains max-width and hides horizontal overflow
+   - make sure descendants can shrink (min-width:0) to avoid grid items forcing overflow
+   - some small mobile tweaks to reduce paddings/font-sizes inside calendars
+*/
+.calendar-root {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+.calendar-root * {
+  box-sizing: border-box;
+  /* allow flex/grid children to shrink instead of causing overflow */
+  min-width: 0;
+}
+
+/* reduce internal gaps/paddings on small screens */
+@media (max-width: 640px) {
+  .calendar-root {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .calendar-root .month-grid,
+  .calendar-root .week-timeline,
+  .calendar-root .day-timeline {
+    gap: 4px !important;
+    padding: 4px !important;
+  }
+  .calendar-root .calendar-control-bar {
+    padding: 6px 0 !important;
+  }
+  .calendar-root .calendar-title {
+    font-size: 16px !important;
+  }
+  .calendar-root .calendar-header-cell {
+    font-size: 11px !important;
+    height: 32px !important;
+  }
+}
+
+/* ensure any sticky left axis doesn't overflow the viewport */
+.calendar-root .left-axis {
+  min-width: 0;
+}

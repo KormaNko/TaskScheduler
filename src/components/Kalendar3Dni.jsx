@@ -106,10 +106,18 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
         return { weekday, day };
     };
 
+    // container: prevent horizontal scrolling and allow columns to shrink
+    const outerStyle = { overflowX: 'hidden', width: '100%', boxSizing: 'border-box' };
+    const headerGridStyle = { display: 'grid', gridTemplateColumns: `${axisWidth}px repeat(3, minmax(0, 1fr))`, gap: '0.5rem', alignItems: 'center' };
+
     return (
-        <div>
+        <div style={outerStyle} className="calendar-root">
+            <div className="calendar-control-bar" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Now</button>
+            </div>
+
             <div className="bg-white rounded border border-gray-100 p-4">
-                <div className="mb-2 items-center" style={{ display: 'grid', gridTemplateColumns: `${axisWidth}px repeat(3, 1fr)`, gap: '0.5rem', alignItems: 'center' }}>
+                <div className="mb-2 items-center" style={headerGridStyle}>
                     <div />
                     {days.map((d, idx) => {
                         const { weekday, day } = fmtHeader(d);
@@ -120,15 +128,13 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
                             </div>
                         );
                     })}
-                    <div style={{ gridColumn: '2 / span 3', display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
-                        <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Now</button>
-                    </div>
+                    {/* Now button moved to top control bar to avoid header overflow on small screens */}
                 </div>
 
                 {/* timeline area */}
-                <div ref={scrollRef} className="flex overflow-y-auto" style={{ maxHeight: '70vh', position: 'relative' }}>
+                <div ref={scrollRef} className="flex overflow-y-auto day-timeline" style={{ maxHeight: '70vh', position: 'relative', overflowX: 'hidden' }}>
                      {/* left time axis */}
-                     <div ref={axisRef} className="pr-2 bg-transparent sticky left-0 z-20" style={{ alignSelf: 'flex-start', width: `${axisWidth}px` }}>
+                     <div ref={axisRef} className="pr-2 bg-transparent sticky left-0 z-20" style={{ alignSelf: 'flex-start', width: `${axisWidth}px`, flex: '0 0 auto', minWidth: 0 }}>
                          <div style={{ height: totalHeight, position: 'relative' }}>
                              {Array.from({ length: 24 }).map((_, h) => (
                                  <div key={h} style={{ height: `${slotHeight}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }} className="text-xs text-gray-500 pr-2">{String(h).padStart(2,'0')}:00</div>
@@ -136,8 +142,8 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
                          </div>
                      </div>
 
-                    {/* 3 day columns */}
-                    <div className="flex-1 grid grid-cols-3" style={{ minWidth: 600, position: 'relative' }}>
+                    {/* 3 day columns - columns are flexible and can shrink */}
+                    <div className="flex-1 grid grid-cols-3" style={{ position: 'relative', minWidth: 0, width: '100%', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                         {days.map((d, idx) => (
                             <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={() => onDayClick(d)}>
                                 {/* horizontal hour lines */}
@@ -165,10 +171,10 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
                                     );
 
                                     return (
-                                        <button key={ev.id} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} className="absolute left-2 right-2 rounded shadow-sm bg-white border px-2 py-1 flex items-center gap-2" style={{ top: `${Math.min(Math.max(0, topPx), totalHeight - 1)}px`, zIndex: 10 }} title={ev.title}>
+                                        <button key={ev.id} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} className="absolute left-2 right-2 rounded shadow-sm bg-white border px-2 py-1 flex items-center gap-2" style={{ top: `${Math.min(Math.max(0, topPx), totalHeight - 1)}px`, zIndex: 10, left: 8, right: 8 }} title={ev.title}>
                                             <span style={{ width: 8, height: 8, background: stripe, borderRadius: 4, display: 'inline-block' }} />
-                                            <span className="text-sm font-medium truncate">{ev.title}</span>
-                                            <span className="text-xs text-gray-500 ml-2">{timeLabel}</span>
+                                            <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ev.title}</span>
+                                            <span className="text-xs text-gray-500 ml-2" style={{ flex: '0 0 auto' }}>{timeLabel}</span>
                                         </button>
                                     );
                                 })}

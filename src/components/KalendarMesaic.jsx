@@ -99,27 +99,27 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
     // styles
     const cellMinHeight = `calc((100vh - 260px) / ${rows})`;
-    const containerStyle = { width: '100%', maxWidth: '100%', margin: '0 auto', padding: '12px', boxSizing: 'border-box' };
+    const containerStyle = { width: '100%', maxWidth: '100%', margin: '0 auto', padding: '12px', boxSizing: 'border-box', overflowX: 'hidden' };
     const controlBarStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '12px' };
     const controlGroupStyle = { display: 'flex', gap: '8px', alignItems: 'center' };
     const titleStyle = { textAlign: 'center', fontWeight: 600, flex: 1 };
-    const gridWrapperStyle = { overflow: 'auto', borderRadius: '8px', maxWidth: '100%', height: `calc(100vh - 220px)` };
+    const gridWrapperStyle = { overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', maxWidth: '100%', height: `calc(100vh - 220px)` };
     const gridStyle = { display: 'grid', gap: '6px', padding: '6px', background: 'transparent', ...{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }, alignContent: 'start', height: '100%' };
     const headerStyle = { height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px', color: '#111827' };
-    const cellStyle = { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', display: 'flex', flexDirection: 'column', padding: '8px', minHeight: cellMinHeight, boxSizing: 'border-box', fontSize: '14px', color: '#111827' };
+    const cellStyle = { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', display: 'flex', flexDirection: 'column', padding: '8px', minHeight: cellMinHeight, boxSizing: 'border-box', fontSize: '14px', color: '#111827', minWidth: 0 };
     const dateNumberStyle = { fontSize: '12px', fontWeight: 500, color: '#374151' };
     const eventsStyle = { marginTop: '6px', fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
-    function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background }; }
+    function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background, minWidth: 0 }; }
     const eventPillStyleBase = { display: 'block', padding: '2px 6px', borderRadius: '999px', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
 
     // ------------------
     // Render
     // ------------------
     return (
-        <div style={containerStyle}>
+        <div style={containerStyle} className="calendar-root">
 
             {/* Horný ovládací panel kalendára */}
-            <div style={controlBarStyle}>
+            <div style={controlBarStyle} className="calendar-control-bar">
                 <div style={controlGroupStyle}>
                     {/* Only show internal controls when not controlled by parent */}
                     {!(typeof month === 'number' && typeof year === 'number') && (
@@ -130,7 +130,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                     )}
                  </div>
 
-                <div style={titleStyle}><div style={{ fontWeight: 700 }}>{months[monthIndex]} {effectiveYear}</div></div>
+                <div style={titleStyle} className="calendar-title"><div style={{ fontWeight: 700 }}>{months[monthIndex]} {effectiveYear}</div></div>
 
                 <div style={controlGroupStyle}>
                     {!(typeof month === 'number' && typeof year === 'number') && (
@@ -142,11 +142,11 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
             {loading && (<div style={{ padding: 8, color: '#374151', fontSize: 13 }}>Loading tasks...</div>)}
 
             {/* Grid s dňami */}
-            <div style={gridWrapperStyle}>
+            <div style={gridWrapperStyle} className="month-grid">
                 <div style={gridStyle}>
 
                     {/* Hlavička dní */}
-                    {daysOfWeek.slice(0, cols).map((d, i) => (<div key={`header-${i}`} style={headerStyle}>{d}</div>))}
+                    {daysOfWeek.slice(0, cols).map((d, i) => (<div key={`header-${i}`} style={headerStyle} className="calendar-header-cell">{d}</div>))}
 
                     {/* Dni mesiaca */}
                     {displayCells.map((v, i) => (
@@ -169,7 +169,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                                                      <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
                                                      <div style={{ flex: 1, overflow: 'hidden' }}>
                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                             <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</div>
+                                                             <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ev.title}</div>
                                                              {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
                                                          </div>
                                                          <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>

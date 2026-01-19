@@ -1,7 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef } from 'react';
 
 // Day view with single left time axis and scrollable timeline
-export default function KalendarDen({ date = new Date(), tasks = [], categories = [], resolveCategory = () => '', loading = false, onEventClick = () => {}, onDayClick = () => {} }) {
+export default function KalendarDen({ date = new Date(), tasks = [], categories = [], onEventClick = () => {}, onDayClick = () => {} }) {
     const pad = n => String(n).padStart(2, '0');
     const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
@@ -41,18 +41,6 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
     const totalHeight = 24 * slotHeight;
 
     const scrollRef = useRef(null);
-    const [visibleHeight, setVisibleHeight] = useState(600);
-    useEffect(() => {
-        function measure() {
-            try {
-                const el = scrollRef.current;
-                if (el) setVisibleHeight(el.clientHeight);
-            } catch (e) {}
-        }
-        measure();
-        window.addEventListener('resize', measure);
-        return () => window.removeEventListener('resize', measure);
-    }, []);
 
     // now indicator
     const now = new Date();
@@ -67,12 +55,15 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
         } catch (e) {}
     }
 
+    // Ensure no horizontal scroll and allow columns to shrink
+    const outerStyle = { overflowX: 'hidden', width: '100%', boxSizing: 'border-box' };
+
     return (
-        <div>
-            {/* header */}
-            <div className="flex items-center justify-between mb-2 px-2">
+        <div style={outerStyle} className="calendar-root">
+            {/* top control bar - buttons moved to the very top to prevent header overflow */}
+            <div className="calendar-control-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div>
-                    <div className="text-lg font-semibold">{date.toLocaleDateString()}</div>
+                    <div className="text-lg font-semibold calendar-title">{date.toLocaleDateString()}</div>
                     <div className="text-sm text-gray-500">Day view</div>
                 </div>
                 <div>
@@ -83,18 +74,18 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
                 </div>
             </div>
 
-            <div ref={scrollRef} className="flex bg-white rounded border border-gray-100 overflow-y-auto" style={{ maxHeight: '70vh' }}>
-                {/* left time axis */}
-                <div className="w-20 pr-2 bg-transparent sticky left-0 z-20" style={{ alignSelf: 'flex-start' }}>
-                    <div style={{ height: totalHeight, position: 'relative' }}>
-                        {Array.from({ length: 24 }).map((_, h) => (
-                            <div key={h} style={{ height: `${slotHeight}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }} className="text-xs text-gray-500 pr-2">{String(h).padStart(2,'0')}:00</div>
-                        ))}
-                    </div>
-                </div>
+            <div ref={scrollRef} className="flex bg-white rounded border border-gray-100 overflow-y-auto day-timeline" style={{ maxHeight: '70vh', overflowX: 'hidden' }}>
+                 {/* left time axis */}
+                <div className="w-20 pr-2 bg-transparent sticky left-0 z-20 left-axis" style={{ alignSelf: 'flex-start', flex: '0 0 auto', minWidth: 0 }}>
+                     <div style={{ height: totalHeight, position: 'relative' }}>
+                         {Array.from({ length: 24 }).map((_, h) => (
+                             <div key={h} style={{ height: `${slotHeight}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }} className="text-xs text-gray-500 pr-2">{String(h).padStart(2,'0')}:00</div>
+                         ))}
+                     </div>
+                 </div>
 
-                {/* single day column */}
-                <div className="flex-1 relative" style={{ minWidth: 500, height: totalHeight }} onClick={() => onDayClick(date)}>
+                 {/* single day column */}
+                 <div className="flex-1 relative" style={{ minWidth: 0, width: '100%', height: totalHeight }} onClick={() => onDayClick(date)}>
                     {/* hour lines */}
                     {Array.from({ length: 24 }).map((_, h) => (
                         <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${h * slotHeight}px`, height: 0 }}>
@@ -114,17 +105,17 @@ export default function KalendarDen({ date = new Date(), tasks = [], categories 
                             <div key={ev.id} className="m-2 p-2 rounded bg-white cursor-pointer border" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
                                 <div className="flex items-center gap-2">
                                     <span style={{ width: 8, height: 8, background: bg, borderRadius: 4, display: 'inline-block' }} />
-                                    <div className="text-sm font-medium">{ev.title}</div>
-                                    <div className="text-xs text-gray-500 ml-2">{timeLabel}</div>
+                                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ev.title}</div>
+                                    <div className="text-xs text-gray-500 ml-2" style={{ flex: '0 0 auto' }}>{timeLabel}</div>
                                 </div>
                             </div>
                         );
 
                         return (
-                            <button key={ev.id} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} className="absolute left-2 right-2 rounded shadow-sm bg-white border px-2 py-1 flex items-center gap-2" style={{ top: `${Math.min(Math.max(0, topPx), totalHeight - 1)}px`, zIndex: 10 }} title={ev.title}>
+                            <button key={ev.id} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} className="absolute rounded shadow-sm bg-white border px-2 py-1 flex items-center gap-2" style={{ top: `${Math.min(Math.max(0, topPx), totalHeight - 1)}px`, zIndex: 10, left: 8, right: 8 }} title={ev.title}>
                                 <span style={{ width: 8, height: 8, background: bg, borderRadius: 4, display: 'inline-block' }} />
-                                <span className="text-sm font-medium truncate">{ev.title}</span>
-                                <span className="text-xs text-gray-500 ml-2">{timeLabel}</span>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ev.title}</span>
+                                <span className="text-xs text-gray-500 ml-2" style={{ flex: '0 0 auto' }}>{timeLabel}</span>
                             </button>
                         );
                     })}
