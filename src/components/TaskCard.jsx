@@ -133,11 +133,11 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
     return (
         <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
               <td className="p-3">{id}</td>
-              <td className="p-3 min-w-[220px]">
+              <td className="p-3 min-w-0">
                 <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
                   {description ? (
                       <div className="text-sm text-gray-600">
-                          <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
+                          <div className="whitespace-pre-wrap break-words">{description}</div>
                       </div>
                   ) : null}
               </td>
@@ -158,19 +158,21 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
               <td className="p-3">{fmt(deadline)}</td>
               <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
               <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
-              <td className="p-3 whitespace-nowrap">
+              <td className="p-3">
+                <div className="flex flex-wrap gap-2">
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                     disabled={actionLoading || status === 'in_progress' || status === 'completed'}
-                    className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                    className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
                 >Start</button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                     disabled={actionLoading || status === 'completed'}
-                    className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                    className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
                 >Complete</button>
-                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0">Edit</button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 flex-shrink-0">Delete</button>
+                </div>
               </td>
         </tr>
     );

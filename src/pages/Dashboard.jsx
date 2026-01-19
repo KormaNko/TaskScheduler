@@ -15,6 +15,8 @@ const STATUS_OPTIONS = [
 export default function Dashboard() {
     const tableWrapperRef = useRef(null);
     const tableRef = useRef(null);
+    const modalRef = useRef(null);
+    const formRef = useRef(null);
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -31,6 +33,7 @@ export default function Dashboard() {
     const [statusFilter, setStatusFilter] = useState(''); // '' | 'pending' | 'in_progress' | 'completed'
     const [isMobile, setIsMobile] = useState(false);
     const [detailTask, setDetailTask] = useState(null);
+    const [editFullScreen, setEditFullScreen] = useState(false);
 
     // On initial mount, set simple view for small screens so mobile shows stacked layout
     useEffect(() => {
@@ -286,6 +289,45 @@ export default function Dashboard() {
 
     function openEdit(task) { setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category: task?.category !== undefined && task?.category !== null ? String(task.category) : '' }); }
 
+    // When editing opens, measure the form height and decide whether to show full-screen edit
+    useEffect(() => {
+        if (!editing) {
+            // restore body overflow when modal closed
+            try { document.body.style.overflow = ''; document.documentElement.style.overflowX = ''; } catch (e) {}
+            setEditFullScreen(false);
+            return;
+        }
+
+        // prevent horizontal page scroll while modal is open
+        try { document.documentElement.style.overflowX = 'hidden'; document.body.style.overflow = 'hidden'; } catch (e) {}
+
+        // measurement helper (also used on resize)
+        const measure = () => {
+            try {
+                const formEl = formRef.current;
+                const viewportH = (typeof window !== 'undefined') ? window.innerHeight : 800;
+                const estimatedHeight = formEl ? formEl.scrollHeight + 120 /* header+footer buffer */ : 0;
+                setEditFullScreen(estimatedHeight > viewportH);
+            } catch (e) { console.error(e); }
+        };
+
+        // measure after next paint
+        const id = setTimeout(measure, 30);
+
+        // re-measure on resize while editing is open so we adapt dynamically
+        function onResize() { measure(); }
+        window.addEventListener('resize', onResize);
+        window.addEventListener('orientationchange', onResize);
+
+        return () => {
+            clearTimeout(id);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('orientationchange', onResize);
+            // restore body/document overflow when modal closes or effect cleans up
+            try { document.body.style.overflow = ''; document.documentElement.style.overflowX = ''; } catch (e) {}
+        };
+    }, [editing]);
+
     async function saveEdit(e) {
         e?.preventDefault?.();
         if (!editing) return;
@@ -344,8 +386,8 @@ export default function Dashboard() {
 
     return (
         <div className="p-6">
-            <div className="flex items-start justify-between mb-4 flex-col md:flex-row gap-4">
-                <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="flex items-start justify-between mb-4 flex-col md:flex-row gap-4 flex-wrap">
+                <div className="flex items-center gap-2 w-full md:w-auto min-w-0">
                     {/* Mobile menu button - only visible on small screens */}
                     <button type="button" onClick={toggleMobileSidebar} className="p-2 rounded border md:hidden mr-2" title="Open menu">
                         <Menu size={18} />
@@ -354,18 +396,18 @@ export default function Dashboard() {
                     <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
                 </div>
 
-                <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
+                <div className="flex flex-col md:flex-row md:items-center gap-2 w-full flex-wrap">
                     <div className="flex flex-col md:flex-row md:items-center gap-2 flex-1">
                         {/* First row: search and sort (keeps them side-by-side on md+) */}
-                        <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="flex items-center gap-2 w-full md:w-auto min-w-0">
                             <input
                                 type="text"
-                                className="px-3 py-2 border rounded w-full md:w-64"
+                                className="px-3 py-2 border rounded w-full md:w-64 min-w-0"
                                 placeholder="Search by title or ID"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
-                            <select className="px-2 py-2 border rounded w-full md:w-auto" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
+                            <select className="px-2 py-2 border rounded w-full md:w-auto min-w-0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
                                 <option value="none">Sort: none</option>
                                 <optgroup label="Priority">
                                     <option value="priority_asc">Priority ↑</option>
@@ -391,7 +433,7 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
                         {/* hide view toggle on mobile - mobile always shows simple mode */}
                         {!isMobile && (
                             <button
@@ -403,7 +445,9 @@ export default function Dashboard() {
                                 {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
                             </button>
                         )}
-                        <NewTaskButton onOpen={() => setShowCreate(true)} />
+                        <div className="flex-shrink-0">
+                            <NewTaskButton onOpen={() => setShowCreate(true)} />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -526,22 +570,25 @@ export default function Dashboard() {
             )}
 
             {editing && (
-                <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-                    <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] max-w-3xl rounded-t-xl md:rounded p-3 md:p-4 mx-0 md:mx-4 flex flex-col">
+                <div
+                    ref={modalRef}
+                    className={"fixed inset-0 bg-black/40 flex " + (editFullScreen ? 'items-stretch' : 'items-end md:items-center') + " justify-center z-50 overflow-hidden"}
+                >
+                    <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-3 md:p-4 box-border flex flex-col overflow-hidden"}>
                         {/* header */}
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-lg font-semibold">Edit Task #{editing.id}</h3>
                             <button type="button" onClick={() => setEditing(null)} className="text-gray-600 hover:text-gray-800 px-2 py-1">✕</button>
                         </div>
 
-                        {/* scrollable content */}
-                        <div className="overflow-auto flex-1">
-                            <form onSubmit={saveEdit} className="flex flex-col gap-3">
-                                <label className="text-sm font-medium">Title</label>
-                                <input className="border p-2 w-full rounded" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+                        {/* content (non-horizontal-scrollable). place formRef to measure height */}
+                        <div className={"flex-1 " + (editFullScreen ? 'overflow-auto' : '')}>
+                             <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-3">
+                                 <label className="text-sm font-medium">Title</label>
+                                 <input className="border p-2 w-full rounded" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
 
-                                <label className="text-sm font-medium">Description</label>
-                                <textarea className="border p-2 w-full rounded min-h-[100px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+                                 <label className="text-sm font-medium">Description</label>
+                                 <textarea className="border p-2 w-full rounded min-h-[100px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
 
                                 <div className="flex flex-col md:flex-row gap-2">
                                     <div className="flex-1">
@@ -570,17 +617,17 @@ export default function Dashboard() {
                                         <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2 w-full rounded" />
                                     </div>
                                 </div>
-                            </form>
-                        </div>
 
-                        {/* footer (always visible) */}
-                        <div className="p-3 bg-white/95 md:bg-transparent md:p-0 flex flex-col md:flex-row gap-2">
-                            <button type="button" onClick={saveEdit} className="px-3 py-2 bg-blue-600 text-white rounded w-full md:w-auto">Save</button>
-                            <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 bg-gray-200 rounded w-full md:w-auto">Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                                {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
+                                <div className="mt-2 flex justify-start md:justify-end gap-2">
+                                    <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded flex-shrink-0">Save</button>
+                                    <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 bg-gray-200 rounded flex-shrink-0">Cancel</button>
+                                </div>
+                             </form>
+                         </div>
+                     </div>
+                 </div>
+              )}
 
         </div>
     );
