@@ -526,32 +526,62 @@ export default function Dashboard() {
             )}
 
             {editing && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-                    <div className="bg-white p-4 rounded w-full max-w-3xl">
-                        <h3 className="text-lg font-semibold mb-2">Edit Task #{editing.id}</h3>
-                        <form onSubmit={saveEdit} className="grid gap-3">
-                            <input className="border p-2" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
-                            <textarea className="border p-2" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
-                            <div className="flex gap-2">
-                                <select value={editing.status ?? ''} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="border p-2">
-                                    {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                                </select>
-                                <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border p-2 w-28" />
-                                <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border p-2">
-                                    <option value="">—</option>
-                                    {categories.map(c => <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>)}
-                                </select>
-                                <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2" />
-                            </div>
+                <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
+                    <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] max-w-3xl rounded-t-xl md:rounded p-3 md:p-4 mx-0 md:mx-4 flex flex-col">
+                        {/* header */}
+                        <div className="flex items-center justify-between mb-2">
+                            <h3 className="text-lg font-semibold">Edit Task #{editing.id}</h3>
+                            <button type="button" onClick={() => setEditing(null)} className="text-gray-600 hover:text-gray-800 px-2 py-1">✕</button>
+                        </div>
 
-                            <div className="flex gap-2">
-                                <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded">Save</button>
-                                <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 bg-gray-200 rounded">Cancel</button>
-                            </div>
-                        </form>
+                        {/* scrollable content */}
+                        <div className="overflow-auto flex-1">
+                            <form onSubmit={saveEdit} className="flex flex-col gap-3">
+                                <label className="text-sm font-medium">Title</label>
+                                <input className="border p-2 w-full rounded" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+
+                                <label className="text-sm font-medium">Description</label>
+                                <textarea className="border p-2 w-full rounded min-h-[100px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
+
+                                <div className="flex flex-col md:flex-row gap-2">
+                                    <div className="flex-1">
+                                        <label className="text-sm font-medium">Status</label>
+                                        <select value={editing.status ?? ''} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="border p-2 w-full rounded">
+                                            <option value="">—</option>
+                                            {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="w-full md:w-28">
+                                        <label className="text-sm font-medium">Priority</label>
+                                        <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border p-2 w-full rounded" />
+                                    </div>
+
+                                    <div className="flex-1">
+                                        <label className="text-sm font-medium">Category</label>
+                                        <select value={editing.category ?? ''} onChange={(e) => setEditing({ ...editing, category: e.target.value })} className="border p-2 w-full rounded">
+                                            <option value="">—</option>
+                                            {categories.map(c => <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="w-full md:w-auto">
+                                        <label className="text-sm font-medium">Deadline</label>
+                                        <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border p-2 w-full rounded" />
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        {/* footer (always visible) */}
+                        <div className="p-3 bg-white/95 md:bg-transparent md:p-0 flex flex-col md:flex-row gap-2">
+                            <button type="button" onClick={saveEdit} className="px-3 py-2 bg-blue-600 text-white rounded w-full md:w-auto">Save</button>
+                            <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 bg-gray-200 rounded w-full md:w-auto">Cancel</button>
+                        </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 }
