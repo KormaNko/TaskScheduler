@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useLayoutEffect } from 'react';
 import TaskCard from '../components/TaskCard';
 import NewTaskButton from '../components/NewTaskButton';
 import api from '../lib/api';
+import { Menu } from 'lucide-react';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
@@ -12,6 +13,8 @@ const STATUS_OPTIONS = [
 // CATEGORY_OPTIONS come from the backend user categories. We will fetch them on mount.
 
 export default function Dashboard() {
+    const tableWrapperRef = useRef(null);
+    const tableRef = useRef(null);
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -26,6 +29,55 @@ export default function Dashboard() {
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
     const [viewMode, setViewMode] = useState('detailed'); // 'simple' | 'detailed'
     const [statusFilter, setStatusFilter] = useState(''); // '' | 'pending' | 'in_progress' | 'completed'
+    const [isMobile, setIsMobile] = useState(false);
+    const [detailTask, setDetailTask] = useState(null);
+
+    // On initial mount, set simple view for small screens so mobile shows stacked layout
+    useEffect(() => {
+        try {
+            if (typeof window !== 'undefined' && window.innerWidth < 768) {
+                setViewMode('simple');
+            }
+        } catch (e) { /* ignore */ }
+    }, []);
+
+    // track resize and enforce simple mode on small screens; hide toggle there
+    useEffect(() => {
+        function update() {
+            const mobile = typeof window !== 'undefined' && window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (mobile) setViewMode('simple');
+            // check overflow when resizing
+            checkOverflow();
+        }
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    // check if table overflows its wrapper (used to auto-switch to simple mode on narrow spaces)
+    function checkOverflow() {
+        try {
+            const wrap = tableWrapperRef.current;
+            const table = tableRef.current;
+            if (!wrap || !table) return false;
+            // horizontal overflow: treat even slight overflow as overflow (use 92% tolerance)
+            const horizOverflow = table.scrollWidth > wrap.clientWidth * 0.8; // more aggressive: switch earlier
+            // vertical overflow: check if table height exceeds available viewport space below the wrapper top
+            const wrapTop = wrap.getBoundingClientRect().top;
+            const availableHeight = (typeof window !== 'undefined') ? (window.innerHeight - wrapTop - 120) : Infinity; // 120px buffer for headers/controls
+            const vertOverflow = table.scrollHeight > availableHeight;
+
+            const overflow = horizOverflow || vertOverflow;
+            if (overflow && viewMode !== 'simple') {
+                setViewMode('simple');
+                return true;
+            }
+            return overflow;
+        } catch (e) {
+            return false;
+        }
+    }
 
     // filtered tasks by search (id or title)
     const filteredTasks = useMemo(() => {
@@ -80,6 +132,12 @@ export default function Dashboard() {
         }
         return arr;
     }, [filteredTasks, sortOrder]);
+
+    // run an immediate check after rendering when the displayed tasks change
+    useLayoutEffect(() => {
+        checkOverflow();
+        // don't try to switch back to detailed automatically here — user can toggle on larger screens
+    }, [displayedTasks]);
 
     useEffect(() => { fetchTasks(); }, []);
 
@@ -206,16 +264,22 @@ export default function Dashboard() {
 
     async function changeStatus(id, newStatus) {
         if (!id) return;
-        setError(null); setActionLoading(true);
+        setError(null);
+        setActionLoading(true);
+        // optimistic update: update local state first so UI responds immediately
+        const prevTasks = tasks;
+        setTasks((prev) => prev.map((t) => (String(t.id) === String(id) ? { ...t, status: String(newStatus) } : t)));
         try {
             const params = new URLSearchParams();
             params.append('id', String(id));
             params.append('status', String(newStatus));
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
-            await fetchTasks();
             setSuccess('Status updated');
+            // do not refetch entire list to avoid visual "refresh"; single-item update is enough
         } catch (err) {
             console.error('changeStatus', err);
+            // revert optimistic update on error
+            setTasks(prevTasks);
             setError(err.message || 'Failed to update status');
         } finally { setActionLoading(false); }
     }
@@ -263,48 +327,84 @@ export default function Dashboard() {
         return () => window.removeEventListener('app:logged-out', onLoggedOut);
     }, []);
 
+    // helper: toggle sidebar on mobile by dispatching the event Sidebar listens for
+    function toggleMobileSidebar() {
+        try {
+            window.dispatchEvent(new Event('app:toggle-mobile-sidebar'));
+        } catch (e) { /* ignore */ }
+    }
+
+    function openDetails(task) {
+        setDetailTask(task);
+    }
+
+    function closeDetails() {
+        setDetailTask(null);
+    }
+
     return (
         <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
-                <div className="flex items-center gap-2">
-                    <input
-                        type="text"
-                        className="px-3 py-2 border rounded w-64"
-                        placeholder="Search by title or ID"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                    <select className="px-2 py-2 border rounded" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
-                        <option value="none">Sort: none</option>
-                        <optgroup label="Priority">
-                            <option value="priority_asc">Priority ↑</option>
-                            <option value="priority_desc">Priority ↓</option>
-                        </optgroup>
-                        <optgroup label="Title">
-                            <option value="title_asc">Title A → Z</option>
-                            <option value="title_desc">Title Z → A</option>
-                        </optgroup>
-                        <optgroup label="Remaining time">
-                            <option value="time_asc">Deadline: soonest first</option>
-                            <option value="time_desc">Deadline: latest first</option>
-                        </optgroup>
-                    </select>
-                    <div className="flex items-center gap-1">
-                        <button type="button" onClick={() => setStatusFilter('')} className={`px-2 py-2 rounded border ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-white'}`}>All</button>
-                        <button type="button" onClick={() => setStatusFilter('pending')} className={`px-2 py-2 rounded border ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Pending</button>
-                        <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-2 py-2 rounded border ${statusFilter === 'in_progress' ? 'bg-blue-600 text-white' : 'bg-white'}`}>In progress</button>
-                        <button type="button" onClick={() => setStatusFilter('completed')} className={`px-2 py-2 rounded border ${statusFilter === 'completed' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Completed</button>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
-                        className="px-2 py-2 border rounded"
-                        title="Toggle view"
-                    >
-                        {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
+            <div className="flex items-start justify-between mb-4 flex-col md:flex-row gap-4">
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    {/* Mobile menu button - only visible on small screens */}
+                    <button type="button" onClick={toggleMobileSidebar} className="p-2 rounded border md:hidden mr-2" title="Open menu">
+                        <Menu size={18} />
                     </button>
-                    <NewTaskButton onOpen={() => setShowCreate(true)} />
+
+                    <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
+                </div>
+
+                <div className="flex flex-col md:flex-row md:items-center gap-2 w-full">
+                    <div className="flex flex-col md:flex-row md:items-center gap-2 flex-1">
+                        {/* First row: search and sort (keeps them side-by-side on md+) */}
+                        <div className="flex items-center gap-2 w-full md:w-auto">
+                            <input
+                                type="text"
+                                className="px-3 py-2 border rounded w-full md:w-64"
+                                placeholder="Search by title or ID"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                            <select className="px-2 py-2 border rounded w-full md:w-auto" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
+                                <option value="none">Sort: none</option>
+                                <optgroup label="Priority">
+                                    <option value="priority_asc">Priority ↑</option>
+                                    <option value="priority_desc">Priority ↓</option>
+                                </optgroup>
+                                <optgroup label="Title">
+                                    <option value="title_asc">Title A → Z</option>
+                                    <option value="title_desc">Title Z → A</option>
+                                </optgroup>
+                                <optgroup label="Remaining time">
+                                    <option value="time_asc">Deadline: soonest first</option>
+                                    <option value="time_desc">Deadline: latest first</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        {/* Status filter buttons: placed below search+sort so they're visible even in wide (detailed) mode */}
+                        <div className="flex items-center gap-1 flex-wrap mt-2 md:mt-0">
+                            <button type="button" onClick={() => setStatusFilter('')} className={`px-2 py-2 rounded border ${statusFilter === '' ? 'bg-blue-600 text-white' : 'bg-white'}`}>All</button>
+                            <button type="button" onClick={() => setStatusFilter('pending')} className={`px-2 py-2 rounded border ${statusFilter === 'pending' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Pending</button>
+                            <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-2 py-2 rounded border ${statusFilter === 'in_progress' ? 'bg-blue-600 text-white' : 'bg-white'}`}>In progress</button>
+                            <button type="button" onClick={() => setStatusFilter('completed')} className={`px-2 py-2 rounded border ${statusFilter === 'completed' ? 'bg-blue-600 text-white' : 'bg-white'}`}>Completed</button>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        {/* hide view toggle on mobile - mobile always shows simple mode */}
+                        {!isMobile && (
+                            <button
+                                type="button"
+                                onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
+                                className="px-2 py-2 border rounded"
+                                title="Toggle view"
+                            >
+                                {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
+                            </button>
+                        )}
+                        <NewTaskButton onOpen={() => setShowCreate(true)} />
+                    </div>
                 </div>
             </div>
 
@@ -349,8 +449,9 @@ export default function Dashboard() {
             )}
 
             <section className="bg-white rounded shadow">
-                <table className="w-full table-auto">
-                    <thead className="bg-gray-100">
+                <div ref={tableWrapperRef} className="overflow-x-auto">
+                <table ref={tableRef} className="w-full table-auto">
+                     <thead className="bg-gray-100">
                     {viewMode === 'simple' ? (
                         <tr>
                             <th colSpan={9} className="p-3 text-left">Tasks</th>
@@ -377,7 +478,6 @@ export default function Dashboard() {
                     ) : filteredTasks.length === 0 ? (
                         <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
                     ) : displayedTasks.map((t) => (
-
                         <TaskCard
                             key={t.id}
                             task={t}
@@ -387,11 +487,43 @@ export default function Dashboard() {
                             onChangeStatus={changeStatus}
                             actionLoading={actionLoading}
                             viewMode={viewMode}
+                            onOpenDetails={openDetails}
                         />
-                    ))}
-                      </tbody>
-                  </table>
-              </section>
+                     ))}
+                       </tbody>
+                   </table>
+                 </div>
+               </section>
+
+            {/* Detail modal: show all details for a single task on mobile when a task is clicked */}
+            {detailTask && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    <div className="bg-white p-4 rounded w-full max-w-lg mx-4">
+                        <div className="flex justify-between items-start gap-4">
+                            <div>
+                                <h2 className="text-lg font-semibold">{detailTask.title}</h2>
+                                <div className="text-sm text-gray-600">ID: {detailTask.id}</div>
+                            </div>
+                            <div>
+                                <button onClick={closeDetails} className="px-2 py-1 bg-gray-200 rounded">Close</button>
+                            </div>
+                        </div>
+
+                        <div className="mt-3 space-y-2 text-sm">
+                            {detailTask.description ? <div><strong>Description</strong><div className="text-gray-700 mt-1 whitespace-pre-wrap">{detailTask.description}</div></div> : null}
+                            <div><strong>Status:</strong> <span className="ml-2">{detailTask.status ?? '-'}</span></div>
+                            <div><strong>Priority:</strong> <span className="ml-2">{detailTask.priority ?? '-'}</span></div>
+                            <div><strong>Category:</strong> <span className="ml-2">{(detailTask._categoryObj && (detailTask._categoryObj.name ?? detailTask._categoryObj)) || detailTask.category || '-'}</span></div>
+                            <div><strong>Deadline:</strong> <span className="ml-2">{detailTask.deadline ? String(detailTask.deadline).replace(' ', 'T') : '-'}</span></div>
+                        </div>
+
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button onClick={() => { setDetailTask(null); openEdit(detailTask); }} className="px-3 py-2 bg-blue-600 text-white rounded">Edit</button>
+                            <button onClick={() => { handleDelete(detailTask.id); setDetailTask(null); }} className="px-3 py-2 bg-red-600 text-white rounded">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {editing && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center">

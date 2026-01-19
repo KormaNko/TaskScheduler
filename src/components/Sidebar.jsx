@@ -4,10 +4,27 @@ import { CheckSquare, Calendar, Users, LayoutDashboard, Tag } from "lucide-react
 import LogoutButton from "./LogoutButton.jsx";
 
 export default function Sidebar() {
+    // track whether the sidebar is hidden on small screens
+    const [hiddenMobile, setHiddenMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        function onToggle() {
+            setHiddenMobile(v => !v);
+        }
+        window.addEventListener('app:toggle-mobile-sidebar', onToggle);
+        return () => window.removeEventListener('app:toggle-mobile-sidebar', onToggle);
+    }, []);
+
+    // If hiddenMobile is true, we hide the sidebar on small screens but keep it visible on md+
+    // When not hidden, show compact width on mobile (w-16) and full width on md (md:w-64)
+    const rootClass = hiddenMobile
+        ? 'hidden md:flex md:w-64 bg-white border-r border-gray-200 min-h-screen pt-10 md:px-6 relative flex flex-col'
+        : 'flex w-16 md:w-64 bg-white border-r border-gray-200 min-h-screen pt-10 px-3 md:px-6 relative flex flex-col';
+
     return (
         // compact on mobile (w-16), full on md and above (md:w-64)
         // make aside a flex column so children can use flex-1 to fill space
-        <aside className="w-16 md:w-64 bg-white border-r border-gray-200 min-h-screen pt-10 px-3 md:px-6 relative flex flex-col">
+        <aside className={rootClass}>
             {/* thin divider (extra element to ensure consistent 1px line on all browsers) */}
             <div className="absolute top-0 right-0 h-full w-px bg-gray-200 pointer-events-none" />
 

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed' }) {
+export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
 
     const fmt = (v) => {
@@ -90,12 +90,11 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
     // Simple view: single row with one cell spanning all columns showing only title + description
     if (viewMode === 'simple') {
         return (
-            <tr className={"border-t " + rowBgClass}>
+            <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
                  <td colSpan={9} className="p-3">
                      <div className="flex items-start justify-between gap-4">
                          <div className="min-w-0 flex-1">
--                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
-+                            <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
+                             <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
                              {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
                          </div>
                          {categoryMeta?.name ? (
@@ -107,20 +106,20 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                         ) : null}
                      </div>
                      {/* action buttons for simple view: Start (pending -> in_progress) and Complete */}
-                     <div className="mt-3 flex justify-end gap-2">
+                     <div className="mt-3 flex flex-wrap gap-2 justify-start md:justify-end">
                         <button
                             type="button"
-                            onClick={() => onChangeStatus(id, 'in_progress')}
+                            onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                             disabled={actionLoading || status === 'in_progress' || status === 'completed'}
-                            className={"px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
+                            className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
                         >
                             Start
                         </button>
                         <button
                             type="button"
-                            onClick={() => onChangeStatus(id, 'completed')}
+                            onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                             disabled={actionLoading || status === 'completed'}
-                            className={"px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
+                            className={"px-3 py-1 rounded text-sm flex-shrink-0 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
                         >
                             Complete
                         </button>
@@ -132,47 +131,47 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
 
     // Detailed view (existing layout)
     return (
-        <tr className={"border-t " + rowBgClass}>
+        <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
               <td className="p-3">{id}</td>
               <td className="p-3 min-w-[220px]">
                 <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}</div>
-                 {description ? (
-                     <div className="text-sm text-gray-600">
-                         <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
-                     </div>
-                 ) : null}
-             </td>
-             <td className="p-3">{status || '-'}</td>
-             <td className="p-3 text-center">{priority ?? '-'}</td>
-             <td className="p-3">
-                {(() => {
-                    const meta = resolveCategoryMeta(category);
-                    if (meta?.color) {
-                        const tc = textColorForBg(meta.color);
-                        return (
-                            <span className="inline-block px-2 py-1 rounded-full text-xs" style={{ background: meta.color, color: tc }}>{meta.name}</span>
-                        );
-                    }
-                    return meta?.name ?? '-';
-                })()}
-             </td>
-             <td className="p-3">{fmt(deadline)}</td>
-             <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
-             <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
-             <td className="p-3 whitespace-nowrap">
+                  {description ? (
+                      <div className="text-sm text-gray-600">
+                          <div className="whitespace-pre-wrap break-words break-all max-w-[60ch]">{description}</div>
+                      </div>
+                  ) : null}
+              </td>
+              <td className="p-3">{status || '-'}</td>
+              <td className="p-3 text-center">{priority ?? '-'}</td>
+              <td className="p-3">
+                 {(() => {
+                     const meta = resolveCategoryMeta(category);
+                     if (meta?.color) {
+                         const tc = textColorForBg(meta.color);
+                         return (
+                             <span className="inline-block px-2 py-1 rounded-full text-xs" style={{ background: meta.color, color: tc }}>{meta.name}</span>
+                         );
+                     }
+                     return meta?.name ?? '-';
+                 })()}
+              </td>
+              <td className="p-3">{fmt(deadline)}</td>
+              <td className="p-3 text-sm text-gray-600">{fmt(createdAt)}</td>
+              <td className="p-3 text-sm text-gray-600">{fmt(updatedAt)}</td>
+              <td className="p-3 whitespace-nowrap">
                 <button
-                    onClick={() => onChangeStatus(id, 'in_progress')}
+                    onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                     disabled={actionLoading || status === 'in_progress' || status === 'completed'}
                     className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
                 >Start</button>
                 <button
-                    onClick={() => onChangeStatus(id, 'completed')}
+                    onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                     disabled={actionLoading || status === 'completed'}
                     className={"mr-2 px-3 py-1 rounded text-sm " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
                 >Complete</button>
-                <button onClick={() => onEdit(task)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
-                <button onClick={() => onDelete(id)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
-             </td>
+                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
+              </td>
         </tr>
     );
 }
