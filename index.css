@@ -44,3 +44,59 @@
 .calendar-root .left-axis {
   min-width: 0;
 }
+
+/* === Dark mode minimal overrides ===
+   We apply a single class `app-dark` on document.documentElement to enable dark mode.
+   Keep overrides small and specific so we don't clash with Tailwind setup.
+*/
+:root {
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-text: #0f172a;
+  --app-muted: #6b7280;
+  --app-border: #e5e7eb;
+}
+
+.app-dark {
+  --app-bg: #0b1220;
+  --app-surface: #0f1724;
+  --app-text: #e6eef8;
+  --app-muted: #94a3b8;
+  --app-border: #1f2937;
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* make page background follow variable (covers areas without explicit bg classes) */
+.app-dark body, .app-dark .min-h-screen, .app-dark .bg-slate-50, .app-dark .from-slate-50 {
+  background-color: var(--app-bg) !important;
+}
+
+/* surface overrides for elements with .bg-white to appear as dark surface */
+.app-dark .bg-white, .app-dark .bg-white\/80 {
+  background-color: var(--app-surface) !important;
+  color: var(--app-text) !important;
+}
+
+/* text color overrides for common muted/text classes */
+.app-dark .text-gray-700, .app-dark .text-gray-600, .app-dark .text-gray-500 {
+  color: var(--app-text) !important;
+}
+
+/* borders */
+.app-dark .border-gray-200, .app-dark .border-gray-100, .app-dark .ring-gray-100 {
+  --tw-border-opacity: 1;
+  border-color: var(--app-border) !important;
+}
+
+/* inputs - keep them readable */
+.app-dark input, .app-dark textarea, .app-dark select {
+  background-color: rgba(255,255,255,0.02) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* buttons using gradient may remain; ensure text contrasts */
+.app-dark .text-white { color: #fff !important; }
+
+/* end dark mode overrides */

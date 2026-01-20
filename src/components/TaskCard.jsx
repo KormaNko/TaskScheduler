@@ -1,6 +1,8 @@
 import React from 'react';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
+    const { t } = useOptions();
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
 
     const fmt = (v) => {
@@ -91,7 +93,7 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
     const renderStatusPill = (st) => {
         if (!st) return null;
         const s = String(st);
-        const label = s === 'completed' ? 'Completed' : s === 'in_progress' ? 'In progress' : s === 'pending' ? 'Pending' : s;
+        const label = s === 'completed' ? (t ? t('completed') : 'Completed') : s === 'in_progress' ? (t ? t('in_progress') : 'In progress') : s === 'pending' ? (t ? t('pending') : 'Pending') : s;
         const base = 'inline-block text-xs px-2 py-0.5 rounded-full font-medium';
         if (s === 'completed') return <span className={base + ' bg-green-100 text-green-800 ml-2'}>{label}</span>;
         if (s === 'in_progress') return <span className={base + ' bg-yellow-100 text-yellow-800 ml-2'}>{label}</span>;
@@ -125,7 +127,7 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                             className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
                         >
                             <span aria-hidden>▶</span>
-                            <span>Start</span>
+                            <span>{t ? t('start') : 'Start'}</span>
                         </button>
                         <button
                             type="button"
@@ -134,7 +136,7 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                             className={"px-3 py-1 rounded text-sm flex-shrink-0 inline-flex items-center gap-2 " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
                         >
                             <span aria-hidden>✔</span>
-                            <span>Complete</span>
+                            <span>{t ? t('complete') : 'Complete'}</span>
                         </button>
                     </div>
                 </td>
@@ -178,14 +180,14 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'in_progress'); }}
                     disabled={actionLoading || status === 'in_progress' || status === 'completed'}
                     className={"w-full px-3 py-2 rounded text-sm inline-flex items-center gap-2 justify-center " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600')}
-                ><span aria-hidden>▶</span><span>Start</span></button>
+                ><span aria-hidden>▶</span><span>{t ? t('start') : 'Start'}</span></button>
                 <button
                     onClick={(e) => { e.stopPropagation(); onChangeStatus(id, 'completed'); }}
                     disabled={actionLoading || status === 'completed'}
                     className={"w-full px-3 py-2 rounded text-sm inline-flex items-center gap-2 justify-center " + (actionLoading ? 'opacity-50 cursor-not-allowed' : 'bg-green-600 text-white hover:bg-green-700')}
-                ><span aria-hidden>✔</span><span>Complete</span></button>
-                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>✎</span><span>Edit</span></button>
-                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>🗑</span><span>Delete</span></button>
+                ><span aria-hidden>✔</span><span>{t ? t('complete') : 'Complete'}</span></button>
+                <button onClick={(e) => { e.stopPropagation(); onEdit(task); }} className="w-full px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>✎</span><span>{t ? t('edit') : 'Edit'}</span></button>
+                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="w-full px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 inline-flex items-center gap-2 justify-center"><span aria-hidden>🗑</span><span>{t ? t('delete') : 'Delete'}</span></button>
                 </div>
               </td>
         </tr>

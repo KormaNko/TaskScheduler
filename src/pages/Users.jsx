@@ -1,12 +1,11 @@
 // Import React knižnice a hookov useState a useEffect
 import React, { useEffect, useState } from "react"; // React a základné hooky
 import api from '../lib/api';
-
-// Základná adresa backendu – buď z .env súboru alebo localhost
-const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost").replace(/\/$/, ""); // odstráni trailing slash
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // Hlavný React komponent pre správu používateľov
 export default function UsersPage() {
+    const { t } = useOptions();
 
     // ============================
     // ===== STAVY (useState) =====
@@ -78,7 +77,7 @@ export default function UsersPage() {
             const data = await api.get('/?c=users&a=list');
             setUsers(data?.data || data || []);
          } catch (e) {
-             setError("Nepodarilo sa načítať používateľov"); // sieť alebo iná chyba
+             setError(t ? t('actionFailed') : "Nepodarilo sa načítať používateľov"); // sieť alebo iná chyba
          } finally {
              setLoadingList(false); // vypne sa loading
          }
@@ -141,19 +140,19 @@ export default function UsersPage() {
     function validateForm() {
         const errs = {}; // objekt pre chyby
 
-        if (!form.firstName.trim()) errs.firstName = "Meno je povinné"; // meno required
-        if (!form.lastName.trim()) errs.lastName = "Priezvisko je povinné"; // priezvisko required
+        if (!form.firstName.trim()) errs.firstName = t ? t('nameRequired') : "Meno je povinné"; // meno required
+        if (!form.lastName.trim()) errs.lastName = t ? t('lastNameRequired') : "Priezvisko je povinné"; // priezvisko required
 
-        if (!form.email.trim()) errs.email = "Email je povinný"; // email required
+        if (!form.email.trim()) errs.email = t ? t('emailRequired') : "Email je povinný"; // email required
         else if (!/^\S+@\S+\.\S+$/.test(form.email))
-            errs.email = "Neplatný email"; // jednoduchý regex
+            errs.email = t ? t('invalidEmail') : "Neplatný email"; // jednoduchý regex
 
         if (!isEditing) {
             if (!form.password || form.password.length < 6)
-                errs.password = "Heslo musí mať aspoň 6 znakov"; // pri vytváraní povinné heslo
+                errs.password = t ? t('passwordTooShort') : "Heslo musí mať aspoň 6 znakov"; // pri vytváraní povinné heslo
         } else {
             if (form.password && form.password.length < 6)
-                errs.password = "Heslo musí mať aspoň 6 znakov"; // pri editácii len ak sa zadá
+                errs.password = t ? t('passwordTooShort') : "Heslo musí mať aspoň 6 znakov"; // pri editácii len ak sa zadá
         }
 
         return errs; // vráť chyby (prázdny objekt = OK)
@@ -189,12 +188,12 @@ export default function UsersPage() {
                     isStudent: form.isStudent ? 1 : 0,
                 };
                 try {
-                    const data = await api.post('/?c=users&a=create', payload);
+                    await api.post('/?c=users&a=create', payload);
                     setShowForm(false);
                     await fetchUsers();
                 } catch (err) {
                     if (err.status === 422 && err.errors) setFieldErrors(err.errors);
-                    else setError(err.message || 'Vytvorenie zlyhalo');
+                    else setError(err.message || (t ? t('userCreateFailed') : 'Vytvorenie zlyhalo'));
                 }
             }
             // ===== ÚPRAVA =====
@@ -209,16 +208,16 @@ export default function UsersPage() {
                 if (form.password) body.password = form.password; // pridaj heslo len ak je zadané
 
                 try {
-                    const data = await api.post(`/?c=users&a=update&id=${encodeURIComponent(form.id)}`, body);
+                    await api.post(`/?c=users&a=update&id=${encodeURIComponent(form.id)}`, body);
                     setShowForm(false);
                     await fetchUsers();
                 } catch (err) {
                     if (err.status === 422 && err.errors) setFieldErrors(err.errors);
-                    else setError(err.message || 'Úprava zlyhala');
+                    else setError(err.message || (t ? t('userUpdateFailed') : 'Úprava zlyhala'));
                 }
             }
         } catch (e) {
-            setError("Akcia zlyhala"); // sieťová chyba
+            setError(t ? t('actionFailed') : "Akcia zlyhala"); // sieťová chyba
         } finally {
             setLoadingAction(false); // vypni loading akcie
         }
@@ -229,7 +228,7 @@ export default function UsersPage() {
     // ============================
 
     async function handleDelete(id) {
-        if (!confirm("Naozaj zmazať používateľa?")) return; // potvrdenie od používateľa
+        if (!confirm(t ? t('confirmDeleteUser') : "Naozaj zmazať používateľa?")) return; // potvrdenie od používateľa
 
         setLoadingAction(true); // zapni loading
         setError(""); // vymaž chybu
@@ -239,10 +238,10 @@ export default function UsersPage() {
                 await api.post(`/?c=users&a=delete&id=${encodeURIComponent(id)}`, {});
                 await fetchUsers();
             } catch (err) {
-                setError(err.message || 'Mazanie zlyhalo');
+                setError(err.message || (t ? t('userDeleteFailed') : 'Mazanie zlyhalo'));
             }
         } catch (e) {
-            setError("Odstránenie zlyhalo"); // sieťová chyba
+            setError(t ? t('actionFailed') : "Odstránenie zlyhalo"); // sieťová chyba
         } finally {
             setLoadingAction(false); // vypni loading
         }
@@ -255,14 +254,14 @@ export default function UsersPage() {
     return (
         <div className="p-6">{/* hlavný kontajner s paddingom */}
             <div className="flex items-center justify-between mb-4">{/* header s titulkom a tlačidlom */}
-                <h1 className="text-2xl font-bold">Používatelia</h1>{/* názov sekcie */}
+                <h1 className="text-2xl font-bold">{t ? t('usersTitle') : 'Používatelia'}</h1>{/* názov sekcie */}
                 <div className="flex items-center gap-2">{/* wrapper pre tlačidlá */}
                     <button
                         type="button"
                         onClick={openCreate}
                         className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                     >
-                        Nový používateľ{/* text tlačidla */}
+                        {t ? t('newUser') : 'Nový používateľ'}{/* text tlačidla */}
                     </button>
                 </div>
             </div>
@@ -272,7 +271,7 @@ export default function UsersPage() {
             )}
 
             {loadingList ? (
-                <div className="text-gray-500">Načítavam používateľov...</div> // loading indikátor pre zoznam
+                <div className="text-gray-500">{t ? t('loadingUsers') : 'Načítavam používateľov...'}</div> // loading indikátor pre zoznam
             ) : (
                 <>
                     {/* DESKTOP / TABLE VIEW - visible on md+ */}
@@ -280,17 +279,17 @@ export default function UsersPage() {
                         <table className="w-full table-auto">
                             <thead className="bg-gray-100">
                                 <tr>
-                                    <th className="text-left p-2">Meno</th>
-                                    <th className="text-left p-2">Priezvisko</th>
-                                    <th className="text-left p-2">Email</th>
-                                    <th className="text-left p-2">Študent</th>
-                                    <th className="text-right p-2">Akcie</th>
+                                    <th className="text-left p-2">{t ? t('firstName') : 'Meno'}</th>
+                                    <th className="text-left p-2">{t ? t('lastName') : 'Priezvisko'}</th>
+                                    <th className="text-left p-2">{t ? t('email') : 'Email'}</th>
+                                    <th className="text-left p-2">{t ? t('isStudent') : 'Študent'}</th>
+                                    <th className="text-right p-2">{t ? t('actions') : 'Akcie'}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-4 text-center text-gray-500">Žiadni používatelia</td>
+                                        <td colSpan={5} className="p-4 text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</td>
                                     </tr>
                                 ) : (
                                     users.map((u) => (
@@ -298,19 +297,19 @@ export default function UsersPage() {
                                             <td className="p-2">{u.firstName}</td>
                                             <td className="p-2">{u.lastName}</td>
                                             <td className="p-2">{u.email}</td>
-                                            <td className="p-2">{u.isStudent ? "Áno" : "Nie"}</td>
+                                            <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
                                             <td className="p-2 text-right">
                                                 <button
                                                     onClick={() => openEdit(u)}
                                                     className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
                                                 >
-                                                    Upraviť
+                                                    {t ? t('edit') : 'Upraviť'}
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(u.id)}
                                                     className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
                                                 >
-                                                    Zmazať
+                                                    {t ? t('delete') : 'Zmazať'}
                                                 </button>
                                             </td>
                                         </tr>
@@ -323,7 +322,7 @@ export default function UsersPage() {
                     {/* MOBILE / CARD VIEW - visible on small screens */}
                     <div className="md:hidden space-y-3">
                         {users.length === 0 ? (
-                            <div className="p-4 bg-white rounded shadow text-center text-gray-500">Žiadni používatelia</div>
+                            <div className="p-4 bg-white rounded shadow text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</div>
                         ) : (
                             users.map((u) => (
                                 <div key={u.id} className="bg-white rounded shadow p-4 flex flex-col gap-2">
@@ -332,11 +331,11 @@ export default function UsersPage() {
                                             <div className="font-medium">{u.firstName} {u.lastName}</div>
                                             <div className="text-sm text-gray-500">{u.email}</div>
                                         </div>
-                                        <div className="text-sm text-gray-600">{u.isStudent ? 'Študent' : ''}</div>
+                                        <div className="text-sm text-gray-600">{u.isStudent ? (t ? t('isStudent') : 'Študent') : ''}</div>
                                     </div>
                                     <div className="flex gap-2 mt-2">
-                                        <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">Upraviť</button>
-                                        <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">Zmazať</button>
+                                        <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
+                                        <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
                                     </div>
                                 </div>
                             ))
@@ -347,10 +346,10 @@ export default function UsersPage() {
 
             {showForm && (
                 <form onSubmit={handleSubmit} className="mt-6 bg-white p-4 shadow rounded max-w-lg">{/* formulár */}
-                    <h2 className="text-lg font-semibold mb-3">{isEditing ? "Upraviť používateľa" : "Nový používateľ"}</h2>{/* nadpis formulára */}
+                    <h2 className="text-lg font-semibold mb-3">{isEditing ? (t ? t('editUser') : 'Upraviť používateľa') : (t ? t('createUser') : 'Nový používateľ')}</h2>{/* nadpis formulára */}
 
                     <label className="block mb-2">{/* meno */}
-                        <span className="text-sm">Meno</span>
+                        <span className="text-sm">{t ? t('firstName') : 'Meno'}</span>
                         <input
                             type="text"
                             value={form.firstName} // via state
@@ -361,7 +360,7 @@ export default function UsersPage() {
                     </label>
 
                     <label className="block mb-2">{/* priezvisko */}
-                        <span className="text-sm">Priezvisko</span>
+                        <span className="text-sm">{t ? t('lastName') : 'Priezvisko'}</span>
                         <input
                             type="text"
                             value={form.lastName}
@@ -372,7 +371,7 @@ export default function UsersPage() {
                     </label>
 
                     <label className="block mb-2">{/* email */}
-                        <span className="text-sm">Email</span>
+                        <span className="text-sm">{t ? t('email') : 'Email'}</span>
                         <input
                             type="email"
                             value={form.email}
@@ -383,7 +382,7 @@ export default function UsersPage() {
                     </label>
 
                     <label className="block mb-2">{/* heslo */}
-                        <span className="text-sm">Heslo {isEditing ? <small className="text-gray-500">(nepovinné)</small> : null}</span>
+                        <span className="text-sm">{t ? t('password') : 'Heslo'} {isEditing ? <small className="text-gray-500">(nepovinné)</small> : null}</span>
                         <input
                             type="password"
                             value={form.password}
@@ -395,15 +394,15 @@ export default function UsersPage() {
 
                     <label className="flex items-center gap-2 mb-4">{/* isStudent checkbox */}
                         <input type="checkbox" checked={!!form.isStudent} onChange={onChange("isStudent")} className="h-4 w-4" />
-                        <span className="text-sm">Je študent</span>
+                        <span className="text-sm">{t ? t('isStudent') : 'Je študent'}</span>
                     </label>
 
                     <div className="flex items-center gap-2">{/* tlačidlá uložiť / zrušiť */}
                         <button type="submit" disabled={loadingAction} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            {loadingAction ? 'Ukladám...' : 'Uložiť'}{/* dynamický text tlačidla */}
+                            {loadingAction ? (t ? t('saving') : 'Ukladám...') : (t ? t('save') : 'Uložiť')}/* dynamický text tlačidla */
                         </button>
                         <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1 bg-gray-200 rounded">
-                            Zrušiť{/* zrušenie formulára */}
+                            {t ? t('cancel') : 'Zrušiť'}{/* zrušenie formulára */}
                         </button>
                     </div>
                 </form>

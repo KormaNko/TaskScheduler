@@ -12,6 +12,7 @@ import Options from "./pages/Options.jsx";
 import "../index.css"; // fix: correct path inside src
 
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
+import { OptionsProvider } from './contexts/OptionsContext.jsx';
 
 function Spinner() {
     return (
@@ -65,9 +66,11 @@ function AppInner() {
 function App() {
     return (
         <AuthProvider>
-            <BrowserRouter>
-                <AppInner />
-            </BrowserRouter>
+            <OptionsProvider>
+                <BrowserRouter>
+                    <AppInner />
+                </BrowserRouter>
+            </OptionsProvider>
         </AuthProvider>
     );
 }

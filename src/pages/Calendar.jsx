@@ -4,6 +4,7 @@ import KalendarDen from '../components/KalendarDen.jsx';
 import Kalendar3Dni from '../components/Kalendar3Dni.jsx';
 import KalendarTyzden from '../components/KalendarTyzden.jsx';
 import api from '../lib/api';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 export default function Calendar() {
 
@@ -21,13 +22,15 @@ export default function Calendar() {
     const [actionLoading, setActionLoading] = useState(false);
     const [success, setSuccess] = useState(null);
 
+    const { opts } = useOptions();
+
     useEffect(() => { fetchTasks(); }, []);
     useEffect(() => { fetchCategories(); }, []);
 
     // normalize tasks to attach category object and ensure category is string for consistent rendering
     const normalizedTasks = useMemo(() => {
         if (!Array.isArray(tasks)) return [];
-        return tasks.map(t => {
+        let arr = tasks.map(t => {
             const task = { ...t };
             // prefer any provided object-like category on the task
             const catObj = task.category && typeof task.category === 'object' ? task.category : null;
@@ -39,7 +42,52 @@ export default function Calendar() {
             if (task.category !== undefined && task.category !== null && typeof task.category !== 'object') task.category = String(task.category);
             return task;
         });
-    }, [tasks, categories]);
+
+        // apply client-side filtering from options (status)
+        try {
+            const tf = opts?.taskFilter ?? opts?.task_filter ?? 'all';
+            if (tf && tf !== 'all') {
+                arr = arr.filter(t => String(t.status ?? '') === String(tf));
+            }
+        } catch (e) { /* ignore */ }
+
+        // apply client-side sorting from options
+        try {
+            const ts = opts?.taskSort ?? opts?.task_sort ?? 'none';
+            switch (ts) {
+                case 'priority_asc':
+                    arr.sort((a, b) => (Number(a.priority ?? 0) - Number(b.priority ?? 0)));
+                    break;
+                case 'priority_desc':
+                    arr.sort((a, b) => (Number(b.priority ?? 0) - Number(a.priority ?? 0)));
+                    break;
+                case 'title_asc':
+                    arr.sort((a, b) => String(a.title ?? '').localeCompare(String(b.title ?? ''), undefined, { sensitivity: 'base' }));
+                    break;
+                case 'title_desc':
+                    arr.sort((a, b) => String(b.title ?? '').localeCompare(String(a.title ?? ''), undefined, { sensitivity: 'base' }));
+                    break;
+                case 'deadline_asc':
+                    arr.sort((a, b) => {
+                        const pa = Date.parse(String(a.deadline ?? a.deadline_at ?? '').replace(' ', 'T')) || Number.POSITIVE_INFINITY;
+                        const pb = Date.parse(String(b.deadline ?? b.deadline_at ?? '').replace(' ', 'T')) || Number.POSITIVE_INFINITY;
+                        return pa - pb;
+                    });
+                    break;
+                case 'deadline_desc':
+                    arr.sort((a, b) => {
+                        const pa = Date.parse(String(a.deadline ?? a.deadline_at ?? '').replace(' ', 'T')) || Number.POSITIVE_INFINITY;
+                        const pb = Date.parse(String(b.deadline ?? b.deadline_at ?? '').replace(' ', 'T')) || Number.POSITIVE_INFINITY;
+                        return pb - pa;
+                    });
+                    break;
+                default:
+                    break;
+            }
+        } catch (e) { /* ignore */ }
+
+        return arr;
+    }, [tasks, categories, opts]);
 
 
     async function fetchTasks() {

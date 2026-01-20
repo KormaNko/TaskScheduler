@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 /**
  * CategoryManager (backend-compatible)
@@ -42,6 +43,7 @@ function apiUrl(action, id = null) {
 }
 
 function CategoryRow({ cat, onEdit, onDelete }) {
+    const { t } = useOptions();
     return (
         <tr className="border-t">
             <td className="p-3">{cat.id}</td>
@@ -50,14 +52,15 @@ function CategoryRow({ cat, onEdit, onDelete }) {
                 <div className="mx-auto" style={{ width: 34, height: 20, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6 }} />
             </td>
             <td className="p-3 text-right">
-                <button type="button" onClick={() => onEdit(cat)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Upraviť</button>
-                <button type="button" onClick={() => onDelete(cat)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Zmazať</button>
+                <button type="button" onClick={() => onEdit(cat)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">{t ? t('edit') : 'Edit'}</button>
+                <button type="button" onClick={() => onDelete(cat)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">{t ? t('delete') : 'Delete'}</button>
             </td>
         </tr>
     );
 }
 
 export default function CategoryManager() {
+    const { t } = useOptions();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -231,13 +234,13 @@ export default function CategoryManager() {
     return (
         <div className="p-6 max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-semibold">Category Manager</h1>
+                <h1 className="text-2xl font-semibold">{t ? t('categoryManager') : 'Category Manager'}</h1>
                 <div className="flex items-center gap-2">
-                    <button onClick={startCreate} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">New Category</button>
+                    <button onClick={startCreate} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">{t ? t('newCategory') : 'New Category'}</button>
                 </div>
             </div>
 
-            {loading && <div className="mb-4 text-sm text-gray-600">Loading categories…</div>}
+            {loading && <div className="mb-4 text-sm text-gray-600">{t ? t('loadingCategories') : 'Loading categories…'}</div>}
 
             {error && <div className="mb-4 text-red-600 font-medium">{error}</div>}
             {errorDetails && (
@@ -248,16 +251,16 @@ export default function CategoryManager() {
                 <table className="w-full table-auto">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="text-left p-3">ID</th>
-                            <th className="text-left p-3">Name</th>
-                            <th className="p-3">Color</th>
-                            <th className="text-right p-3">Actions</th>
+                            <th className="text-left p-3">{t ? t('id') : 'ID'}</th>
+                            <th className="text-left p-3">{t ? t('name') : 'Name'}</th>
+                            <th className="p-3">{t ? t('color') : 'Color'}</th>
+                            <th className="text-right p-3">{t ? t('actions') : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {categories.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="p-6 text-center text-gray-500">No categories</td>
+                                <td colSpan={4} className="p-6 text-center text-gray-500">{t ? t('noCategories') : 'No categories'}</td>
                             </tr>
                         ) : (
                             categories.map(cat => (
@@ -270,15 +273,15 @@ export default function CategoryManager() {
 
             {editing !== null && (
                 <div className="mt-6 bg-white p-6 shadow rounded">
-                    <h2 className="text-lg font-semibold mb-4">{editing.id ? 'Edit category' : 'Create category'}</h2>
+                    <h2 className="text-lg font-semibold mb-4">{editing.id ? (t ? t('editCategory') : 'Edit category') : (t ? t('createCategory') : 'Create category')}</h2>
                     <form onSubmit={handleSave}>
                         <label className="block mb-3">
-                            <div className="text-sm font-medium mb-1">Name</div>
-                            <input value={name} onChange={e => setName(e.target.value)} className={`mt-1 block w-full p-2 border rounded ${saving ? 'opacity-60' : ''}`} placeholder="Category name" disabled={saving} />
+                            <div className="text-sm font-medium mb-1">{t ? t('name') : 'Name'}</div>
+                            <input value={name} onChange={e => setName(e.target.value)} className={`mt-1 block w-full p-2 border rounded ${saving ? 'opacity-60' : ''}`} placeholder={t ? t('name') : 'Category name'} disabled={saving} />
                         </label>
 
                         <div className="mb-3">
-                            <div className="text-sm font-medium mb-2">Color</div>
+                            <div className="text-sm font-medium mb-2">{t ? t('color') : 'Color'}</div>
                             <div className="flex gap-2 flex-wrap mb-3">
                                 {PALETTE.map(c => (
                                     <button key={c} type="button" title={c} onClick={() => setColor(c)} className={`w-8 h-6 rounded-md border ${c.toLowerCase() === (color || '').toLowerCase() ? 'ring-2 ring-offset-1 ring-black' : 'border-gray-200'}`} style={{ background: c }} />
@@ -287,14 +290,14 @@ export default function CategoryManager() {
 
                             <div className="flex items-center gap-3">
                                 <input type="color" value={color || '#ffffff'} onChange={e => setColor(e.target.value)} disabled={saving} className="w-14 h-10 p-0 border-0" />
-                                <div className="text-sm text-gray-600">{color || 'No color selected'}</div>
-                                <button type="button" onClick={() => setColor('')} className="ml-4 px-3 py-1 bg-white border rounded">Clear</button>
+                                <div className="text-sm text-gray-600">{color || (t ? t('noCategories') : 'No color selected')}</div>
+                                <button type="button" onClick={() => setColor('')} className="ml-4 px-3 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
                             </div>
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
-                            <button type="button" onClick={resetForm} className="px-3 py-2 bg-white border rounded">Cancel</button>
+                            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold" disabled={saving}>{saving ? (t ? t('saving') : 'Saving…') : (t ? t('save') : 'Save')}</button>
+                            <button type="button" onClick={resetForm} className="px-3 py-2 bg-white border rounded">{t ? t('cancel') : 'Cancel'}</button>
                         </div>
                     </form>
                 </div>

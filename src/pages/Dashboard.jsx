@@ -3,6 +3,7 @@ import TaskCard from '../components/TaskCard';
 import NewTaskButton from '../components/NewTaskButton';
 import api from '../lib/api';
 import { Menu } from 'lucide-react';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
@@ -34,6 +35,31 @@ export default function Dashboard() {
     const [isMobile, setIsMobile] = useState(false);
     const [detailTask, setDetailTask] = useState(null);
     const [editFullScreen, setEditFullScreen] = useState(false);
+
+    const { opts } = useOptions();
+    // add t helper
+    const { t } = useOptions();
+
+    // Map option sort names to dashboard internal sort names
+    function mapOptionSortToDashboard(v) {
+        if (!v) return 'none';
+        switch (v) {
+            case 'deadline_asc': return 'time_asc';
+            case 'deadline_desc': return 'time_desc';
+            default: return v; // title_asc, title_desc, priority_asc, priority_desc, none
+        }
+    }
+
+    // When options change, adopt them into the dashboard's local filter/sort (non-destructive)
+    useEffect(() => {
+        if (!opts) return;
+        try {
+            const tf = opts.taskFilter ?? opts.task_filter ?? 'all';
+            setStatusFilter(tf === 'all' ? '' : tf);
+            const ts = opts.taskSort ?? opts.task_sort ?? 'none';
+            setSortOrder(mapOptionSortToDashboard(ts));
+        } catch (e) { /* ignore */ }
+    }, [opts]);
 
     // On initial mount, set simple view for small screens so mobile shows stacked layout
     useEffect(() => {
@@ -389,11 +415,11 @@ export default function Dashboard() {
             <div className="flex items-start justify-between mb-4 flex-col md:flex-row gap-4 flex-wrap">
                 <div className="flex items-center gap-2 w-full md:w-auto min-w-0">
                     {/* Mobile menu button - only visible on small screens */}
-                    <button type="button" onClick={toggleMobileSidebar} className="p-2 rounded border md:hidden mr-2" title="Open menu">
+                    <button type="button" onClick={toggleMobileSidebar} className="p-2 rounded border md:hidden mr-2" title={t ? t('dashboard') : 'Open menu'}>
                         <Menu size={18} />
                     </button>
 
-                    <h1 className="text-2xl font-bold">Tasks Dashboard</h1>
+                    <h1 className="text-2xl font-bold">{t ? t('tasksDashboard') : 'Tasks Dashboard'}</h1>
                 </div>
 
                 <div className="flex flex-col md:flex-row md:items-center gap-2 w-full flex-wrap">
@@ -403,7 +429,7 @@ export default function Dashboard() {
                             <input
                                 type="text"
                                 className="px-4 py-2 border border-gray-200 rounded-full w-full md:w-64 min-w-0 shadow-sm bg-white"
-                                placeholder="Search by title or ID"
+                                placeholder={t ? t('searchPlaceholder') : 'Search by title or ID'}
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
@@ -426,10 +452,10 @@ export default function Dashboard() {
 
                         {/* Status filter buttons: placed below search+sort so they're visible even in wide (detailed) mode */}
                         <div className="flex items-center gap-2 flex-wrap mt-2 md:mt-0">
-                            <button type="button" onClick={() => setStatusFilter('')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === '' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>All</button>
-                            <button type="button" onClick={() => setStatusFilter('pending')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'pending' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>Pending</button>
-                            <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'in_progress' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>In progress</button>
-                            <button type="button" onClick={() => setStatusFilter('completed')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'completed' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>Completed</button>
+                            <button type="button" onClick={() => setStatusFilter('')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === '' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>{t ? t('all') : 'All'}</button>
+                            <button type="button" onClick={() => setStatusFilter('pending')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'pending' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>{t ? t('pending') : 'Pending'}</button>
+                            <button type="button" onClick={() => setStatusFilter('in_progress')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'in_progress' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>{t ? t('in_progress') : 'In progress'}</button>
+                            <button type="button" onClick={() => setStatusFilter('completed')} className={`px-3 py-1 rounded-full border text-sm ${statusFilter === 'completed' ? 'bg-indigo-600 text-white ring-1 ring-indigo-200' : 'bg-white text-gray-700 border-indigo-100'}`}>{t ? t('completed') : 'Completed'}</button>
                         </div>
                     </div>
 
@@ -440,9 +466,9 @@ export default function Dashboard() {
                                 type="button"
                                 onClick={() => setViewMode((v) => (v === 'detailed' ? 'simple' : 'detailed'))}
                                 className="px-3 py-1 rounded-full border border-gray-200 bg-white shadow-sm"
-                                title="Toggle view"
+                                title={t ? t('switchViewSimple') : 'Toggle view'}
                             >
-                                {viewMode === 'detailed' ? 'Switch to Simple' : 'Switch to Detailed'}
+                                {viewMode === 'detailed' ? (t ? t('switchViewSimple') : 'Switch to Simple') : (t ? t('switchViewDetailed') : 'Switch to Detailed')}
                             </button>
                         )}
                         <div className="flex-shrink-0">
@@ -459,33 +485,32 @@ export default function Dashboard() {
                 <form onSubmit={createTask} className="mb-6 bg-white p-6 rounded-lg shadow-sm ring-1 ring-gray-100">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label className="block text-sm font-medium">Title</label>
+                            <label className="block text-sm font-medium">{t ? t('title') : 'Title'}</label>
                             <input className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.title} onChange={(e) => updateForm('title', e.target.value)} />
-                            <label className="block text-sm font-medium mt-4">Description</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('description') : 'Description'}</label>
                             <textarea className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={(e) => updateForm('description', e.target.value)} />
                         </div>
 
                         <div>
-                            <div className="text-sm text-gray-700 py-2">Status: <strong>Pending</strong></div>
+                            <div className="text-sm text-gray-700 py-2">{t ? t('statusLabel') : 'Status'}: <strong>{t ? t('pending') : 'Pending'}</strong></div>
 
-                            <label className="block text-sm font-medium mt-2">Priority</label>
+                            <label className="block text-sm font-medium mt-2">{t ? t('prio') : 'Priority'}</label>
                             <input type="number" min="1" max="5" className="mt-1 block w-32 border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
 
-                            <label className="block text-sm font-medium mt-4">Category</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('categoryLabel') : 'Category'}</label>
                             <select className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.category} onChange={(e) => updateForm('category', e.target.value)}>
                                 <option value="">—</option>
                                 {categories.map((c) => (
-                                    // prefer id if available, otherwise use name; ensure value is a string
                                     <option key={c.id ?? c.name} value={String(c.id ?? c.name)}>{c.name ?? String(c)}</option>
                                 ))}
                             </select>
 
-                            <label className="block text-sm font-medium mt-4">Deadline</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('deadline') : 'Deadline'}</label>
                             <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
 
                             <div className="mt-6 flex gap-2">
-                                <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm">{actionLoading ? 'Creating...' : 'Create'}</button>
-                                <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
+                                <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm">{actionLoading ? (t ? t('creating') : 'Creating...') : (t ? t('create') : 'Create')}</button>
+                                <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
                             </div>
                         </div>
                     </div>
@@ -498,29 +523,29 @@ export default function Dashboard() {
                      <thead className="bg-indigo-50">
                     {viewMode === 'simple' ? (
                         <tr>
-                            <th colSpan={9} className="p-3 text-left text-sm font-semibold text-indigo-700">Tasks</th>
+                            <th colSpan={9} className="p-3 text-left text-sm font-semibold text-indigo-700">{t ? t('tasks') : 'Tasks'}</th>
                         </tr>
                     ) : (
                         <tr>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">ID</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Title</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Status</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Prio</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Category</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Deadline</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Created</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Updated</th>
-                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">Actions</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('id') : 'ID'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('title') : 'Title'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('statusLabel') : 'Status'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('prio') : 'Prio'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('categoryLabel') : 'Category'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('deadline') : 'Deadline'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('created') : 'Created'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('updated') : 'Updated'}</th>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('actions') : 'Actions'}</th>
                         </tr>
                     )}
                     </thead>
                     <tbody>
                     {loading ? (
-                        <tr><td colSpan={9} className="p-4">Loading...</td></tr>
+                        <tr><td colSpan={9} className="p-4">{t ? t('loading') : 'Loading...'}</td></tr>
                     ) : tasks.length === 0 ? (
-                        <tr><td colSpan={9} className="p-4">No tasks</td></tr>
+                        <tr><td colSpan={9} className="p-4">{t ? t('noTasks') : 'No tasks'}</td></tr>
                     ) : filteredTasks.length === 0 ? (
-                        <tr><td colSpan={9} className="p-4">No matching tasks</td></tr>
+                        <tr><td colSpan={9} className="p-4">{t ? t('noMatchingTasks') : 'No matching tasks'}</td></tr>
                     ) : displayedTasks.map((t) => (
                         <TaskCard
                             key={t.id}

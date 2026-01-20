@@ -2,8 +2,10 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { CheckSquare, Calendar, Users, LayoutDashboard, Tag, Settings } from "lucide-react";
 import LogoutButton from "./LogoutButton.jsx";
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 export default function Sidebar() {
+    const { t } = useOptions();
     // track whether the sidebar is hidden on small screens
     const [hiddenMobile, setHiddenMobile] = React.useState(false);
 
@@ -33,16 +35,16 @@ export default function Sidebar() {
                 {/* Logo / Názov - show only icon on mobile, full title on md+ */}
                 <div className="flex items-center gap-2 mb-16">
                     <CheckSquare className="text-blue-600" />
-                    <h1 className="font-semibold text-lg hidden md:block">Task Manager</h1>
+                    <h1 className="font-semibold text-lg hidden md:block">{t ? t('taskManager') : 'Task Manager'}</h1>
                 </div>
 
                 {/* Navigácia */}
                 <nav className="flex flex-col gap-2 text-gray-700">
-                    <NavItem to="/" icon={<LayoutDashboard size={18} />} label="Dashboard" />
-                    <NavItem to="/calendar" icon={<Calendar size={18} />} label="Kalendár" />
-                    <NavItem to="/categories" icon={<Tag size={18} />} label="Kategórie" />
-                    <NavItem to="/users" icon={<Users size={18} />} label="Správa používateľov" />
-                    <NavItem to="/options" icon={<Settings size={18} />} label="Nastavenia" />
+                    <NavItem to="/" icon={<LayoutDashboard size={18} />} label={t ? t('dashboard') : 'Dashboard'} />
+                    <NavItem to="/calendar" icon={<Calendar size={18} />} label={t ? t('calendar') : 'Calendar'} />
+                    <NavItem to="/categories" icon={<Tag size={18} />} label={t ? t('categories') : 'Categories'} />
+                    <NavItem to="/users" icon={<Users size={18} />} label={t ? t('users') : 'Users'} />
+                    <NavItem to="/options" icon={<Settings size={18} />} label={t ? t('settings') : 'Settings'} />
                 </nav>
 
                 {/* spacer - nav ends here. Logout is placed absolutely so it's always visible */}
