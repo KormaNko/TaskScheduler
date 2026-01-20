@@ -1,9 +1,11 @@
 // Import React knižnice a hooku useState na prácu so stavom komponentu
 import React, { useState } from "react";
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // Komponent mesačného kalendára
 // Props: rows, cols, month, year, tasks (array), onEventClick(fn), loading, onDayClick
 export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], categories = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
+    const { t } = useOptions();
     // helper: get category color by id (cat can be id or name)
     const getCategoryColor = (catId) => {
         // catId may be an object, JSON string, numeric id or name.
@@ -112,6 +114,11 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background, minWidth: 0 }; }
     const eventPillStyleBase = { display: 'block', padding: '2px 6px', borderRadius: '999px', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
 
+    // For month view we use a static time (09:00) when creating a new task from a day cell
+    function dateFromCellStatic(yearVal, monthIdx, dayNumber) {
+        return new Date(yearVal, monthIdx, dayNumber, 9, 0, 0);
+    }
+
     // ------------------
     // Render
     // ------------------
@@ -124,8 +131,8 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                     {/* Only show internal controls when not controlled by parent */}
                     {!(typeof month === 'number' && typeof year === 'number') && (
                         <>
-                            <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" className="btn">Prev</button>
-                            <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" className="btn" style={{ background: '#ffffff' }}>Dnes</button>
+                            <button onClick={() => changeMonth(-1)} aria-label="Predchádzajúci mesiac" className="btn">{t ? t('prev') : 'Prev'}</button>
+                            <button onClick={() => { setCurrentMonth(new Date().getMonth() + 1); setCurrentYear(new Date().getFullYear()); }} aria-label="Dnešný mesiac" className="btn" style={{ background: '#ffffff' }}>{t ? t('today') : 'Dnes'}</button>
                         </>
                     )}
                  </div>
@@ -134,12 +141,12 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
                 <div style={controlGroupStyle}>
                     {!(typeof month === 'number' && typeof year === 'number') && (
-                        <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" className="btn">Next</button>
+                        <button onClick={() => changeMonth(1)} aria-label="Nasledujúci mesiac" className="btn">{t ? t('next') : 'Next'}</button>
                     )}
                  </div>
              </div>
 
-            {loading && (<div style={{ padding: 8, color: '#374151', fontSize: 13 }}>Loading tasks...</div>)}
+            {loading && (<div style={{ padding: 8, color: '#374151', fontSize: 13 }}>{t ? t('loading') : 'Loading tasks...'}</div>)}
 
             {/* Grid s dňami */}
             <div style={gridWrapperStyle} className="month-grid">
@@ -150,7 +157,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
                     {/* Dni mesiaca */}
                     {displayCells.map((v, i) => (
-                        <div key={i} style={cellCombinedStyle(v === null)} onClick={() => { if (v !== null) onDayClick(v, effectiveMonth, effectiveYear); }}>
+                        <div key={i} style={cellCombinedStyle(v === null)} onClick={(e) => { if (v !== null) { const dt = dateFromCellStatic(effectiveYear, monthIndex, v); onDayClick(dt); } }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                  <div style={dateNumberStyle}>{v !== null ? v : ''}</div>
                              </div>
@@ -177,7 +184,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                                                  </div>
                                              );
                                          })}
-                                         {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} more</div>) : null}
+                                         {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} {t ? t('more') : 'more'}</div>) : null}
                                      </>
                                  ) : null}
                              </div>

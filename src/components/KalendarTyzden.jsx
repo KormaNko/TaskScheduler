@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // Week view with single left time axis and scrollable timeline
 export default function KalendarTyzden({ startDate = new Date(), tasks = [], categories = [], resolveCategory = () => '', onEventClick = () => {}, onDayClick = () => {} }) {
+    const { t } = useOptions();
      const pad = n => String(n).padStart(2, '0');
      const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
@@ -147,6 +149,26 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
         return () => clearTimeout(t);
     }, [startDate]);
 
+    // helper: compute Date from click Y position inside a column
+    function dateFromClick(baseDate, e) {
+        try {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const h = rect.height || totalHeight;
+            const frac = Math.max(0, Math.min(1, y / h));
+            const minutes = Math.round(frac * 24 * 60);
+            // snap to 30-minute increments
+            let snapped = Math.round(minutes / 30) * 30;
+            const maxStart = 24 * 60 - 30; // latest allowed start (23:30)
+            if (snapped > maxStart) snapped = maxStart;
+            if (snapped < 0) snapped = 0;
+            const d = new Date(baseDate);
+            d.setHours(0,0,0,0);
+            d.setMinutes(snapped);
+            return d;
+        } catch (err) { return new Date(baseDate); }
+    }
+
     // container: prevent horizontal scrolling and allow columns to shrink
     const outerStyle = { overflowX: 'hidden', width: '100%', boxSizing: 'border-box' };
 
@@ -154,7 +176,7 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
         <div style={outerStyle} className="calendar-root">
             {/* top control bar (placed at very top so on mobile buttons are visible and do not cause horizontal overflow) */}
             <div className="calendar-control-bar" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Now</button>
+                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">{t ? t('now') : 'Now'}</button>
             </div>
 
             {/* card that holds both header and timeline so their padding aligns exactly */}
@@ -185,7 +207,7 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
                     <div ref={scrollRef} className="relative" style={{ height: totalHeight, overflowY: 'auto', overflowX: 'hidden' }}>
                          <div className="grid grid-cols-7" style={{ height: totalHeight }}>
                             {days.map((d, idx) => (
-                                <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={() => onDayClick(d)}>
+                                <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={(e) => onDayClick && onDayClick(dateFromClick(d, e))}>
                                     {Array.from({ length: 24 }).map((_, h) => (
                                         <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${h * slotHeight}px`, height: 0 }}>
                                             <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }} />

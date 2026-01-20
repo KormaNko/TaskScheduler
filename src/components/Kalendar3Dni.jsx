@@ -1,7 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // 3-day view with single left time axis and scrollable timeline
 export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categories = [], resolveCategory = () => '', onEventClick = () => {}, onDayClick = () => {} }) {
+    const { t } = useOptions();
     const pad = n => String(n).padStart(2, '0');
     const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
@@ -106,6 +108,26 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
         return { weekday, day };
     };
 
+    // helper: compute Date from click inside a day column
+    function dateFromClick(baseDate, e) {
+        try {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const y = e.clientY - rect.top;
+            const h = rect.height || totalHeight;
+            const frac = Math.max(0, Math.min(1, y / h));
+            const minutes = Math.round(frac * 24 * 60);
+            // snap to 30-minute increments
+            let snapped = Math.round(minutes / 30) * 30;
+            const maxStart = 24 * 60 - 30; // latest allowed start (23:30)
+            if (snapped > maxStart) snapped = maxStart;
+            if (snapped < 0) snapped = 0;
+            const d = new Date(baseDate);
+            d.setHours(0,0,0,0);
+            d.setMinutes(snapped);
+            return d;
+        } catch (err) { return new Date(baseDate); }
+    }
+
     // container: prevent horizontal scrolling and allow columns to shrink
     const outerStyle = { overflowX: 'hidden', width: '100%', boxSizing: 'border-box' };
     const headerGridStyle = { display: 'grid', gridTemplateColumns: `${axisWidth}px repeat(3, minmax(0, 1fr))`, gap: '0.5rem', alignItems: 'center' };
@@ -113,7 +135,7 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
     return (
         <div style={outerStyle} className="calendar-root">
             <div className="calendar-control-bar" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">Now</button>
+                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">{t ? t('now') : 'Now'}</button>
             </div>
 
             <div className="bg-white rounded border border-gray-100 p-4">
@@ -145,7 +167,7 @@ export default function Kalendar3Dni({ startDate = new Date(), tasks = [], categ
                     {/* 3 day columns - columns are flexible and can shrink */}
                     <div className="flex-1 grid grid-cols-3" style={{ position: 'relative', minWidth: 0, width: '100%', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
                         {days.map((d, idx) => (
-                            <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={() => onDayClick(d)}>
+                            <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={(e) => onDayClick && onDayClick(dateFromClick(d, e))}>
                                 {/* horizontal hour lines */}
                                 {Array.from({ length: 24 }).map((_, h) => (
                                     <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${h * slotHeight}px`, height: 0 }}>

@@ -22,7 +22,7 @@ export default function Calendar() {
     const [actionLoading, setActionLoading] = useState(false);
     const [success, setSuccess] = useState(null);
 
-    const { opts } = useOptions();
+    const { opts, t } = useOptions();
 
     useEffect(() => { fetchTasks(); }, []);
     useEffect(() => { fetchCategories(); }, []);
@@ -160,18 +160,25 @@ export default function Calendar() {
     }
 
     const pad = n => String(n).padStart(2, '0');
-    function openCreateForDate(day, month, year) {
-        // month is 1-based here
-        const hhmm = '09:00';
-        const s = `${year}-${pad(month)}-${pad(day)}T${hhmm}`;
+    function openCreateForDate(a, b, c) {
+        // Accept either a Date object or (day, month, year)
+        let d;
+        if (a instanceof Date) {
+            d = a;
+        } else {
+            const day = a; // 1-based
+            const month = b; // 1-based
+            const year = c;
+            d = new Date(year, (month - 1), day, 9, 0, 0);
+        }
+        // set datetime-local value
+        const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        const s = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${hhmm}`;
         setForm(f => ({ ...f, deadline: s }));
         setShowCreate(true);
     }
     function openCreateForDateFromDate(d) {
-        const y = d.getFullYear();
-        const m = d.getMonth() + 1;
-        const day = d.getDate();
-        openCreateForDate(day, m, y);
+        openCreateForDate(d);
     }
 
     /* ========= UI ACTIONS ========= */
@@ -220,22 +227,22 @@ export default function Calendar() {
                         <button
                             onClick={() => setViewMode('day')}
                             className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'day' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
-                        >Deň</button>
+                        >{t ? t('view_day') : 'Deň'}</button>
 
                         <button
                             onClick={() => setViewMode('3days')}
                             className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === '3days' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
-                        >3 Dni</button>
+                        >{t ? t('view_3days') : '3 Dni'}</button>
 
                         <button
                             onClick={() => setViewMode('week')}
                             className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'week' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
-                        >Týždeň</button>
+                        >{t ? t('view_week') : 'Týždeň'}</button>
 
                         <button
                             onClick={() => setViewMode('month')}
                             className={`shrink-0 px-3 py-2 rounded-full border text-sm ${viewMode === 'month' ? 'bg-indigo-600 text-white border-transparent' : 'bg-white text-indigo-700'}`}
-                        >Mesiac</button>
+                        >{t ? t('view_month') : 'Mesiac'}</button>
                     </div>
                 </div>
              </div>
@@ -248,31 +255,31 @@ export default function Calendar() {
                     <button
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
                         onClick={() => navigate(-1)}
-                        title="Predchádzajúci"
+                        title={t ? t('prev') : 'Pred'}
                     >
                         <span className="text-lg">←</span>
-                        <span className="hidden sm:inline">Pred</span>
+                        <span className="hidden sm:inline">{t ? t('prev') : 'Pred'}</span>
                     </button>
 
                     <button
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
                         onClick={setToToday}
-                        title="Dnes"
+                        title={t ? t('today') : 'Dnes'}
                     >
                         <span className="text-lg">⦿</span>
-                        <span className="hidden sm:inline">Dnes</span>
+                        <span className="hidden sm:inline">{t ? t('today') : 'Dnes'}</span>
                     </button>
 
                     <button
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-full border text-sm bg-white text-indigo-700 shadow-sm hover:shadow-md transition transform active:scale-95"
                         onClick={() => navigate(1)}
-                        title="Nasledujúci"
+                        title={t ? t('next') : 'Nasl'}
                     >
                         <span className="text-lg">→</span>
-                        <span className="hidden sm:inline">Nasl</span>
+                        <span className="hidden sm:inline">{t ? t('next') : 'Nasl'}</span>
                     </button>
                 </div>
-                <div className="text-sm text-gray-600">Zobrazenie: <strong className="text-indigo-700">{viewMode === 'day' ? 'Deň' : viewMode === '3days' ? '3 dni' : viewMode === 'week' ? 'Týždeň' : 'Mesiac'}</strong> • {baseDate.toLocaleDateString()}</div>
+                <div className="text-sm text-gray-600">{t ? t('view') : 'Zobrazenie'}: <strong className="text-indigo-700">{viewMode === 'day' ? (t ? t('view_day') : 'Deň') : viewMode === '3days' ? (t ? t('view_3days') : '3 dni') : viewMode === 'week' ? (t ? t('view_week') : 'Týždeň') : (t ? t('view_month') : 'Mesiac')}</strong> • {baseDate.toLocaleDateString()}</div>
             </div>
 
             <div className="p-6">
@@ -288,7 +295,7 @@ export default function Calendar() {
                          resolveCategory={resolveCategory}
                          loading={loading}
                          onEventClick={setEditing}
-                         onDayClick={(day, month, year) => openCreateForDate(day, month, year)}
+                         onDayClick={(dt) => openCreateForDate(dt)}
                      />
                     )}
 

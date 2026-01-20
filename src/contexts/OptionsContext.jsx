@@ -11,6 +11,9 @@ const TRANSLATIONS = {
     tasksDashboard: 'Zoznam úloh',
     switchToSimple: 'Prepnúť na jednoduchý',
     switchToDetailed: 'Prepnúť na detailný',
+    // also accept older/newer key names used elsewhere
+    switchViewSimple: 'Prepnúť na jednoduchý',
+    switchViewDetailed: 'Prepnúť na detailný',
     dashboard: 'Dashboard',
     calendar: 'Kalendár',
     categories: 'Kategórie',
@@ -101,6 +104,9 @@ const TRANSLATIONS = {
     tasksDashboard: 'Tasks Dashboard',
     switchToSimple: 'Switch to Simple',
     switchToDetailed: 'Switch to Detailed',
+    // also accept older/newer key names used elsewhere
+    switchViewSimple: 'Switch to Simple',
+    switchViewDetailed: 'Switch to Detailed',
     dashboard: 'Dashboard',
     calendar: 'Calendar',
     categories: 'Categories',
