@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./src/styles/extra.css";
 
 /* calendar responsiveness: ensure calendars never cause horizontal scrolling
    - .calendar-root constrains max-width and hides horizontal overflow
