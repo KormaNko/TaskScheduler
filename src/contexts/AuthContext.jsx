@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/api';
 
 const AuthContext = createContext(null);
-
+//cela logika triedy bola AI
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(false);
   const [loading, setLoading] = useState(true);

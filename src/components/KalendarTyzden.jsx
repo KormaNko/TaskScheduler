@@ -61,6 +61,7 @@ export default function KalendarTyzden({
     const [axisWidth, setAxisWidth] = useState(80);
 
     // Zmeria šírku ľavej časovej osi
+    //AI
     useEffect(() => {
         const measure = () => {
             if (axisRef.current?.offsetWidth) {
@@ -89,6 +90,7 @@ export default function KalendarTyzden({
     }, [startDate]);
 
     // Klik do stĺpca → dátum + čas
+    //AI
     function dateFromClick(baseDate, e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
@@ -99,7 +101,7 @@ export default function KalendarTyzden({
         d.setMinutes(Math.max(0, Math.min(24 * 60 - 30, snapped)));
         return d;
     }
-
+    //AI
     return (
         <div className="calendar-root" style={{ overflowX: 'hidden' }}>
 

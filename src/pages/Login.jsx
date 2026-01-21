@@ -86,6 +86,7 @@ export default function Login() {
                     localStorage.setItem('currentUser', JSON.stringify(user));
                 }
             } catch (e) {}
+            //AI
             try { setAuth(true); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-in')); } catch (e) {}
             setLoading(false);
@@ -103,6 +104,7 @@ export default function Login() {
     }
 
     // Vykreslenie formulára
+    //AI
     return (
         <div className="flex flex-col items-center w-full">
             <form onSubmit={handleSubmit} className="w-full max-w-xl min-h-[400px] mx-auto p-8 bg-white shadow rounded-xl flex flex-col justify-center" noValidate>

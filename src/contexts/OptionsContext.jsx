@@ -3,7 +3,7 @@ import api from '../lib/api';
 import { useAuth } from './AuthContext.jsx';
 
 const OptionsContext = createContext(null);
-
+//AI
 const TRANSLATIONS = {
   SK: {
     settings: 'Nastavenia',
@@ -209,6 +209,7 @@ export function OptionsProvider({ children }) {
   };
 
   // normalize incoming option object to consistent keys
+    //AI
   const normalize = (d) => ({
     // prefer common keys, fall back to snake_case from API, default to sensible values
     language: d?.language ?? d?.lang ?? 'SK',
@@ -219,9 +220,7 @@ export function OptionsProvider({ children }) {
     __raw: d,
   });
 
-  // Load options when authentication state is known. If authenticated, fetch user options
-  // from the API; if not authenticated, clear to defaults. We wait until authLoading
-  // is false so we don't issue a pointless request while the auth check is in-flight.
+ //AI
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -250,7 +249,7 @@ export function OptionsProvider({ children }) {
     return () => { cancelled = true; };
   }, [auth, authLoading]);
 
-  // apply theme to document.documentElement (safe, minimal effect)
+ //AI
   useEffect(() => {
     try {
       const theme = opts?.theme ?? 'light';
@@ -261,6 +260,7 @@ export function OptionsProvider({ children }) {
     } catch (e) { /* ignore */ }
   }, [opts?.theme]);
 
+  //AI
   async function saveOptions(payload) {
     setSaving(true);
     setError(null);

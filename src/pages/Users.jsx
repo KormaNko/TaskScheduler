@@ -7,9 +7,6 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 export default function UsersPage() {
     const { t } = useOptions();
 
-    // ============================
-    // ===== STAVY (useState) =====
-    // ============================
 
     // Zoznam používateľov z databázy
     const [users, setUsers] = useState([]); // pole user objektov
@@ -96,10 +93,6 @@ export default function UsersPage() {
          }
     }
 
-    // ============================
-    // ===== OTVORENIE FORMULÁRA ===
-    // ============================
-
     // Otvorenie formulára pre vytvorenie nového používateľa
     function openCreate() {
         setForm(emptyForm);     // vyčistenie formulára
@@ -131,6 +124,7 @@ export default function UsersPage() {
     // ============================
 
     // Univerzálny onChange pre všetky inputy
+    //AI
     function onChange(field) {
         return (e) => {
             // Checkbox používa checked, input používa value
@@ -146,10 +140,8 @@ export default function UsersPage() {
         };
     }
 
-    // ============================
-    // ===== VALIDÁCIA FORMULÁRA ==
-    // ============================
 
+    //AI
     function validateForm() {
         const errs = {}; // objekt pre chyby
 
@@ -171,9 +163,7 @@ export default function UsersPage() {
         return errs; // vráť chyby (prázdny objekt = OK)
     }
 
-    // ============================
-    // ===== ODOSLANIE FORMULÁRA ==
-    // ============================
+
 
     async function handleSubmit(e) {
         e.preventDefault(); // zabráni reloadu stránky
@@ -189,7 +179,7 @@ export default function UsersPage() {
         }
 
         setLoadingAction(true); // zapni loading pre akciu
-
+        //AI
         try {
             // ===== VYTVÁRANIE =====
             if (!isEditing) {
@@ -236,9 +226,6 @@ export default function UsersPage() {
         }
     }
 
-    // ============================
-    // ===== MAZANIE USERA ========
-    // ============================
 
     async function handleDelete(id) {
         if (!confirm(t ? t('confirmDeleteUser') : "Naozaj zmazať používateľa?")) return; // potvrdenie od používateľa
@@ -259,11 +246,7 @@ export default function UsersPage() {
             setLoadingAction(false); // vypni loading
         }
     }
-
-    // ============================
-    // ===== RENDER (JSX) ========
-    // ============================
-
+        //AI
     return (
         <div className="p-6">{/* hlavný kontajner s paddingom */}
             <div className="flex items-center justify-between mb-4">{/* header s titulkom a tlačidlom */}

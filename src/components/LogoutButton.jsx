@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
-
+//AI
 export default function LogoutButton() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();

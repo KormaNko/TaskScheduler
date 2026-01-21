@@ -30,13 +30,11 @@ export default function Calendar() {
 
     // normalize tasks to attach category object and ensure category is string for consistent rendering
     const normalizedTasks = useMemo(() => {
-        // Under the new backend contract `task.category` is expected to be an
-        // object (with at least `name` and `color`) or null. Do not attempt to
-        // coerce or parse category fields here; pass tasks through.
+
         if (!Array.isArray(tasks)) return [];
         let arr = tasks.slice();
 
-         // apply client-side filtering from options (status)
+         //AI
          try {
              const tf = opts?.taskFilter ?? opts?.task_filter ?? 'all';
              if (tf && tf !== 'all') {
@@ -44,7 +42,7 @@ export default function Calendar() {
              }
          } catch (e) { /* ignore */ }
 
-         // apply client-side sorting from options
+         //AI
          try {
              const ts = opts?.taskSort ?? opts?.task_sort ?? 'none';
              switch (ts) {
@@ -116,6 +114,7 @@ export default function Calendar() {
      }
 
      /* ========= NAVIGATION HELPERS ========= */
+    //AI
      function navigate(delta) {
          setBaseDate(d => {
              const n = new Date(d);
@@ -154,6 +153,7 @@ export default function Calendar() {
      }
 
      /* ========= UI ACTIONS ========= */
+    //AI
      async function createTask(e) {
          e.preventDefault();
          setError(null); setSuccess(null);
@@ -184,7 +184,7 @@ export default function Calendar() {
              setActionLoading(false);
          }
      }
-
+    //AI
      return (
         <div className="p-6 bg-gradient-to-b from-slate-50 to-white min-h-screen">
             <div className="mx-auto max-w-7xl">

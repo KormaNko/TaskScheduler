@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext.jsx';
-
+//tuto logiku tiez AI
 export default function RequireAuth({ children }) {
   const { auth, loading } = useAuth();
 

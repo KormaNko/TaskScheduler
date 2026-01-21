@@ -152,6 +152,7 @@ export default function Register() {
     }
 
     // HTML (JSX) rozhranie registračného formulára
+    //AI
     return (
         <div className="flex flex-col items-center w-full">
             <form onSubmit={handleSubmit} className="w-full max-w-xl min-h-[400px] mx-auto p-8 bg-white shadow rounded-xl flex flex-col justify-center" noValidate>

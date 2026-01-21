@@ -41,7 +41,7 @@ function apiUrl(action, id = null) {
     const base = `${API_BASE}/?c=category&a=${action}`;
     return id ? `${base}&id=${encodeURIComponent(id)}` : base;
 }
-
+//AI
 function CategoryRow({ cat, onEdit, onDelete }) {
     const { t } = useOptions();
     return (
@@ -58,7 +58,7 @@ function CategoryRow({ cat, onEdit, onDelete }) {
         </tr>
     );
 }
-
+//AI
 export default function CategoryManager() {
     const { t } = useOptions();
     const [categories, setCategories] = useState([]);
@@ -94,7 +94,7 @@ export default function CategoryManager() {
                 err.details = details;
                 throw err;
             }
-
+            //AI
             const ct = (res.headers.get('content-type') || '').toLowerCase();
             let data;
             if (ct.includes('application/json')) {
@@ -121,7 +121,7 @@ export default function CategoryManager() {
                 }
             }
 
-            // backend returns { status: 'ok', data: [...] } so handle both shapes
+            // AI
             const list = Array.isArray(data) ? data : (data.data ?? []);
             setCategories(list);
         } catch (e) {
@@ -153,7 +153,7 @@ export default function CategoryManager() {
         setName(cat.name || '');
         setColor(cat.color || '');
     };
-
+    //AI
     const handleDelete = async (cat) => {
         if (!window.confirm(`Delete category "${cat.name}"?`)) return;
         setError(null);
@@ -174,7 +174,7 @@ export default function CategoryManager() {
             setError(e.message || 'Failed to delete');
         }
     };
-
+    //AI
     const handleSave = async (e) => {
         e.preventDefault();
         setError(null);
@@ -230,7 +230,7 @@ export default function CategoryManager() {
             setSaving(false);
         }
     };
-
+    //AI
     return (
         <div className="p-6 max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-6">

@@ -13,7 +13,7 @@ potom na na frontende v koznole o + ENTER (alebo do prehliadaca zadat http://loc
 
 
 
-Podrobnosti rozne vygenerovane AI netreba citat :D : 
+Podrobnosti rozne vygenerovane AI netreba citat :D ale ak by bol problem precitajte vklude :D: 
 
 Requirements
 - Node.js 18\+ and npm

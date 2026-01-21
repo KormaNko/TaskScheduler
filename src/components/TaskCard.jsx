@@ -1,10 +1,10 @@
 import React from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
-
+//AI
 export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
     const { t } = useOptions();
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
-
+//AI
     const fmt = (v) => {
         if (!v) return '-';
         const t = String(v).replace(' ', 'T');
@@ -12,15 +12,12 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
         return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
     };
 
-    // Return both name and color when possible. Under new backend contract
-    // `task.category` is always an object or null. Do NOT attempt to parse
-    // JSON strings or check alternate fields. Components should only rely on
-    // category.name and category.color.
+
     const resolveCategoryMeta = (cat) => {
         // cat is expected to be either an object or null per backend contract
         return { name: cat?.name ?? null, color: cat?.color ?? null };
     };
-
+    //AI
     const textColorForBg = (hex) => {
         if (!hex) return '#111827';
         try {
@@ -50,6 +47,7 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
     })();
 
     // helper: render a small status pill (visual only)
+    //AI
     const renderStatusPill = (st) => {
         if (!st) return null;
         const s = String(st);
@@ -60,7 +58,7 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
         return <span className={base + ' bg-gray-100 text-gray-700 ml-2'}>{label}</span>;
     };
 
-    // Simple view: single row with one cell spanning all columns showing only title + description
+   //AI
     if (viewMode === 'simple') {
         return (
             <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
@@ -104,7 +102,7 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
         );
     }
 
-    // Detailed view (existing layout)
+    // Detailed view AI
     return (
         <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
               <td className="p-3">{id}</td>

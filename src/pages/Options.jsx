@@ -39,9 +39,10 @@ export default function SettingsPage() {
     const [taskSort, setTaskSort] = useState('none');
     const [localError, setLocalError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
-    // (no extra 'synced' flag needed)
+
 
     // initialize from context opts
+    //AI
     useEffect(() => {
         if (!opts) return;
         setLanguage(opts.language ?? 'SK');
@@ -51,6 +52,7 @@ export default function SettingsPage() {
         // local state now reflects opts; further local changes may be pushed to context
 
         // ensure document theme matches saved opts when we first load
+        //AI
         try {
             const el = document?.documentElement;
             if (el) {
@@ -62,6 +64,7 @@ export default function SettingsPage() {
 
     // Preview theme locally when user changes the select, but do not write to context immediately.
     // This prevents a loop where updating context triggers other effects and causes flicker.
+    //AI
     useEffect(() => {
         try {
             const el = document?.documentElement;
@@ -69,10 +72,7 @@ export default function SettingsPage() {
             if (theme === 'dark') el.classList.add('app-dark');
             else el.classList.remove('app-dark');
         } catch (e) { /* ignore */ }
-        // Note: we intentionally do not restore the theme here on unmount to avoid a
-        // race where the component cleanup runs before an optimistic update from
-        // saveOptions is applied in the provider. The OptionsProvider applies the
-        // authoritative theme whenever `opts` changes, so rely on that.
+
     }, [theme]);
 
     async function handleSave(e) {
@@ -98,7 +98,7 @@ export default function SettingsPage() {
     }
 
     if (loading) return <div className="p-6">{t ? t('loading') : 'Loading settings...'}</div>;
-
+    //AI
     return (
         <div className="max-w-2xl mx-auto p-6">
             <h1 className="text-2xl font-semibold mb-4">{t ? t('settings') : 'Settings'}</h1>

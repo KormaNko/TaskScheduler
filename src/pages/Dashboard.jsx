@@ -26,7 +26,6 @@ export default function Dashboard() {
     const [success, setSuccess] = useState(null);
 
     const [showCreate, setShowCreate] = useState(false);
-    // forms use category_id now (number | '')
     const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '' });
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
@@ -50,6 +49,7 @@ export default function Dashboard() {
     }
 
     // When options change, adopt them into the dashboard's local filter/sort (non-destructive)
+    //AI
     useEffect(() => {
         if (!opts) return;
         try {
@@ -61,6 +61,7 @@ export default function Dashboard() {
     }, [opts]);
 
     // On initial mount, set simple view for small screens so mobile shows stacked layout
+    //AI
     useEffect(() => {
         try {
             if (typeof window !== 'undefined' && window.innerWidth < 768) {
@@ -68,7 +69,7 @@ export default function Dashboard() {
             }
         } catch (e) { /* ignore */ }
     }, []);
-
+    //AI
     // track resize and enforce simple mode on small screens; hide toggle there
     useEffect(() => {
         function update() {
@@ -84,6 +85,7 @@ export default function Dashboard() {
     }, []);
 
     // check if table overflows its wrapper (used to auto-switch to simple mode on narrow spaces)
+    //AI
     function checkOverflow() {
         try {
             const wrap = tableWrapperRef.current;
@@ -122,6 +124,7 @@ export default function Dashboard() {
     }, [tasks, search, statusFilter]);
 
     // apply sorting to the filtered tasks (priority, title, remaining time)
+    //AI
     const displayedTasks = useMemo(() => {
         const arr = Array.isArray(filteredTasks) ? filteredTasks.slice() : [];
 
@@ -215,7 +218,7 @@ export default function Dashboard() {
         const pad = (n) => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
-
+    //AI
     async function createTask(e) {
         e?.preventDefault?.();
         setError(null); setSuccess(null);
@@ -254,7 +257,7 @@ export default function Dashboard() {
             setError(err.message || 'Delete failed');
         } finally { setActionLoading(false); }
     }
-
+    //AI
     async function changeStatus(id, newStatus) {
         if (!id) return;
         setError(null);
@@ -283,6 +286,7 @@ export default function Dashboard() {
     }
 
     // When editing opens, measure the form height and decide whether to show full-screen edit
+    //AI
     useEffect(() => {
         if (!editing) {
             // restore body overflow when modal closed
@@ -308,6 +312,7 @@ export default function Dashboard() {
         const id = setTimeout(measure, 30);
 
         // re-measure on resize while editing is open so we adapt dynamically
+        //AI
         function onResize() { measure(); }
         window.addEventListener('resize', onResize);
         window.addEventListener('orientationchange', onResize);
@@ -320,7 +325,7 @@ export default function Dashboard() {
             try { document.body.style.overflow = ''; document.documentElement.style.overflowX = ''; } catch (e) {}
         };
     }, [editing]);
-
+    //AI
     async function saveEdit(e) {
         e?.preventDefault?.();
         if (!editing) return;
@@ -373,7 +378,7 @@ export default function Dashboard() {
     function closeDetails() {
         setDetailTask(null);
     }
-
+    //AI
     return (
         <div className="p-6">
             <div className="flex items-start justify-between mb-4 flex-col md:flex-row gap-4 flex-wrap">

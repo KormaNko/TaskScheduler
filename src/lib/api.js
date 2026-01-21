@@ -1,5 +1,6 @@
 // Lightweight API wrapper that always sends cookies and handles 401 centrally
 // Use VITE_API_BASE when provided; otherwise default to '/api' so Vite dev proxy forwards requests and avoids CORS during development.
+//tuto logiku tiez cele AI
 const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '');
 
 async function request(path, opts = {}) {
