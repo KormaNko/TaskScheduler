@@ -1,34 +1,49 @@
+// Import React a hookov
 import React, { useRef, useEffect, useState } from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
-// Week view with single left time axis and scrollable timeline
-export default function KalendarTyzden({ startDate = new Date(), tasks = [], categories = [], resolveCategory = () => '', onEventClick = () => {}, onDayClick = () => {} }) {
+// Týždenný kalendár s časovou osou vľavo
+export default function KalendarTyzden({
+                                           startDate = new Date(),
+                                           tasks = [],
+                                           categories = [],
+                                           resolveCategory = () => '',
+                                           onEventClick = () => {},
+                                           onDayClick = () => {}
+                                       }) {
     const { t } = useOptions();
-     const pad = n => String(n).padStart(2, '0');
-     const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
-    // compute Monday as start of week
+    // Pomocné funkcie na prácu s dátumom
+    const pad = n => String(n).padStart(2, '0');
+    const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    // Vypočítame pondelok aktuálneho týždňa
     const start = new Date(startDate);
     const jsDay = start.getDay();
-    const mondayOffset = (jsDay + 6) % 7; // 0..6 where 0=Monday
+    const mondayOffset = (jsDay + 6) % 7;
     start.setDate(start.getDate() - mondayOffset);
 
+    // 7 dní v týždni
     const days = Array.from({ length: 7 }, (_, i) => {
         const d = new Date(start);
         d.setDate(start.getDate() + i);
         return d;
     });
 
-    const eventsFor = (d) => (Array.isArray(tasks) ? tasks : []).filter(t => {
-        if (!t?.deadline) return false;
-        const dd = new Date(String(t.deadline).replace(' ', 'T'));
-        if (isNaN(dd.getTime())) return false;
-        return dateKey(dd) === dateKey(d);
-    });
+    // Vyfiltruje úlohy pre konkrétny deň
+    const eventsFor = d =>
+        (Array.isArray(tasks) ? tasks : []).filter(t => {
+            if (!t?.deadline) return false;
+            const dd = new Date(String(t.deadline).replace(' ', 'T'));
+            if (isNaN(dd.getTime())) return false;
+            return dateKey(dd) === dateKey(d);
+        });
 
-    const getCategoryColor = (catId) => {
+    // Zistí farbu kategórie (id / objekt / string)
+    const getCategoryColor = catId => {
         if (!categories || !categories.length) return null;
         let cat = catId;
+
         if (cat && typeof cat === 'object') {
             if (cat.color) return cat.color;
             const byId = categories.find(c => String(c.id) === String(cat.id));
@@ -37,243 +52,210 @@ export default function KalendarTyzden({ startDate = new Date(), tasks = [], cat
             if (byName) return byName.color ?? null;
             return null;
         }
-        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
-            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
-        }
-        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
+
+        const found = categories.find(
+            c => String(c.id) === String(cat) || String(c.name) === String(cat)
+        );
         return found?.color || null;
     };
-    const textColorForBg = (hex) => {
-        if (!hex) return '#111827';
-        try {
-            const h = hex.replace('#','');
-            const r = parseInt(h.substring(0,2),16)/255;
-            const g = parseInt(h.substring(2,4),16)/255;
-            const b = parseInt(h.substring(4,6),16)/255;
-            const lum = 0.2126*r + 0.7152*g + 0.0722*b;
-            return lum > 0.6 ? '#111827' : '#ffffff';
-        } catch (e) { return '#ffffff'; }
-    };
 
-    // minutes helper
-    const minutesOfDay = (deadline) => {
+    // Prevod času na minúty dňa
+    const minutesOfDay = deadline => {
         if (!deadline) return null;
         const d = new Date(String(deadline).replace(' ', 'T'));
         if (isNaN(d.getTime())) return null;
         return d.getHours() * 60 + d.getMinutes();
     };
-    // layout sizing
-    const slotHeight = 80; // px per hour (bigger)
+
+    // Layout
+    const slotHeight = 80; // výška 1 hodiny
     const totalHeight = 24 * slotHeight;
 
     const scrollRef = useRef(null);
     const axisRef = useRef(null);
-    const [axisWidth, setAxisWidth] = useState(80); // measured width of left time axis in px
-    const [_visibleHeight, setVisibleHeight] = useState(600);
+    const [axisWidth, setAxisWidth] = useState(80);
+
+    // Zmeria šírku ľavej časovej osi
     useEffect(() => {
-        function measure() {
-            try {
-                const el = scrollRef.current;
-                if (el) setVisibleHeight(el.clientHeight);
-            } catch (e) {}
-        }
+        const measure = () => {
+            if (axisRef.current?.offsetWidth) {
+                setAxisWidth(axisRef.current.offsetWidth);
+            }
+        };
         measure();
         window.addEventListener('resize', measure);
         return () => window.removeEventListener('resize', measure);
     }, []);
 
-    // measure left axis width so header can align exactly
-    useEffect(() => {
-        function measureAxis() {
-            try {
-                const a = axisRef.current;
-                if (a && a.offsetWidth) setAxisWidth(a.offsetWidth);
-            } catch (e) {}
-        }
-        measureAxis();
-        window.addEventListener('resize', measureAxis);
-        return () => window.removeEventListener('resize', measureAxis);
-    }, []);
-
-    // layout overlapping point-events into columns to avoid visual overlap
-    function layoutPointEvents(items, minGap = 40) {
-        // items: [{ id, top }]
-        const cols = [];
-        // sort by top
-        const arr = (items || []).slice().sort((a,b) => a.top - b.top);
-        for (const it of arr) {
-            let placed = false;
-            for (let ci = 0; ci < cols.length; ci++) {
-                const col = cols[ci];
-                const last = col[col.length - 1];
-                if (it.top - last.top >= minGap) {
-                    col.push(it);
-                    it.col = ci;
-                    placed = true;
-                    break;
-                }
-            }
-            if (!placed) {
-                it.col = cols.length;
-                cols.push([it]);
-            }
-        }
-        const colCount = Math.max(1, cols.length);
-        return arr.map(it => ({ ...it, leftPct: (it.col * 100) / colCount, widthPct: 100 / colCount }));
-    }
-
-    // header formatter: weekday short + day number (no year)
-    const fmtHeader = (d) => {
-        const weekday = d.toLocaleDateString(undefined, { weekday: 'short' });
-        const day = d.getDate();
-        return { weekday, day };
-    };
-
-    // now indicator
+    // Aktuálny čas (červená čiara)
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const nowTop = (nowMinutes / (24 * 60)) * totalHeight;
 
+    // Scroll na aktuálny čas
     function scrollToNow() {
-        try {
-            const el = scrollRef.current;
-            if (!el) return;
-            el.scrollTop = Math.max(0, nowTop - (el.clientHeight / 2));
-        } catch (e) {}
+        const el = scrollRef.current;
+        if (!el) return;
+        el.scrollTop = Math.max(0, nowTop - el.clientHeight / 2);
     }
 
-    // auto-scroll to current time once when component mounts or when the startDate changes
     useEffect(() => {
-        // delay slightly to allow layout/measurements to settle
-        const t = setTimeout(scrollToNow, 50);
-        return () => clearTimeout(t);
+        setTimeout(scrollToNow, 50);
     }, [startDate]);
 
-    // helper: compute Date from click Y position inside a column
+    // Klik do stĺpca → dátum + čas
     function dateFromClick(baseDate, e) {
-        try {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const y = e.clientY - rect.top;
-            const h = rect.height || totalHeight;
-            const frac = Math.max(0, Math.min(1, y / h));
-            const minutes = Math.round(frac * 24 * 60);
-            // snap to 30-minute increments
-            let snapped = Math.round(minutes / 30) * 30;
-            const maxStart = 24 * 60 - 30; // latest allowed start (23:30)
-            if (snapped > maxStart) snapped = maxStart;
-            if (snapped < 0) snapped = 0;
-            const d = new Date(baseDate);
-            d.setHours(0,0,0,0);
-            d.setMinutes(snapped);
-            return d;
-        } catch (err) { return new Date(baseDate); }
+        const rect = e.currentTarget.getBoundingClientRect();
+        const y = e.clientY - rect.top;
+        const minutes = Math.round((y / rect.height) * 24 * 60);
+        const snapped = Math.round(minutes / 30) * 30;
+        const d = new Date(baseDate);
+        d.setHours(0, 0, 0, 0);
+        d.setMinutes(Math.max(0, Math.min(24 * 60 - 30, snapped)));
+        return d;
     }
 
-    // container: prevent horizontal scrolling and allow columns to shrink
-    const outerStyle = { overflowX: 'hidden', width: '100%', boxSizing: 'border-box' };
-
     return (
-        <div style={outerStyle} className="calendar-root">
-            {/* top control bar (placed at very top so on mobile buttons are visible and do not cause horizontal overflow) */}
-            <div className="calendar-control-bar" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">{t ? t('now') : 'Now'}</button>
+        <div className="calendar-root" style={{ overflowX: 'hidden' }}>
+
+            {/* Horný panel */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <button
+                    onClick={scrollToNow}
+                    className="px-3 py-1 bg-indigo-600 text-white rounded text-sm"
+                >
+                    {t ? t('now') : 'Now'}
+                </button>
             </div>
 
-            {/* card that holds both header and timeline so their padding aligns exactly */}
-            <div className="bg-white rounded border border-gray-100 p-4 relative" style={{ display: 'grid', gridTemplateColumns: `${axisWidth}px repeat(7, minmax(0, 1fr))`, gridAutoRows: 'auto 1fr', gap: '0.5rem', alignItems: 'start' }}>
-                 {/* header row - children are grid cells so columns line up with timeline columns */}
-                 <div />
-                {days.map((d, idx) => {
-                    const { weekday, day } = fmtHeader(d);
-                    return (
-                        <div key={idx} className="text-center flex flex-col items-center justify-center">
-                            <div className="text-xs text-gray-500 uppercase">{weekday}</div>
-                            <div className="text-lg font-semibold">{day}</div>
-                        </div>
-                    );
-                })}
-                {/* removed duplicate Now button here to avoid layout shifts on small screens */}
+            {/* Grid hlavičky + timeline */}
+            <div
+                className="bg-white rounded border border-gray-100 p-4"
+                style={{
+                    display: 'grid',
+                    gridTemplateColumns: `${axisWidth}px repeat(7, minmax(0, 1fr))`,
+                    gap: '0.5rem'
+                }}
+            >
+                {/* Prázdny roh */}
+                <div />
 
-                {/* timeline area - left axis in col 1, days in cols 2..8 */}
-                <div ref={axisRef} className="left-axis" style={{ alignSelf: 'flex-start', width: `${axisWidth}px`, gridColumn: '1 / 2' }}>
-                    <div style={{ height: totalHeight, position: 'relative' }} className="pr-2">
+                {/* Hlavička dní */}
+                {days.map((d, i) => (
+                    <div key={i} className="text-center">
+                        <div className="text-xs text-gray-500">
+                            {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                        </div>
+                        <div className="font-semibold">{d.getDate()}</div>
+                    </div>
+                ))}
+
+                {/* Ľavá časová os */}
+                <div ref={axisRef}>
+                    <div style={{ height: totalHeight }}>
                         {Array.from({ length: 24 }).map((_, h) => (
-                            <div key={h} style={{ height: `${slotHeight}px`, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }} className="text-xs text-gray-500 pr-2">{String(h).padStart(2,'0')}:00</div>
+                            <div
+                                key={h}
+                                style={{
+                                    height: slotHeight,
+                                    display: 'flex',
+                                    justifyContent: 'flex-end'
+                                }}
+                                className="text-xs text-gray-500 pr-2"
+                            >
+                                {String(h).padStart(2, '0')}:00
+                            </div>
                         ))}
                     </div>
                 </div>
 
-                <div className="week-timeline" style={{ gridColumn: '2 / span 7', minWidth: 0, width: '100%', overflow: 'hidden' }}>
-                    <div ref={scrollRef} className="relative" style={{ height: totalHeight, overflowY: 'auto', overflowX: 'hidden' }}>
-                         <div className="grid grid-cols-7" style={{ height: totalHeight }}>
-                            {days.map((d, idx) => (
-                                <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={(e) => onDayClick && onDayClick(dateFromClick(d, e))}>
-                                    {Array.from({ length: 24 }).map((_, h) => (
-                                        <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${h * slotHeight}px`, height: 0 }}>
-                                            <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }} />
-                                        </div>
-                                    ))}
+                {/* Timeline */}
+                <div
+                    ref={scrollRef}
+                    className="relative"
+                    style={{
+                        gridColumn: '2 / span 7',
+                        maxHeight: '70vh',        // // výška scrollovateľného kalendára
+                        overflowY: 'auto',        // // scroll len tu
+                        overflowX: 'hidden'       // // nikdy horizontálny scroll
+                    }}
+                >
+                    <div className="grid grid-cols-7 relative" style={{ height: totalHeight }}>
 
-                                    {(() => {
-                                        const evs = eventsFor(d).map(ev => {
-                                            const min = minutesOfDay(ev.deadline);
-                                            const topPx = min === null ? null : (min / (24 * 60)) * totalHeight;
-                                            return { ev, top: topPx, min };
-                                        });
-                                        const timed = evs.filter(x => x.top !== null);
-                                        const laid = layoutPointEvents(timed, 36);
+                        {days.map((d, i) => (
+                            <div
+                                key={i}
+                                className="relative border-l last:border-r"
+                                style={{ height: totalHeight }}
+                                onClick={e => onDayClick(dateFromClick(d, e))}
+                            >
+                                {/* === HORIZONTÁLNE ČIARY (HODINY) === */}
+                                {Array.from({ length: 24 }).map((_, h) => (
+                                    <div
+                                        key={h}
+                                        style={{
+                                            position: 'absolute',
+                                            left: 0,
+                                            right: 0,
+                                            top: `${h * slotHeight}px`,
+                                            height: 0
+                                        }}
+                                    >
+                                        <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }} />
+                                    </div>
+                                ))}
 
-                                        return (
-                                            <>
-                                                {laid.map(item => {
-                                                    const { ev, top, leftPct, widthPct } = item;
-                                                    const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
-                                                    const bg = getCategoryColor(catKey) || '#e6f4ea';
-                                                    const timeLabel = ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                                                    return (
-                                                        <button key={ev.id} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} className="absolute rounded shadow-sm bg-white border px-2 py-1 flex items-center gap-2" style={{ top: `${Math.min(Math.max(0, top), totalHeight - 1)}px`, left: `${leftPct}%`, width: `calc(${widthPct}% - 8px)`, zIndex: 10, overflow: 'hidden' }} title={ev.title}>
-                                                            <span style={{ width: 8, height: 8, background: bg, borderRadius: 4, display: 'inline-block' }} />
-                                                            <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{ev.title}</span>
-                                                            <span className="text-xs text-gray-500 ml-2" style={{ flex: '0 0 auto' }}>{timeLabel}</span>
-                                                        </button>
-                                                    );
-                                                })}
+                                {/* Eventy */}
+                                {eventsFor(d).map(ev => {
+                                    const min = minutesOfDay(ev.deadline);
+                                    if (min === null) return null;
 
-                                                {evs.filter(x => x.top === null).map(x => {
-                                                     const ev = x.ev;
-                                                     const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
-                                                     const bg = getCategoryColor(catKey) || '#e6f4ea';
-                                                     const textCol = textColorForBg(bg);
-                                                     const timeLabel = ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                                                     return (
-                                                         <div key={ev.id} className="m-2 p-1 rounded bg-white cursor-pointer" onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}>
-                                                             <div className="flex items-center gap-2">
-                                                                 <span style={{ background: bg, color: textCol }} className="px-2 py-0.5 rounded-full text-xs">{resolveCategory(catKey)}</span>
-                                                                 <div className="text-xs text-gray-500" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{timeLabel}</div>
-                                                             </div>
-                                                         </div>
-                                                     );
-                                                 })}
-                                             </>
-                                         );
-                                     })()}
+                                    const top = (min / (24 * 60)) * totalHeight;
+                                    const catKey = ev.category ?? ev.category_id ?? null;
+                                    const bg = getCategoryColor(catKey) || '#e6f4ea';
 
-                                     {/* per-column content ends here; now-line will be rendered once for the whole timeline below */}
-                                 </div>
-                             ))}
-                         </div>
+                                    return (
+                                        <button
+                                            key={ev.id}
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                onEventClick(ev);
+                                            }}
+                                            className="absolute left-2 right-2 bg-white border rounded px-2 py-1 shadow-sm flex gap-2"
+                                            style={{ top, zIndex: 10 }}
+                                        >
+                                            <span
+                                                style={{
+                                                    width: 8,
+                                                    height: 8,
+                                                    background: bg,
+                                                    borderRadius: 4
+                                                }}
+                                            />
+                                            <span className="truncate">{ev.title}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
 
-                         {/* single now-line spanning all day columns inside the scrollable timeline */}
-                         {nowTop >= 0 && nowTop <= totalHeight && (
-                             <div style={{ position: 'absolute', left: 0, right: 0, top: `${nowTop}px`, pointerEvents: 'none', zIndex: 50 }}>
-                                 <div style={{ height: 0 }}>
-                                     <div style={{ borderTop: '2px solid rgba(220,38,38,0.9)' }} />
-                                 </div>
-                             </div>
-                         )}
-                     </div>
-                 </div>
-             </div>
-         </div>
-     );
- }
+                    {/* Červená čiara aktuálneho času */}
+                    {nowTop >= 0 && nowTop <= totalHeight && (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                right: 0,
+                                top: nowTop,
+                                pointerEvents: 'none'
+                            }}
+                        >
+                            <div style={{ borderTop: '2px solid rgba(220,38,38,0.9)' }} />
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}

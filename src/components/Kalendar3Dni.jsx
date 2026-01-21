@@ -6,11 +6,28 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 export default function Kalendar3Dni({
                                          startDate = new Date(),
                                          tasks = [],
+                                         categories = [],
                                          onEventClick = () => {},
                                          onDayClick = () => {}
                                      }) {
     const { t } = useOptions();
 
+
+    /* -------------------- CATEGORY COLOR -------------------- */
+    const getCategoryColor = (cat) => {
+        if (!categories?.length || !cat) return null;
+
+        if (typeof cat === 'object') {
+            if (cat.color) return cat.color;
+            const byId = categories.find(c => String(c.id) === String(cat.id));
+            if (byId) return byId.color ?? null;
+        }
+
+        const found = categories.find(
+            c => String(c.id) === String(cat) || String(c.name) === String(cat)
+        );
+        return found?.color ?? null;
+    };
 
     //vytvorim datum bez casu na porovnavanie dni
     const pad = n => String(n).padStart(2, '0');
@@ -51,36 +68,60 @@ export default function Kalendar3Dni({
 
     const scrollRef = useRef(null);
     const axisRef = useRef(null);
+    const containerRef = useRef(null);
     const [axisWidth, setAxisWidth] = useState(80);
 
     /* ---------- now line ---------- */
     const now = new Date();
     const nowTop = ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * totalHeight;
 
+    // now-line positioning (measured relative to the .bg-white container)
+    const [nowLinePos, setNowLinePos] = useState({ left: 0, width: 0, top: 0 });
+
+    function updateNowLinePos() {
+        const sc = scrollRef.current;
+        const ct = containerRef.current;
+        if (!sc || !ct) return;
+        // left and width of the scroll area relative to container
+        const left = sc.offsetLeft;
+        const width = sc.clientWidth;
+        // top relative to container: position of scroll area + nowTop - how much it's scrolled
+        const top = sc.offsetTop + nowTop - sc.scrollTop;
+        setNowLinePos({ left, width, top });
+    }
+
     function scrollToNow() {
         const el = scrollRef.current;
         if (el) el.scrollTop = Math.max(0, nowTop - el.clientHeight / 2);
+        // update now-line after scrolling
+        requestAnimationFrame(updateNowLinePos);
     }
 
     useEffect(() => {
         scrollToNow();
-        window.addEventListener('resize', scrollToNow);
+        window.addEventListener('resize', () => {
+            updateNowLinePos();
+            // keep scroll centered
+            scrollToNow();
+        });
         return () => window.removeEventListener('resize', scrollToNow);
     }, []);
 
     useEffect(() => {
         const a = axisRef.current;
         if (a?.offsetWidth) setAxisWidth(a.offsetWidth);
+        // initial measurement of now-line
+        updateNowLinePos();
     }, []);
 
-    const textColorForBg = hex => {
-        if (!hex) return '#111827';
-        const h = hex.replace('#', '');
-        const r = parseInt(h.slice(0, 2), 16) / 255;
-        const g = parseInt(h.slice(2, 4), 16) / 255;
-        const b = parseInt(h.slice(4, 6), 16) / 255;
-        return (0.2126 * r + 0.7152 * g + 0.0722 * b) > 0.6 ? '#111827' : '#fff';
-    };
+    // update now-line while user scrolls inside the scroll area
+    useEffect(() => {
+        const sc = scrollRef.current;
+        if (!sc) return;
+        const onScroll = () => updateNowLinePos();
+        sc.addEventListener('scroll', onScroll);
+        return () => sc.removeEventListener('scroll', onScroll);
+    }, []);
 
     //zistujem kde som klikol a zaokruhlujem na 30minut
     function dateFromClick(baseDate, e) {
@@ -109,7 +150,7 @@ export default function Kalendar3Dni({
                 </button>
             </div>
 
-            <div className="bg-white rounded border p-4">
+            <div ref={containerRef} className="bg-white rounded border p-4" style={{ position: 'relative' }}>
                 <div style={headerGridStyle} className="mb-2">
                     <div />
                     {days.map((d, i) => (
@@ -126,7 +167,7 @@ export default function Kalendar3Dni({
                     {/* time axis */}
                     <div ref={axisRef} className="pr-2 sticky left-0 z-10">
                         <div style={{ height: totalHeight }}>
-                            //vykreslovanie jedneho dna
+
                             {Array.from({ length: 24 }).map((_, h) => (
                                 <div key={h} style={{ height: slotHeight }}
                                      className="text-xs text-gray-500 text-right pr-2">
@@ -164,33 +205,57 @@ export default function Kalendar3Dni({
                                 ))}
 
                                 {/* events */}
-                                //vykreslovanie uloh
+
                                 {eventsForDay(d).map(ev => {
                                     const top = ev._minutes !== null
                                         ? (ev._minutes / (24 * 60)) * totalHeight
                                         : null;
 
+                                    const badgeBg =
+                                        getCategoryColor(ev.category ?? ev.category_id) || '#e6f4ea';
+
                                     return (
                                         <button
                                             key={ev.id}
                                             onClick={e => { e.stopPropagation(); onEventClick(ev); }}
-                                            className="absolute left-2 right-2 bg-white border rounded px-2 py-1 shadow-sm"
+                                            className="absolute left-2 right-2 bg-white border rounded px-2 py-1 shadow-sm flex gap-2 items-center"
                                             style={{ top, zIndex: 10 }}
                                         >
+                                            <span
+                                                style={{
+                                                    width: 8,
+                                                    height: 8,
+                                                    background: badgeBg,
+                                                    borderRadius: 4
+                                                }}
+                                            />
                                             {ev.title}
                                         </button>
                                     );
                                 })}
                             </div>
                         ))}
-                        //ciara ukazujuci aktualny cas
-                        {nowTop >= 0 && nowTop <= totalHeight && (
-                            <div style={{ position: 'absolute', left: 0, right: 0, top: nowTop, pointerEvents: 'none' }}>
-                                <div style={{ borderTop: '2px solid rgba(220,38,38,0.9)' }} />
-                            </div>
-                        )}
+
                     </div>
+
                 </div>
+
+                {/* now line: rendered relative to the outer container so it spans full visual width */}
+                {nowTop >= 0 && nowTop <= totalHeight && (
+                    <div
+                        aria-hidden
+                        style={{
+                            position: 'absolute',
+                            left: nowLinePos.left,
+                            width: nowLinePos.width,
+                            top: nowLinePos.top,
+                            pointerEvents: 'none',
+                            zIndex: 40
+                        }}
+                    >
+                        <div style={{ borderTop: '2px solid rgba(220,38,38,0.9)' }} />
+                    </div>
+                )}
             </div>
         </div>
     );
