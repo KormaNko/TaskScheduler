@@ -30,7 +30,7 @@ const SORT_VALUES = [
 ];
 
 export default function SettingsPage() {
-    const { opts, loading, saving, error, saveOptions, setLocal, t } = useOptions();
+    const { opts, loading, saving, error, saveOptions, t } = useOptions();
 
     // local form state mirrors the options so user can edit and save
     const [language, setLanguage] = useState('SK');
@@ -39,8 +39,7 @@ export default function SettingsPage() {
     const [taskSort, setTaskSort] = useState('none');
     const [localError, setLocalError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
-    // track whether we've initialized local state from opts; only after init do we push local changes into context
-    const [syncedFromOpts, setSyncedFromOpts] = useState(false);
+    // (no extra 'synced' flag needed)
 
     // initialize from context opts
     useEffect(() => {
@@ -49,8 +48,7 @@ export default function SettingsPage() {
         setTheme(opts.theme ?? 'light');
         setTaskFilter(opts.taskFilter ?? 'all');
         setTaskSort(opts.taskSort ?? 'none');
-        // mark that local state now reflects opts; further local changes may be pushed to context
-        setSyncedFromOpts(true);
+        // local state now reflects opts; further local changes may be pushed to context
 
         // ensure document theme matches saved opts when we first load
         try {
@@ -97,24 +95,6 @@ export default function SettingsPage() {
         } finally {
             setIsSaving(false);
         }
-    }
-
-    function handleReset() {
-        // reset to last saved from context
-        setLanguage(opts?.language ?? 'SK');
-        setTheme(opts?.theme ?? 'light');
-        setTaskFilter(opts?.taskFilter ?? opts?.task_filter ?? 'all');
-        setTaskSort(opts?.taskSort ?? opts?.task_sort ?? 'none');
-
-        // ensure document theme matches saved opts
-        try {
-            const el = document?.documentElement;
-            if (el) {
-                const saved = opts?.theme ?? 'light';
-                if (saved === 'dark') el.classList.add('app-dark');
-                else el.classList.remove('app-dark');
-            }
-        } catch (e) { /* ignore */ }
     }
 
     if (loading) return <div className="p-6">{t ? t('loading') : 'Loading settings...'}</div>;
@@ -175,13 +155,6 @@ export default function SettingsPage() {
                         className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
                     >
                         {isSaving || saving ? (t ? t('saving') : 'Saving...') : (t ? t('saveSettings') : 'Save settings')}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="px-3 py-2 border rounded"
-                    >
-                        {t ? t('reset') : 'Reset'}
                     </button>
                 </div>
             </form>

@@ -314,28 +314,26 @@ export default function UsersPage() {
                                             <td className="p-2">{u.email}</td>
                                             <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
                                             <td className="p-2 text-right">
-                                                {/* Edit if admin or editing own row; delete only if admin and not deleting self */}
-                                                {
-                                                    (Number(currentUser?.id) === 16 || Number(currentUser?.id) === Number(u.id)) && (
-                                                        <button
-                                                            onClick={() => openEdit(u)}
-                                                            className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                                        >
-                                                            {t ? t('edit') : 'Upraviť'}
-                                                        </button>
-                                                    )
-                                                }
-                                                {
-                                                    (Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
-                                                        <button
-                                                            onClick={() => handleDelete(u.id)}
-                                                            className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                                        >
-                                                            {t ? t('delete') : 'Zmazať'}
-                                                        </button>
-                                                    )
-                                                }
-                                            </td>
+                                                {/* Edit only for admin; delete only for admin and not deleting self */}
+                                                {Number(currentUser?.id) === 16 && (
+                                                    <button
+                                                        onClick={() => openEdit(u)}
+                                                        className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                    >
+                                                        {t ? t('edit') : 'Upraviť'}
+                                                    </button>
+                                                )}
+                                                 {
+                                                     (Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
+                                                         <button
+                                                             onClick={() => handleDelete(u.id)}
+                                                             className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                                         >
+                                                             {t ? t('delete') : 'Zmazať'}
+                                                         </button>
+                                                     )
+                                                 }
+                                             </td>
                                         </tr>
                                     ))
                                 )}
@@ -358,14 +356,14 @@ export default function UsersPage() {
                                         <div className="text-sm text-gray-600">{u.isStudent ? (t ? t('isStudent') : 'Študent') : ''}</div>
                                     </div>
                                     <div className="flex gap-2 mt-2">
-                                        {/* Mobile: edit allowed for admin or self; delete only for admin and not self */}
-                                        {(Number(currentUser?.id) === 16 || Number(currentUser?.id) === Number(u.id)) && (
+                                        {/* Mobile: edit only for admin; delete only for admin and not self */}
+                                        {Number(currentUser?.id) === 16 && (
                                             <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
                                         )}
-                                        {(Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
-                                            <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
-                                        )}
-                                    </div>
+                                         {(Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
+                                             <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
+                                         )}
+                                     </div>
                                 </div>
                             ))
                         )}
