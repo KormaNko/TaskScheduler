@@ -4,10 +4,6 @@ import { useNavigate, Link } from "react-router-dom";
 import api from '../lib/api';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
-// Základná URL adresa backendu z .env súboru alebo fallback na localhost
-// Zároveň sa odstraňuje lomka na konci URL, ak tam je
-const API_BASE = (import.meta.env.VITE_API_BASE || "http://localhost").replace(/\/$/, "");
-
 // Definícia hlavného prihlasovacieho komponentu
 export default function Login() {
 
@@ -83,11 +79,17 @@ export default function Login() {
             setErrors({});
             setSuccess(data?.message || "Prihlásenie úspešné");
             try { localStorage.setItem("isLoggedIn", "1"); } catch (e) {}
+            // Persist basic user info returned from backend so other parts of the app can read it
+            try {
+                if (data && data.status === 'ok') {
+                    const user = { id: data.id, name: data.name };
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                }
+            } catch (e) {}
             try { setAuth(true); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-in')); } catch (e) {}
             setLoading(false);
             navigate('/');
-            return;
 
         } catch (err) {
             setLoading(false);

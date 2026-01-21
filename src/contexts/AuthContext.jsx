@@ -14,16 +14,23 @@ export function AuthProvider({ children }) {
     async function check() {
       setLoading(true);
       try {
-        // try a protected endpoint to verify session
-        // use users list endpoint which is protected server-side to reliably detect auth
-        const data = await api.get('/?c=users&a=list');
+        // Prefer the dedicated session endpoint which returns { authenticated:true, id, name }
+        const data = await api.get('/?c=login&a=me');
         if (cancelled) return;
-        setAuth(true);
-        try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
+        if (data && data.authenticated) {
+          setAuth(true);
+          try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
+          try { if (data.id || data.name) localStorage.setItem('currentUser', JSON.stringify({ id: data.id, name: data.name })); } catch (e) {}
+        } else {
+          setAuth(false);
+          try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
+          try { localStorage.removeItem('currentUser'); } catch (e) {}
+        }
       } catch (err) {
         if (cancelled) return;
         setAuth(false);
         try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
+        try { localStorage.removeItem('currentUser'); } catch (e) {}
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -34,12 +41,22 @@ export function AuthProvider({ children }) {
     function onLoggedOut() {
       setAuth(false);
       try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
+      try { localStorage.removeItem('currentUser'); } catch (e) {}
     }
+
+    // also listen for explicit login events and mark auth true (currentUser should already be stored by Login component)
+    function onLoggedIn() {
+      setAuth(true);
+      try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
+    }
+
     window.addEventListener('app:logged-out', onLoggedOut);
+    window.addEventListener('app:logged-in', onLoggedIn);
 
     return () => {
       cancelled = true;
       window.removeEventListener('app:logged-out', onLoggedOut);
+      window.removeEventListener('app:logged-in', onLoggedIn);
     };
   }, []);
 
@@ -56,5 +73,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-
-export default AuthContext;

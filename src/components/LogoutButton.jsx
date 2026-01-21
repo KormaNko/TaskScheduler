@@ -16,21 +16,22 @@ export default function LogoutButton() {
         try {
             await api.post('/?c=logout&a=index', {});
             try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (err) {}
+            try { localStorage.removeItem('currentUser'); } catch (e) {}
             // notify app and set auth false
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
             try { setAuth(false); } catch (e) {}
             navigate('/login', { replace: true });
-            return;
-        } catch (err) {
+         } catch (err) {
             console.warn('Logout request failed', err);
             // still clear client state as fallback
             try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (e) {}
+            try { localStorage.removeItem('currentUser'); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
             try { setAuth(false); } catch (e) {}
             navigate('/login', { replace: true });
-        } finally {
+         } finally {
             setLoading(false);
-        }
+         }
     }
 
     return (
@@ -42,9 +43,9 @@ export default function LogoutButton() {
             className={
                 `
                 flex items-center gap-2 disabled:opacity-60
-                md:w-full md:px-3 md:py-2 md:rounded md:bg-red-50 md:text-red-700 md:hover:bg-red-100
+                md:w-full md:px-3 md:py-2 md:rounded md:bg-transparent md:text-red-700 md:hover:bg-red-100
                 justify-center md:justify-start
-                w-10 h-10 rounded-md bg-red-50/30 md:bg-transparent
+                w-10 h-10 rounded-md bg-red-50/30
                 `
             }
         >

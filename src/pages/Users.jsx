@@ -26,6 +26,11 @@ export default function UsersPage() {
     // Chyby konkrétnych polí formulára
     const [fieldErrors, setFieldErrors] = useState({}); // objekt mapujúci pole -> chyba
 
+    // Aktuálny prihlasený používateľ (napr. {id,name}) - čítané z localStorage a aktualizované cez udalosti
+    const [currentUser, setCurrentUser] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('currentUser') || 'null'); } catch (e) { return null; }
+    });
+
     // Clear in-memory users when app logs out
     React.useEffect(() => {
         function onLoggedOut() {
@@ -35,9 +40,17 @@ export default function UsersPage() {
             setError("");
             setFieldErrors({});
             setShowForm(false);
+            setCurrentUser(null);
+        }
+        function onLoggedIn() {
+            try { setCurrentUser(JSON.parse(localStorage.getItem('currentUser') || 'null')); } catch (e) { setCurrentUser(null); }
         }
         window.addEventListener('app:logged-out', onLoggedOut);
-        return () => window.removeEventListener('app:logged-out', onLoggedOut);
+        window.addEventListener('app:logged-in', onLoggedIn);
+        return () => {
+            window.removeEventListener('app:logged-out', onLoggedOut);
+            window.removeEventListener('app:logged-in', onLoggedIn);
+        };
     }, []);
 
     // Preddefinovaný prázdny formulár
@@ -256,15 +269,17 @@ export default function UsersPage() {
             <div className="flex items-center justify-between mb-4">{/* header s titulkom a tlačidlom */}
                 <h1 className="text-2xl font-bold">{t ? t('usersTitle') : 'Používatelia'}</h1>{/* názov sekcie */}
                 <div className="flex items-center gap-2">{/* wrapper pre tlačidlá */}
-                    <button
-                        type="button"
-                        onClick={openCreate}
-                        className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                        {t ? t('newUser') : 'Nový používateľ'}{/* text tlačidla */}
-                    </button>
-                </div>
-            </div>
+                    { Number(currentUser?.id) === 16 && (
+                        <button
+                            type="button"
+                            onClick={openCreate}
+                            className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                        >
+                            {t ? t('newUser') : 'Nový používateľ'}{/* text tlačidla */}
+                        </button>
+                    )}
+                 </div>
+             </div>
 
             {error && (
                 <div className="mb-4 text-sm text-red-600">{error}</div> // zobrazenie globálnej chyby
@@ -299,18 +314,22 @@ export default function UsersPage() {
                                             <td className="p-2">{u.email}</td>
                                             <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
                                             <td className="p-2 text-right">
-                                                <button
-                                                    onClick={() => openEdit(u)}
-                                                    className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                                >
-                                                    {t ? t('edit') : 'Upraviť'}
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(u.id)}
-                                                    className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                                >
-                                                    {t ? t('delete') : 'Zmazať'}
-                                                </button>
+                                                { Number(currentUser?.id) === 16 ? (
+                                                    <>
+                                                        <button
+                                                            onClick={() => openEdit(u)}
+                                                            className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                                        >
+                                                            {t ? t('edit') : 'Upraviť'}
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(u.id)}
+                                                            className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                                        >
+                                                            {t ? t('delete') : 'Zmazať'}
+                                                        </button>
+                                                    </>
+                                                ) : null}
                                             </td>
                                         </tr>
                                     ))
@@ -334,8 +353,12 @@ export default function UsersPage() {
                                         <div className="text-sm text-gray-600">{u.isStudent ? (t ? t('isStudent') : 'Študent') : ''}</div>
                                     </div>
                                     <div className="flex gap-2 mt-2">
-                                        <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
-                                        <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
+                                        { Number(currentUser?.id) === 16 ? (
+                                            <>
+                                                <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
+                                                <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
+                                            </>
+                                        ) : null}
                                     </div>
                                 </div>
                             ))
