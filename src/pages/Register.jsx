@@ -2,6 +2,7 @@
 import { useState } from "react";
 
 import { Link } from "react-router-dom";
+import api from '../lib/api';
 
 
 
@@ -100,66 +101,48 @@ export default function Register() {
         setLoading(true);
 
         try {
-            // Odoslanie POST požiadavky na backend
-            const res = await fetch("http://localhost/?c=register&a=register", {
-                method: "POST", // HTTP metóda POST
-                headers: {
-                    "Content-Type": "application/json", // odosielame JSON
-                },
-                body: JSON.stringify({
-                    // Odosielané dáta na server
-                    firstName: form.firstName.trim(),
-                    lastName: form.lastName.trim(),
-                    email: form.email.trim(),
-                    password: form.password,
-                    isStudent: form.isStudent ? 1 : 0, // boolean sa prevádza na 1 / 0
-                }),
+            // Use central api wrapper so VITE_API_BASE and credentials are respected
+            const payload = {
+                firstName: form.firstName.trim(),
+                lastName: form.lastName.trim(),
+                email: form.email.trim(),
+                password: form.password,
+                isStudent: form.isStudent ? 1 : 0,
+            };
+
+            const data = await api.post(`/?c=register&a=register`, payload);
+
+            // Use server-provided message when available, fallback to default
+            setSuccess(data?.message || "Registration successful");
+            setErrors({}); // vymazanie chýb
+
+            // Vyčistenie formulára
+            setForm({
+                firstName: "",
+                lastName: "",
+                email: "",
+                password: "",
+                isStudent: false,
             });
-
-            // Pokus o načítanie JSON odpovede zo servera
-            const data = await res.json().catch(() => ({}));
-
-            // Ak odpoveď zo servera NIE je úspešná
-            if (!res.ok) {
-
-                // Ak backend poslal chyby ku konkrétnym poliam
-                if (data && data.errors && typeof data.errors === "object") {
-                    setErrors((prev) => ({ ...prev, ...data.errors }));
-                }
-
-                // Ak backend poslal len všeobecnú správu
-                else if (data && data.message) {
-                    setErrors((prev) => ({ ...prev, general: data.message }));
-                }
-
-                // Ak server nevrátil žiadne dáta
-                else {
-                    setErrors((prev) => ({ ...prev, general: "Request failed" }));
-                }
-
-                // Vymazanie úspešnej správy
-                setSuccess("");
-            }
-
-            // Ak bola registrácia úspešná
-            else {
-                setSuccess("Registration successful"); // úspešná hláška
-                setErrors({}); // vymazanie chýb
-
-                // Vyčistenie formulára
-                setForm({
-                    firstName: "",
-                    lastName: "",
-                    email: "",
-                    password: "",
-                    isStudent: false,
-                });
-            }
         }
 
-            // Ak nastane sieťová chyba (server neodpovedá)
-        catch {
-            setErrors((prev) => ({ ...prev, general: "Network error" }));
+        // Handle errors thrown by api wrapper (includes HTTP errors and network errors)
+        catch (err) {
+            // If backend returned field-specific errors in err.response.errors, merge them
+            if (err && err.response && typeof err.response === 'object' && err.response.errors) {
+                setErrors((prev) => ({ ...prev, ...err.response.errors }));
+            }
+            // If backend returned a message or the api wrapper threw a message, show it as general error
+            else if (err && err.message) {
+                setErrors((prev) => ({ ...prev, general: err.message }));
+            }
+            // Fallback
+            else {
+                setErrors((prev) => ({ ...prev, general: "Request failed" }));
+            }
+
+            // Vymazanie úspešnej správy
+            setSuccess("");
         }
 
             // V každom prípade sa vypne loading
