@@ -71,16 +71,10 @@ export default function SettingsPage() {
             if (theme === 'dark') el.classList.add('app-dark');
             else el.classList.remove('app-dark');
         } catch (e) { /* ignore */ }
-        // cleanup: when unmounting, restore the theme from opts (if available)
-        return () => {
-            try {
-                const el = document?.documentElement;
-                if (!el) return;
-                const savedTheme = opts?.theme ?? 'light';
-                if (savedTheme === 'dark') el.classList.add('app-dark');
-                else el.classList.remove('app-dark');
-            } catch (e) { /* ignore */ }
-        };
+        // Note: we intentionally do not restore the theme here on unmount to avoid a
+        // race where the component cleanup runs before an optimistic update from
+        // saveOptions is applied in the provider. The OptionsProvider applies the
+        // authoritative theme whenever `opts` changes, so rely on that.
     }, [theme]);
 
     async function handleSave(e) {

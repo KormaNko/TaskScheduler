@@ -84,6 +84,7 @@ export default function Login() {
             setSuccess(data?.message || "Prihlásenie úspešné");
             try { localStorage.setItem("isLoggedIn", "1"); } catch (e) {}
             try { setAuth(true); } catch (e) {}
+            try { window.dispatchEvent(new Event('app:logged-in')); } catch (e) {}
             setLoading(false);
             navigate('/');
             return;

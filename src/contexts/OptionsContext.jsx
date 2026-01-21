@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/api';
+import { useAuth } from './AuthContext.jsx';
 
 const OptionsContext = createContext(null);
 
@@ -197,6 +198,8 @@ export function OptionsProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  // watch auth so we can reload/clear user-specific options on login/logout
+  const { auth, loading: authLoading } = useAuth();
 
   // helper: normalize theme to canonical 'light'|'dark'
   const normalizeTheme = (raw) => {
@@ -216,12 +219,20 @@ export function OptionsProvider({ children }) {
     __raw: d,
   });
 
+  // Load options when authentication state is known. If authenticated, fetch user options
+  // from the API; if not authenticated, clear to defaults. We wait until authLoading
+  // is false so we don't issue a pointless request while the auth check is in-flight.
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
       setError(null);
       try {
+        if (!auth) {
+          // not authenticated: use default/empty options
+          if (!cancelled) setOpts(normalize({}));
+          return;
+        }
         const data = await api.get('/?c=options&a=index');
         if (cancelled) return;
         setOpts(normalize(data || {}));
@@ -233,9 +244,11 @@ export function OptionsProvider({ children }) {
         if (!cancelled) setLoading(false);
       }
     }
+
+    if (authLoading) return; // wait until auth check completes
     load();
     return () => { cancelled = true; };
-  }, []);
+  }, [auth, authLoading]);
 
   // apply theme to document.documentElement (safe, minimal effect)
   useEffect(() => {
@@ -251,12 +264,19 @@ export function OptionsProvider({ children }) {
   async function saveOptions(payload) {
     setSaving(true);
     setError(null);
+    // optimistic update: apply payload locally immediately so UI responds quickly.
+    const prev = opts;
     try {
+      // apply optimistic local state
+      setOpts(normalize(payload || {}));
       const data = await api.post('/?c=options&a=update', payload);
-      const n = normalize(data || {});
+      // prefer server-returned normalized data, but fall back to payload if server returns nothing
+      const n = normalize(data || payload || {});
       setOpts(n);
       return { ok: true, data: n };
     } catch (e) {
+      // revert optimistic change on failure
+      try { setOpts(prev); } catch (err) { /* ignore */ }
       setError(e?.message || String(e));
       return { ok: false, error: e };
     } finally {
