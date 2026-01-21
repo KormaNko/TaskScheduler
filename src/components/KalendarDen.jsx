@@ -20,7 +20,7 @@ export default function KalendarDen({
         if (!cat || typeof cat !== 'object') return null;
         return cat.color ?? null;
     };
-
+    //AI
     /* -------------------- TASK PARSING -------------------- */
     const parsedTasks = useMemo(() => (
         Array.isArray(tasks) ? tasks.map(t => {
@@ -63,6 +63,7 @@ export default function KalendarDen({
     }, []);
 
     /* -------------------- CLICK → TIME -------------------- */
+    //AI
     function dateFromClick(baseDate, e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const y = e.clientY - rect.top;
@@ -74,7 +75,7 @@ export default function KalendarDen({
         d.setHours(0, minutes, 0, 0);
         return d;
     }
-
+    //AI
     /* -------------------- RENDER -------------------- */
     return (
         <div className="calendar-root" style={{ overflowX: 'hidden' }}>

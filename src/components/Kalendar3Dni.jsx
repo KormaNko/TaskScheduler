@@ -14,12 +14,12 @@ export default function Kalendar3Dni({
 
     /* -------------------- CATEGORY COLOR -------------------- */
     const getCategoryColor = (cat) => {
-        // Expect `cat` to be a category object or null.
         if (!cat || typeof cat !== 'object') return null;
         return cat.color ?? null;
     };
 
     //vytvorim datum bez casu na porovnavanie dni
+    //AI
     const pad = n => String(n).padStart(2, '0');
     const dateKey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -36,6 +36,7 @@ export default function Kalendar3Dni({
 
     /* ---------- normalize tasks once ---------- */
     //deadline menim na date vypocitavam cas od polnoci
+    //AI
     const parsedTasks = useMemo(() => (
         Array.isArray(tasks) ? tasks.map(t => {
             const date = t.deadline ? new Date(t.deadline.replace(' ', 'T')) : null;
@@ -67,7 +68,7 @@ export default function Kalendar3Dni({
 
     // now-line positioning (measured relative to the .bg-white container)
     const [nowLinePos, setNowLinePos] = useState({ left: 0, width: 0, top: 0 });
-
+    //AI
     function updateNowLinePos() {
         const sc = scrollRef.current;
         const ct = containerRef.current;
@@ -86,7 +87,7 @@ export default function Kalendar3Dni({
         // update now-line after scrolling
         requestAnimationFrame(updateNowLinePos);
     }
-
+    //AI
     useEffect(() => {
         scrollToNow();
         window.addEventListener('resize', () => {
@@ -114,6 +115,7 @@ export default function Kalendar3Dni({
     }, []);
 
     //zistujem kde som klikol a zaokruhlujem na 30minut
+    //AI
     function dateFromClick(baseDate, e) {
         const rect = e.currentTarget.getBoundingClientRect();
         const frac = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
@@ -130,7 +132,7 @@ export default function Kalendar3Dni({
         gap: '0.5rem',
         alignItems: 'center'
     };
-
+    //AI
     return (
         <div style={{ overflowX: 'hidden', width: '100%' }}>
             <div className="flex justify-end mb-2">

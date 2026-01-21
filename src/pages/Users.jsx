@@ -426,7 +426,7 @@ export default function UsersPage() {
 
                     <div className="flex items-center gap-2">{/* tlačidlá uložiť / zrušiť */}
                         <button type="submit" disabled={loadingAction} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            {loadingAction ? (t ? t('saving') : 'Ukladám...') : (t ? t('save') : 'Uložiť')}/* dynamický text tlačidla */
+                            {loadingAction ? (t ? t('saving') : 'Ukladám...') : (t ? t('save') : 'Uložiť')}
                         </button>
                         <button type="button" onClick={() => setShowForm(false)} className="px-3 py-1 bg-gray-200 rounded">
                             {t ? t('cancel') : 'Zrušiť'}{/* zrušenie formulára */}

@@ -11,7 +11,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
         // Under the new contract `cat` is either a category object or null.
         return cat?.color ?? null;
     };
-
+    //AI
     const textColorForBg = (hex) => {
         if (!hex) return '#111827';
         try {
@@ -54,7 +54,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
         setCurrentMonth(m);
         setCurrentYear(y);
     }
-
+    //AI
     // Výpočty potrebné pre vykreslenie dní - use effectiveMonth/effectiveYear
     const monthIndex = Math.max(0, Math.min(11, effectiveMonth - 1));
     const daysInMonth = new Date(effectiveYear, monthIndex + 1, 0).getDate();
@@ -69,6 +69,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     while (displayCells.length < totalGridCells) displayCells.push(null);
 
     // Build events map for current month
+    //AI
     const eventsByDay = {};
     if (Array.isArray(tasks) && tasks.length) {
         for (const t of tasks) {
