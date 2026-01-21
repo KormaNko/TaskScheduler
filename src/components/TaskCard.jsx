@@ -1,7 +1,7 @@
 import React from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
-export default function TaskCard({ task = {}, categories = [], onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
+export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
     const { t } = useOptions();
     const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
 
@@ -12,53 +12,13 @@ export default function TaskCard({ task = {}, categories = [], onEdit = () => {}
         return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
     };
 
-    // Return both name and color when possible
+    // Return both name and color when possible. Under new backend contract
+    // `task.category` is always an object or null. Do NOT attempt to parse
+    // JSON strings or check alternate fields. Components should only rely on
+    // category.name and category.color.
     const resolveCategoryMeta = (cat) => {
-        const pickFromObject = (obj) => {
-            if (!obj) return null;
-            return { name: obj.name ?? null, color: obj.color ?? null, id: obj.id ?? null };
-        };
-
-        // Normalize JSON string
-        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
-            try { cat = JSON.parse(cat); } catch (e) { /* ignore */ }
-        }
-
-        if (cat !== null && cat !== undefined && cat !== '') {
-            if (typeof cat === 'object') {
-                const meta = pickFromObject(cat);
-                return { name: meta?.name ?? String(cat), color: meta?.color ?? null };
-            }
-
-            if (Array.isArray(categories) && categories.length > 0) {
-                const foundById = categories.find(c => String(c.id) === String(cat));
-                if (foundById) return { name: foundById.name ?? String(cat), color: foundById.color ?? null };
-                const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat).toLowerCase());
-                if (foundByName) return { name: foundByName.name, color: foundByName.color ?? null };
-            }
-
-            return { name: String(cat), color: null };
-        }
-
-        // try alternate fields on task
-        const altCandidates = [task?.category, task?.category_id, task?.cat, task?.cat_id];
-        for (const alt of altCandidates) {
-            if (alt === null || alt === undefined || alt === '') continue;
-            if (typeof alt === 'object') {
-                const meta = pickFromObject(alt);
-                if (meta?.name) return { name: meta.name, color: meta.color ?? null };
-            } else {
-                if (Array.isArray(categories) && categories.length > 0) {
-                    const found = categories.find(c => String(c.id) === String(alt));
-                    if (found) return { name: found.name, color: found.color ?? null };
-                    const foundByName = categories.find(c => (c.name ?? '').toLowerCase() === String(alt).toLowerCase());
-                    if (foundByName) return { name: foundByName.name, color: foundByName.color ?? null };
-                }
-                return { name: String(alt), color: null };
-            }
-        }
-
-        return { name: '-', color: null };
+        // cat is expected to be either an object or null per backend contract
+        return { name: cat?.name ?? null, color: cat?.color ?? null };
     };
 
     const textColorForBg = (hex) => {

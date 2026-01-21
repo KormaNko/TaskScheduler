@@ -6,8 +6,6 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 export default function KalendarTyzden({
                                            startDate = new Date(),
                                            tasks = [],
-                                           categories = [],
-                                           resolveCategory = () => '',
                                            onEventClick = () => {},
                                            onDayClick = () => {}
                                        }) {
@@ -39,24 +37,11 @@ export default function KalendarTyzden({
             return dateKey(dd) === dateKey(d);
         });
 
-    // Zistí farbu kategórie (id / objekt / string)
-    const getCategoryColor = catId => {
-        if (!categories || !categories.length) return null;
-        let cat = catId;
-
-        if (cat && typeof cat === 'object') {
-            if (cat.color) return cat.color;
-            const byId = categories.find(c => String(c.id) === String(cat.id));
-            if (byId) return byId.color ?? null;
-            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
-            if (byName) return byName.color ?? null;
-            return null;
-        }
-
-        const found = categories.find(
-            c => String(c.id) === String(cat) || String(c.name) === String(cat)
-        );
-        return found?.color || null;
+    // Zistí farbu kategórie (očekáváme objekt alebo null)
+    const getCategoryColor = cat => {
+        // Under new backend contract `cat` should be a category object or null.
+        if (!cat || typeof cat !== 'object') return null;
+        return cat.color ?? null;
     };
 
     // Prevod času na minúty dňa
@@ -211,8 +196,8 @@ export default function KalendarTyzden({
                                     if (min === null) return null;
 
                                     const top = (min / (24 * 60)) * totalHeight;
-                                    const catKey = ev.category ?? ev.category_id ?? null;
-                                    const bg = getCategoryColor(catKey) || '#e6f4ea';
+                                    // rely only on ev.category object or null
+                                    const bg = getCategoryColor(ev.category) || '#e6f4ea';
 
                                     return (
                                         <button

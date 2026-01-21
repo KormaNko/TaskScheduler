@@ -1,6 +1,9 @@
 // Import React hooku useState, ktorý slúži na ukladanie stavových premenných
 import { useState } from "react";
+
 import { Link } from "react-router-dom";
+
+
 
 // Hlavná React komponenta pre registráciu používateľa
 export default function Register() {

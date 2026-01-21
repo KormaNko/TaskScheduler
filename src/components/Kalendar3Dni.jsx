@@ -6,7 +6,6 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 export default function Kalendar3Dni({
                                          startDate = new Date(),
                                          tasks = [],
-                                         categories = [],
                                          onEventClick = () => {},
                                          onDayClick = () => {}
                                      }) {
@@ -15,18 +14,9 @@ export default function Kalendar3Dni({
 
     /* -------------------- CATEGORY COLOR -------------------- */
     const getCategoryColor = (cat) => {
-        if (!categories?.length || !cat) return null;
-
-        if (typeof cat === 'object') {
-            if (cat.color) return cat.color;
-            const byId = categories.find(c => String(c.id) === String(cat.id));
-            if (byId) return byId.color ?? null;
-        }
-
-        const found = categories.find(
-            c => String(c.id) === String(cat) || String(c.name) === String(cat)
-        );
-        return found?.color ?? null;
+        // Expect `cat` to be a category object or null.
+        if (!cat || typeof cat !== 'object') return null;
+        return cat.color ?? null;
     };
 
     //vytvorim datum bez casu na porovnavanie dni
@@ -211,8 +201,7 @@ export default function Kalendar3Dni({
                                         ? (ev._minutes / (24 * 60)) * totalHeight
                                         : null;
 
-                                    const badgeBg =
-                                        getCategoryColor(ev.category ?? ev.category_id) || '#e6f4ea';
+                                    const badgeBg = getCategoryColor(ev.category) || '#e6f4ea';
 
                                     return (
                                         <button

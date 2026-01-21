@@ -4,26 +4,12 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // Komponent mesačného kalendára
 // Props: rows, cols, month, year, tasks (array), onEventClick(fn), loading, onDayClick
-export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], categories = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
+export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
     const { t } = useOptions();
-    // helper: get category color by id (cat can be id or name)
-    const getCategoryColor = (catId) => {
-        // catId may be an object, JSON string, numeric id or name.
-        if (!categories || !categories.length) return null;
-        let cat = catId;
-        if (cat && typeof cat === 'object') {
-            if (cat.color) return cat.color;
-            const byId = categories.find(c => String(c.id) === String(cat.id));
-            if (byId) return byId.color ?? null;
-            const byName = categories.find(c => (c.name ?? '').toLowerCase() === String(cat.name ?? '').toLowerCase());
-            if (byName) return byName.color ?? null;
-            return null;
-        }
-        if (typeof cat === 'string' && (cat.trim().startsWith('{') || cat.trim().startsWith('['))) {
-            try { const parsed = JSON.parse(cat); return getCategoryColor(parsed); } catch (e) { /* ignore */ }
-        }
-        const found = categories.find(c => String(c.id) === String(cat) || String(c.name) === String(cat));
-        return found?.color || null;
+    // helper: get category color by object
+    const getCategoryColor = (cat) => {
+        // Under the new contract `cat` is either a category object or null.
+        return cat?.color ?? null;
     };
 
     const textColorForBg = (hex) => {
@@ -157,36 +143,36 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
 
                     {/* Dni mesiaca */}
                     {displayCells.map((v, i) => (
-                        <div key={i} style={cellCombinedStyle(v === null)} onClick={(e) => { if (v !== null) { const dt = dateFromCellStatic(effectiveYear, monthIndex, v); onDayClick(dt); } }}>
+                        <div key={i} style={cellCombinedStyle(v === null)} onClick={() => { if (v !== null) { const dt = dateFromCellStatic(effectiveYear, monthIndex, v); onDayClick(dt); } }}>
                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                  <div style={dateNumberStyle}>{v !== null ? v : ''}</div>
                              </div>
 
                              <div style={eventsStyle}>
                                 {v !== null && eventsByDay[v] ? (
-                                     <>
-                                         {eventsByDay[v].slice(0,2).map((ev, idx) => {
-                                            const catKey = ev.category ?? ev.category_id ?? ev.cat ?? ev.cat_id ?? ev._categoryObj ?? null;
-                                            const stripe = getCategoryColor(catKey) || '#e6f4ea';
-                                            const catColor = getCategoryColor(catKey) || null;
-                                            const catName = (function() { if (!catKey && catKey !== 0) return ''; try { if (typeof catKey === 'string' && (catKey.trim().startsWith('{')||catKey.trim().startsWith('['))) { return JSON.parse(catKey)?.name ?? String(catKey); } if (typeof catKey === 'object') return catKey.name ?? ''; return (categories.find(c=>String(c.id)===String(catKey) || String(c.name)===String(catKey)) || {}).name ?? String(catKey); } catch (e) { return String(catKey); } })();
-                                            const pillTextColor = textColorForBg(catColor);
-                                             return (
-                                                 <div key={String(ev.id) + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} title={ev.title}>
-                                                     <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
-                                                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                             <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ev.title}</div>
-                                                             {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
-                                                         </div>
-                                                         <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                                                     </div>
-                                                 </div>
-                                             );
-                                         })}
-                                         {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} {t ? t('more') : 'more'}</div>) : null}
-                                     </>
-                                 ) : null}
+                                      <>
+                                          {eventsByDay[v].slice(0,2).map((ev, idx) => {
+                                            const category = ev.category; // object or null per backend contract
+                                            const stripe = getCategoryColor(category) || '#e6f4ea';
+                                            const catColor = getCategoryColor(category) || null;
+                                            const catName = category?.name ?? '';
+                                             const pillTextColor = textColorForBg(catColor);
+                                              return (
+                                                  <div key={String(ev.id) + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} title={ev.title}>
+                                                      <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
+                                                      <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ev.title}</div>
+                                                              {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
+                                                          </div>
+                                                          <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                                      </div>
+                                                  </div>
+                                              );
+                                          })}
+                                          {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} {t ? t('more') : 'more'}</div>) : null}
+                                      </>
+                                  ) : null}
                              </div>
                          </div>
                      ))}
