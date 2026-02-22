@@ -16,6 +16,9 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 // otherwise default to '/api' which works with the Vite dev proxy.
 const API_BASE = (import.meta && import.meta.env && import.meta.env.VITE_API_BASE) || '/api';
 const COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
+// New validation regex for time and integer
+const TIME_REGEX = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
+const NONNEG_INT_REGEX = /^\d+$/;
 
 // 15-color palette for quick selection
 const PALETTE = [
@@ -47,10 +50,24 @@ function CategoryRow({ cat, onEdit, onDelete }) {
     return (
         <tr className="border-t">
             <td className="p-3">{cat.id}</td>
-            <td className="p-3">{cat.name}</td>
+            <td className="p-3">
+                <div className="flex items-center gap-2">
+                    <div style={{ width: 12, height: 12, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 4 }} />
+                    <div className="font-medium">{cat.name}</div>
+                    {cat.atomicTask ? <div className="ml-2 text-xs px-2 py-0.5 bg-gray-100 rounded">🔒</div> : null}
+                </div>
+            </td>
             <td className="p-3 text-center">
                 <div className="mx-auto" style={{ width: 34, height: 20, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6 }} />
             </td>
+            <td className="p-3 text-center">
+                {cat.planFrom || cat.planTo ? (
+                    <div className="text-sm text-gray-700">{cat.planFrom || ''}{cat.planFrom && cat.planTo ? '–' : ''}{cat.planTo || ''}</div>
+                ) : (
+                    <div className="text-sm text-gray-400">—</div>
+                )}
+            </td>
+            <td className="p-3 text-center">{cat.maxDuration ? `${cat.maxDuration} min` : <span className="text-sm text-gray-400">—</span>}</td>
             <td className="p-3 text-right">
                 <button type="button" onClick={() => onEdit(cat)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">{t ? t('edit') : 'Edit'}</button>
                 <button type="button" onClick={() => onDelete(cat)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">{t ? t('delete') : 'Delete'}</button>
@@ -70,6 +87,11 @@ export default function CategoryManager() {
     const [editing, setEditing] = useState(null); // null or category object
     const [name, setName] = useState('');
     const [color, setColor] = useState('');
+    // New states
+    const [planFrom, setPlanFrom] = useState('');
+    const [planTo, setPlanTo] = useState('');
+    const [maxDuration, setMaxDuration] = useState(''); // string to allow empty
+    const [atomicTask, setAtomicTask] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // fetch categories
@@ -141,6 +163,10 @@ export default function CategoryManager() {
         setEditing(null);
         setName('');
         setColor('');
+        setPlanFrom('');
+        setPlanTo('');
+        setMaxDuration('');
+        setAtomicTask(false);
     };
 
     const startCreate = () => {
@@ -152,6 +178,10 @@ export default function CategoryManager() {
         setEditing(cat);
         setName(cat.name || '');
         setColor(cat.color || '');
+        setPlanFrom(cat.planFrom || '');
+        setPlanTo(cat.planTo || '');
+        setMaxDuration(cat.maxDuration != null ? String(cat.maxDuration) : '');
+        setAtomicTask(!!cat.atomicTask);
     };
     //AI
     const handleDelete = async (cat) => {
@@ -188,20 +218,41 @@ export default function CategoryManager() {
             setError('Color must be hex like #RRGGBB or empty');
             return;
         }
+        if (planFrom && planFrom !== '' && !TIME_REGEX.test(planFrom)) {
+            setError('planFrom must be a time like HH:MM or HH:MM:SS');
+            return;
+        }
+        if (planTo && planTo !== '' && !TIME_REGEX.test(planTo)) {
+            setError('planTo must be a time like HH:MM or HH:MM:SS');
+            return;
+        }
+        if (maxDuration && maxDuration !== '' && !NONNEG_INT_REGEX.test(maxDuration)) {
+            setError('maxDuration must be a non-negative integer (minutes)');
+            return;
+        }
 
         setSaving(true);
         try {
-            const payload = { name: trimmedName, color: color === '' ? null : color };
+            const payload = {
+                name: trimmedName,
+                color: color === '' ? null : color,
+                planFrom: planFrom === '' ? null : planFrom,
+                planTo: planTo === '' ? null : planTo,
+                maxDuration: maxDuration === '' ? null : parseInt(maxDuration, 10),
+                atomicTask: !!atomicTask,
+            };
 
             // perform real save via API
             let res;
             if (editing && editing.id) {
                 // Backend expects POST for update with id in query string
+                // include id in body optionally
+                const bodyToSend = { id: editing.id, ...payload };
                 res = await fetch(apiUrl('update', editing.id), {
                     method: 'POST',
                     credentials: 'include',
                     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify(bodyToSend),
                 });
             } else {
                 // Create
@@ -215,6 +266,12 @@ export default function CategoryManager() {
 
             const body = await res.json().catch(() => null);
             if (!res.ok) {
+                // If validation errors object present, map to message
+                if (body && body.errors) {
+                    // show first error
+                    const firstKey = Object.keys(body.errors)[0];
+                    throw new Error(body.errors[firstKey] || 'Save failed (validation)');
+                }
                 throw new Error(body?.message || `Save failed (${res.status})`);
             }
             const saved = body?.data ?? body;
@@ -254,13 +311,15 @@ export default function CategoryManager() {
                             <th className="text-left p-3">{t ? t('id') : 'ID'}</th>
                             <th className="text-left p-3">{t ? t('name') : 'Name'}</th>
                             <th className="p-3">{t ? t('color') : 'Color'}</th>
+                            <th className="p-3">{t ? t('plan') : 'Plan'}</th>
+                            <th className="p-3">{t ? t('maxDuration') : 'Max'}</th>
                             <th className="text-right p-3">{t ? t('actions') : 'Actions'}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {categories.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="p-6 text-center text-gray-500">{t ? t('noCategories') : 'No categories'}</td>
+                                <td colSpan={6} className="p-6 text-center text-gray-500">{t ? t('noCategories') : 'No categories'}</td>
                             </tr>
                         ) : (
                             categories.map(cat => (
@@ -288,10 +347,40 @@ export default function CategoryManager() {
                                 ))}
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 mb-3">
                                 <input type="color" value={color || '#ffffff'} onChange={e => setColor(e.target.value)} disabled={saving} className="w-14 h-10 p-0 border-0" />
                                 <div className="text-sm text-gray-600">{color || (t ? t('noCategories') : 'No color selected')}</div>
                                 <button type="button" onClick={() => setColor('')} className="ml-4 px-3 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <div className="text-sm font-medium mb-1">{t ? t('planFrom') : 'Plan from'}</div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="time" value={planFrom} onChange={e => setPlanFrom(e.target.value)} disabled={saving} className="p-2 border rounded" />
+                                        <button type="button" onClick={() => setPlanFrom('')} className="px-2 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="text-sm font-medium mb-1">{t ? t('planTo') : 'Plan to'}</div>
+                                    <div className="flex items-center gap-2">
+                                        <input type="time" value={planTo} onChange={e => setPlanTo(e.target.value)} disabled={saving} className="p-2 border rounded" />
+                                        <button type="button" onClick={() => setPlanTo('')} className="px-2 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div className="text-sm font-medium mb-1">{t ? t('maxDuration') : 'Max duration (minutes)'}</div>
+                                    <input type="number" min="0" step="1" value={maxDuration} onChange={e => setMaxDuration(e.target.value)} disabled={saving} className="p-2 border rounded w-full" placeholder="e.g. 120" />
+                                </div>
+                            </div>
+
+                            <div className="mt-3">
+                                <label className="inline-flex items-center gap-2">
+                                    <input type="checkbox" checked={atomicTask} onChange={e => setAtomicTask(e.target.checked)} disabled={saving} />
+                                    <span className="text-sm">{t ? t('atomicTask') : 'Atomic task (cannot split)'}</span>
+                                </label>
                             </div>
                         </div>
 
