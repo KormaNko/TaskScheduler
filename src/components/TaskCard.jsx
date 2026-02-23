@@ -3,7 +3,7 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 //AI
 export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
     const { t } = useOptions();
-    const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null } = task;
+    const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null, timeToComplete = null } = task;
 //AI
     const fmt = (v) => {
         if (!v) return '-';
@@ -12,7 +12,18 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
         return isNaN(d.getTime()) ? String(v) : d.toLocaleString();
     };
 
-
+    // format minutes into human readable string: 90 -> "1h 30m", 60 -> "1h", 45 -> "45 min"
+    const formatTimeToComplete = (mins) => {
+        if (mins === null || mins === undefined || mins === '') return null; // explicit: not set
+        const n = Number(mins);
+        if (Number.isNaN(n) || n < 0) return null;
+        if (n === 0) return '0 min';
+        if (n < 60) return `${n} min`;
+        const h = Math.floor(n / 60);
+        const m = n % 60;
+        if (m === 0) return `${h}h`;
+        return `${h}h ${m}m`;
+    };
     const resolveCategoryMeta = (cat) => {
         // cat is expected to be either an object or null per backend contract
         return { name: cat?.name ?? null, color: cat?.color ?? null };
@@ -67,6 +78,11 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
                          <div className="min-w-0 flex-1">
                              <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}</div>
                              {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
+                             {/* timeToComplete display (minutes -> human) */}
+                             {(() => {
+                                 const ft = formatTimeToComplete(timeToComplete);
+                                 return ft ? <div className="text-sm text-gray-500 mt-1">{t ? t('timeToComplete') : 'Time to complete'}: <span className="font-medium">{ft}</span></div> : null;
+                             })()}
                          </div>
                          {categoryMeta?.name ? (
                             categoryMeta.color ? (
@@ -113,6 +129,11 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
                           <div className="whitespace-pre-wrap break-words">{description}</div>
                       </div>
                   ) : null}
+                  {/* show timeToComplete in detailed view under description/title */}
+                  {(() => {
+                      const ft = formatTimeToComplete(timeToComplete);
+                      return ft ? <div className="text-sm text-gray-500 mt-1">{t ? t('timeToComplete') : 'Time to complete'}: <span className="font-medium">{ft}</span></div> : null;
+                  })()}
               </td>
               <td className="p-3">{status || '-'}</td>
               <td className="p-3 text-center">{priority ?? '-'}</td>

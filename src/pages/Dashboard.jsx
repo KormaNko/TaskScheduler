@@ -26,7 +26,8 @@ export default function Dashboard() {
     const [success, setSuccess] = useState(null);
 
     const [showCreate, setShowCreate] = useState(false);
-    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '' });
+    // `time_to_complete` stored in form as string '' (empty) or numeric-string; converted before submit
+    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
@@ -218,6 +219,20 @@ export default function Dashboard() {
         const pad = (n) => String(n).padStart(2, '0');
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
+
+    // format minutes into human readable string (used for detail modal): 90 -> "1h 30m" etc.
+    function formatTimeToComplete(mins) {
+        if (mins === null || mins === undefined || mins === '') return null;
+        const n = Number(mins);
+        if (Number.isNaN(n) || n < 0) return null;
+        if (n === 0) return '0 min';
+        if (n < 60) return `${n} min`;
+        const h = Math.floor(n / 60);
+        const m = n % 60;
+        if (m === 0) return `${h}h`;
+        return `${h}h ${m}m`;
+    }
+
     //AI
     async function createTask(e) {
         e?.preventDefault?.();
@@ -233,10 +248,21 @@ export default function Dashboard() {
             // send only category_id per new contract
             if (form.category_id !== undefined && form.category_id !== null && form.category_id !== '') params.append('category_id', String(form.category_id));
 
+            // time_to_complete: allow empty string to indicate "clear", otherwise integer >= 0
+            const ttcRaw = form.time_to_complete;
+            if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
+                const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
+                if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); return; }
+                params.append('time_to_complete', String(ttcInt));
+            } else {
+                // send empty string to explicitly clear
+                params.append('time_to_complete', '');
+            }
+
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setShowCreate(false);
-            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '' });
+            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
             setSuccess('Task created');
         } catch (err) {
             console.error('createTask', err);
@@ -282,7 +308,9 @@ export default function Dashboard() {
 
     function openEdit(task) {
         const category_id = task?.category?.id ?? '';
-        setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category_id });
+        // include backend's camelCase `timeToComplete` as snake_case string for the edit form
+        const ttc = task?.timeToComplete ?? null;
+        setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category_id, time_to_complete: ttc === null || ttc === undefined ? '' : String(ttc) });
     }
 
     // When editing opens, measure the form height and decide whether to show full-screen edit
@@ -340,6 +368,16 @@ export default function Dashboard() {
             params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
             // send only category_id
             if (editing.category_id !== undefined && editing.category_id !== null && editing.category_id !== '') params.append('category_id', String(editing.category_id));
+
+            // time_to_complete handling: allow empty string to clear, otherwise integer >= 0
+            const ttcRaw = editing.time_to_complete;
+            if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
+                const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
+                if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); return; }
+                params.append('time_to_complete', String(ttcInt));
+            } else {
+                params.append('time_to_complete', '');
+            }
 
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
@@ -477,6 +515,9 @@ export default function Dashboard() {
                             <label className="block text-sm font-medium mt-4">{t ? t('deadline') : 'Deadline'}</label>
                             <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
 
+                            <label className="block text-sm font-medium mt-4">{t ? t('timeToComplete') : 'Time to complete (minutes)'}</label>
+                            <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
+
                             <div className="mt-6 flex gap-2">
                                 <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm">{actionLoading ? (t ? t('creating') : 'Creating...') : (t ? t('create') : 'Create')}</button>
                                 <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
@@ -553,6 +594,7 @@ export default function Dashboard() {
                             <div><strong>Priority:</strong> <span className="ml-2">{detailTask.priority ?? '-'}</span></div>
                             <div><strong>Category:</strong> <span className="ml-2">{detailTask?.category?.name ?? '-'}</span></div>
                             <div><strong>Deadline:</strong> <span className="ml-2">{detailTask.deadline ? String(detailTask.deadline).replace(' ', 'T') : '-'}</span></div>
+                            <div><strong>Time to complete:</strong> <span className="ml-2">{(() => { const ft = formatTimeToComplete(detailTask.timeToComplete); return ft ? ft : (detailTask.timeToComplete === null ? (t ? t('notSet') : 'Not set') : '-'); })()}</span></div>
                         </div>
 
                         <div className="mt-4 flex justify-end gap-2">
@@ -609,6 +651,11 @@ export default function Dashboard() {
                                     <div className="w-full md:w-auto">
                                          <label className="text-sm font-medium">Deadline</label>
                                          <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
+                                     </div>
+
+                                    <div className="w-full md:w-40">
+                                         <label className="text-sm font-medium">Time to complete (min)</label>
+                                         <input name="time_to_complete" type="number" min="0" step="1" value={editing.time_to_complete ?? ''} onChange={(e) => setEditing({ ...editing, time_to_complete: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                      </div>
                                 </div>
 

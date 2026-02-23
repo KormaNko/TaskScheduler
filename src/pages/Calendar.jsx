@@ -18,7 +18,8 @@ export default function Calendar() {
 
     const [showCreate, setShowCreate] = useState(false);
     // forms now use category_id per new backend contract (number | '')
-    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '' });
+    // `time_to_complete` stored as string '' (empty) or numeric-string; sent as snake_case to backend
+    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
     const [editing, setEditing] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [success, setSuccess] = useState(null);
@@ -168,6 +169,16 @@ export default function Calendar() {
              // send only category_id per new contract
              if (form.category_id !== undefined && form.category_id !== null && form.category_id !== '') p.append('category_id', String(form.category_id));
 
+            // time_to_complete: allow empty string to indicate "clear", otherwise integer >= 0
+            const ttcRaw = form.time_to_complete;
+            if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
+                const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
+                if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); setActionLoading(false); return; }
+                p.append('time_to_complete', String(ttcInt));
+            } else {
+                p.append('time_to_complete', '');
+            }
+
              await api.request('/?c=task&a=create', {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -176,7 +187,7 @@ export default function Calendar() {
 
              await fetchTasks();
              setShowCreate(false);
-             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '' });
+             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
              setSuccess('Task created');
          } catch (err) {
              setError(err?.message || 'Create failed');
@@ -332,6 +343,9 @@ export default function Calendar() {
 
                                 <label className="block text-sm font-medium text-gray-700 mt-2">Deadline</label>
                                 <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={e => updateForm('deadline', e.target.value)} />
+
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
+                                <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
 
                                 <div className="mt-4 flex gap-2">
                                     <button type="submit" disabled={actionLoading} className={`inline-flex items-center gap-2 px-4 py-2 ${actionLoading?"bg-green-500":"bg-green-600"} text-white rounded-md shadow-sm`}>{actionLoading ? 'Creating...' : 'Create'}</button>
