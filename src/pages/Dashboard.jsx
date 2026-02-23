@@ -27,7 +27,7 @@ export default function Dashboard() {
 
     const [showCreate, setShowCreate] = useState(false);
     // `time_to_complete` stored in form as string '' (empty) or numeric-string; converted before submit
-    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
+    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0 });
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
@@ -259,10 +259,15 @@ export default function Dashboard() {
                 params.append('time_to_complete', '');
             }
 
+            // atomic_task: always include explicit 0 or 1
+            const atRaw = form.atomic_task;
+            const atVal = (atRaw === undefined || atRaw === null) ? 0 : (Number(atRaw) ? 1 : 0);
+            params.append('atomic_task', String(atVal));
+
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setShowCreate(false);
-            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '' });
+            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0 });
             setSuccess('Task created');
         } catch (err) {
             console.error('createTask', err);
@@ -310,7 +315,8 @@ export default function Dashboard() {
         const category_id = task?.category?.id ?? '';
         // include backend's camelCase `timeToComplete` as snake_case string for the edit form
         const ttc = task?.timeToComplete ?? null;
-        setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category_id, time_to_complete: ttc === null || ttc === undefined ? '' : String(ttc) });
+        const atomic = task?.atomicTask ?? 0;
+        setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category_id, time_to_complete: ttc === null || ttc === undefined ? '' : String(ttc), atomic_task: atomic === null || atomic === undefined ? 0 : (Number(atomic) ? 1 : 0) });
     }
 
     // When editing opens, measure the form height and decide whether to show full-screen edit
@@ -377,6 +383,12 @@ export default function Dashboard() {
                 params.append('time_to_complete', String(ttcInt));
             } else {
                 params.append('time_to_complete', '');
+            }
+
+            // atomic_task handling: always include explicit 0/1 when editing form is present
+            if (editing.atomic_task !== undefined && editing.atomic_task !== null) {
+                const atVal = Number(editing.atomic_task) ? 1 : 0;
+                params.append('atomic_task', String(atVal));
             }
 
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
@@ -518,6 +530,15 @@ export default function Dashboard() {
                             <label className="block text-sm font-medium mt-4">{t ? t('timeToComplete') : 'Time to complete (minutes)'}</label>
                             <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
 
+                            {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
+                            <div className="mt-4">
+                                <label className="inline-flex items-center gap-2">
+                                    <input type="hidden" name="atomic_task" value="0" />
+                                    <input type="checkbox" name="atomic_task" value="1" checked={Number(form.atomic_task) === 1} onChange={(e) => updateForm('atomic_task', e.target.checked ? 1 : 0)} className="rounded" />
+                                    <span className="text-sm">{t ? t('atomicTask') : 'Atomic'}</span>
+                                </label>
+                            </div>
+
                             <div className="mt-6 flex gap-2">
                                 <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm">{actionLoading ? (t ? t('creating') : 'Creating...') : (t ? t('create') : 'Create')}</button>
                                 <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
@@ -595,6 +616,7 @@ export default function Dashboard() {
                             <div><strong>Category:</strong> <span className="ml-2">{detailTask?.category?.name ?? '-'}</span></div>
                             <div><strong>Deadline:</strong> <span className="ml-2">{detailTask.deadline ? String(detailTask.deadline).replace(' ', 'T') : '-'}</span></div>
                             <div><strong>Time to complete:</strong> <span className="ml-2">{(() => { const ft = formatTimeToComplete(detailTask.timeToComplete); return ft ? ft : (detailTask.timeToComplete === null ? (t ? t('notSet') : 'Not set') : '-'); })()}</span></div>
++                            <div><strong>Atomic:</strong> <span className="ml-2">{Number(detailTask.atomicTask) === 1 ? (t ? t('atomic') : 'Atomic') : (Number(detailTask.atomicTask) === 0 ? (t ? t('splittable') : 'Splittable') : '-')}</span></div>
                         </div>
 
                         <div className="mt-4 flex justify-end gap-2">
@@ -657,6 +679,15 @@ export default function Dashboard() {
                                          <label className="text-sm font-medium">Time to complete (min)</label>
                                          <input name="time_to_complete" type="number" min="0" step="1" value={editing.time_to_complete ?? ''} onChange={(e) => setEditing({ ...editing, time_to_complete: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                      </div>
+
+                                    {/* atomic_task for edit form: hidden input then checkbox so plain HTML forms send 0/1; controlled via editing.atomic_task */}
+                                    <div className="w-full md:w-auto flex items-center">
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="hidden" name="atomic_task" value="0" />
+                                            <input type="checkbox" name="atomic_task" value="1" checked={Number(editing.atomic_task) === 1} onChange={(e) => setEditing({ ...editing, atomic_task: e.target.checked ? 1 : 0 })} className="rounded" />
+                                            <span className="text-sm">{t ? t('atomicTask') : 'Atomic'}</span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 {/* footer inside form so submit works; align buttons together left on small, right on md+ */}

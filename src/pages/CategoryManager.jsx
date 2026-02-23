@@ -54,7 +54,7 @@ function CategoryRow({ cat, onEdit, onDelete }) {
                 <div className="flex items-center gap-2">
                     <div style={{ width: 12, height: 12, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 4 }} />
                     <div className="font-medium">{cat.name}</div>
-                    {cat.atomicTask ? <div className="ml-2 text-xs px-2 py-0.5 bg-gray-100 rounded">🔒</div> : null}
+                    {/* atomic badge removed for categories */}
                 </div>
             </td>
             <td className="p-3 text-center">
@@ -91,7 +91,6 @@ export default function CategoryManager() {
     const [planFrom, setPlanFrom] = useState('');
     const [planTo, setPlanTo] = useState('');
     const [maxDuration, setMaxDuration] = useState(''); // string to allow empty
-    const [atomicTask, setAtomicTask] = useState(false);
     const [saving, setSaving] = useState(false);
 
     // fetch categories
@@ -166,7 +165,6 @@ export default function CategoryManager() {
         setPlanFrom('');
         setPlanTo('');
         setMaxDuration('');
-        setAtomicTask(false);
     };
 
     const startCreate = () => {
@@ -181,7 +179,6 @@ export default function CategoryManager() {
         setPlanFrom(cat.planFrom || '');
         setPlanTo(cat.planTo || '');
         setMaxDuration(cat.maxDuration != null ? String(cat.maxDuration) : '');
-        setAtomicTask(!!cat.atomicTask);
     };
     //AI
     const handleDelete = async (cat) => {
@@ -239,7 +236,6 @@ export default function CategoryManager() {
                 planFrom: planFrom === '' ? null : planFrom,
                 planTo: planTo === '' ? null : planTo,
                 maxDuration: maxDuration === '' ? null : parseInt(maxDuration, 10),
-                atomicTask: !!atomicTask,
             };
 
             // perform real save via API
@@ -376,12 +372,7 @@ export default function CategoryManager() {
                                 </div>
                             </div>
 
-                            <div className="mt-3">
-                                <label className="inline-flex items-center gap-2">
-                                    <input type="checkbox" checked={atomicTask} onChange={e => setAtomicTask(e.target.checked)} disabled={saving} />
-                                    <span className="text-sm">{t ? t('atomicTask') : 'Atomic task (cannot split)'}</span>
-                                </label>
-                            </div>
+                            {/* atomic task option removed from categories */}
                         </div>
 
                         <div className="flex items-center gap-3">

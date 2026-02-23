@@ -3,7 +3,7 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 //AI
 export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () => {}, onChangeStatus = () => {}, actionLoading = false, viewMode = 'detailed', onOpenDetails = () => {} }) {
     const { t } = useOptions();
-    const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null, timeToComplete = null } = task;
+    const { id = '', title = '', description = '', status = '', priority = '', deadline = null, category = null, createdAt = null, updatedAt = null, timeToComplete = null, atomicTask = 0 } = task;
 //AI
     const fmt = (v) => {
         if (!v) return '-';
@@ -76,7 +76,7 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
                  <td colSpan={9} className="p-3">
                      <div className="flex items-start justify-between gap-4">
                          <div className="min-w-0 flex-1">
-                             <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}</div>
+                             <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}{Number(atomicTask) === 1 ? <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 ml-2">{t ? t('atomic') : 'Atomic'}</span> : null}</div>
                              {description ? <div className="text-sm text-gray-600 whitespace-pre-wrap break-words break-all">{description}</div> : null}
                              {/* timeToComplete display (minutes -> human) */}
                              {(() => {
@@ -123,7 +123,7 @@ export default function TaskCard({ task = {}, onEdit = () => {}, onDelete = () =
         <tr onClick={() => onOpenDetails(task)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') { e.preventDefault(); onOpenDetails(task); } }} className={"border-t " + rowBgClass + ' hover:bg-gray-50 cursor-pointer'}>
               <td className="p-3">{id}</td>
               <td className="p-3 min-w-0">
-                <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}</div>
+                <div className={"font-semibold " + (isHighPriority ? 'text-red-700' : '')}>{title || '-'}{renderStatusPill(status)}{Number(atomicTask) === 1 ? <span className="inline-block text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 ml-2">{t ? t('atomic') : 'Atomic'}</span> : null}</div>
                   {description ? (
                       <div className="text-sm text-gray-600">
                           <div className="whitespace-pre-wrap break-words">{description}</div>
