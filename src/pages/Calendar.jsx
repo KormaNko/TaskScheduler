@@ -19,7 +19,7 @@ export default function Calendar() {
     const [showCreate, setShowCreate] = useState(false);
     // forms now use category_id per new backend contract (number | '')
     // `time_to_complete` stored as string '' (empty) or numeric-string; sent as snake_case to backend
-    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0 });
+    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
     const [editing, setEditing] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [success, setSuccess] = useState(null);
@@ -150,7 +150,7 @@ export default function Calendar() {
          const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
          const s = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${hhmm}`;
          // reset form to defaults but prefill the deadline so atomic/is_dynamic are default (0)
-         setForm({ title: '', description: '', priority: 2, deadline: s, category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0 });
+         setForm({ title: '', description: '', priority: 2, deadline: s, category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
          setShowCreate(true);
      }
 
@@ -170,7 +170,11 @@ export default function Calendar() {
              // send only category_id per new contract
              if (form.category_id !== undefined && form.category_id !== null && form.category_id !== '') p.append('category_id', String(form.category_id));
 
-            // time_to_complete: allow empty string to indicate "clear", otherwise integer >= 0
+            // planned_start / planned_end: allow empty string to clear, otherwise convert
+            if (form.planned_start) p.append('planned_start', fromInputDateTimeToBackend(form.planned_start)); else p.append('planned_start', '');
+            if (form.planned_end) p.append('planned_end', fromInputDateTimeToBackend(form.planned_end)); else p.append('planned_end', '');
+
+             // time_to_complete: allow empty string to indicate "clear", otherwise integer >= 0
              const ttcRaw = form.time_to_complete;
              if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
                  const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
@@ -198,7 +202,7 @@ export default function Calendar() {
 
              await fetchTasks();
              setShowCreate(false);
-             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0 });
+             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
              setSuccess('Task created');
          } catch (err) {
              setError(err?.message || 'Create failed');
@@ -327,8 +331,8 @@ export default function Calendar() {
 
              {/* CREATE MODAL */}
              {showCreate && (
-                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="relative bg-white w-full max-w-3xl mx-4 rounded-xl shadow-lg p-6 z-10">
+                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-start md:items-center justify-center z-50">
+                    <div className="relative bg-white w-full max-w-3xl mx-4 rounded-xl shadow-lg p-6 z-10 max-h-[90vh] overflow-y-auto">
                         {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
                         {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -336,27 +340,17 @@ export default function Calendar() {
                                 <label className="block text-sm font-medium text-gray-700">Title</label>
                                 <input className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Title" value={form.title} onChange={e => updateForm('title', e.target.value)} />
 
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
+                                <input autoFocus name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
+
                                 <label className="block text-sm font-medium text-gray-700 mt-3">Description</label>
                                 <textarea rows={6} className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={e => updateForm('description', e.target.value)} />
-                            </div>
 
-                            <div>
-                                <div className="text-sm text-gray-700 py-2">Create task</div>
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Planned start</label>
+                                <input name="planned_start" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_start} onChange={e => updateForm('planned_start', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Priority</label>
-                                <input type="number" min="1" max="5" className="mt-1 block w-32 border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.priority} onChange={(e) => updateForm('priority', Number(e.target.value))} />
-
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Category</label>
-                                <select className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.category_id} onChange={e => updateForm('category_id', e.target.value === '' ? '' : Number(e.target.value))}>
-                                    <option value="">—</option>
-                                    {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
-
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Deadline</label>
-                                <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={e => updateForm('deadline', e.target.value)} />
-
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
-                                <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700 mt-2">Planned end</label>
+                                <input name="planned_end" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={e => updateForm('planned_end', e.target.value)} />
 
                                 {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
                                 <div className="mt-3">
@@ -392,6 +386,8 @@ export default function Calendar() {
                     <div className="bg-white p-4 rounded w-full max-w-md">
                         <div className="text-lg font-semibold mb-2">{editing.title}</div>
                         <div className="text-sm text-gray-500 mb-2">{editing.deadline ? new Date(String(editing.deadline).replace(' ', 'T')).toLocaleString() : ''}</div>
+                        <div className="text-sm text-gray-500 mb-2">Planned start: {editing.plannedStart ? new Date(String(editing.plannedStart).replace(' ', 'T')).toLocaleString() : '-'}</div>
+                        <div className="text-sm text-gray-500 mb-2">Planned end: {editing.plannedEnd ? new Date(String(editing.plannedEnd).replace(' ', 'T')).toLocaleString() : '-'}</div>
                         <div className="mb-2">{editing?.category?.name ?? ''}</div>
                         {editing.description ? <div className="mb-4 text-gray-700">{editing.description}</div> : null}
                         <div className="flex justify-end gap-2">

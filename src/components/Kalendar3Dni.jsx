@@ -35,22 +35,43 @@ export default function Kalendar3Dni({
     ), [startDate]);
 
     /* ---------- normalize tasks once ---------- */
-    //deadline menim na date vypocitavam cas od polnoci
-    //AI
+    // parse plannedStart/plannedEnd first, fallback to deadline. store _start/_end and base minutes
     const parsedTasks = useMemo(() => (
         Array.isArray(tasks) ? tasks.map(t => {
-            const date = t.deadline ? new Date(t.deadline.replace(' ', 'T')) : null;
+            const tryParse = v => {
+                if (!v) return null;
+                const dt = new Date(String(v).replace(' ', 'T'));
+                return isNaN(dt.getTime()) ? null : dt;
+            };
+            const start = tryParse(t.plannedStart) || tryParse(t.deadline) || null;
+            const end = tryParse(t.plannedEnd) || null;
             return {
                 ...t,
-                _date: date && !isNaN(date) ? date : null,
-                _minutes: date && !isNaN(date) ? date.getHours() * 60 + date.getMinutes() : null
+                _start: start,
+                _end: end,
+                _minutes: start ? start.getHours() * 60 + start.getMinutes() : null
             };
         }) : []
     ), [tasks]);
 
     //vyberam ulohy pre konkretny den
-    const eventsForDay = d =>
-        parsedTasks.filter(t => t._date && dateKey(t._date) === dateKey(d));
+    const eventsForDay = d => {
+        const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+        const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+        return parsedTasks.map(t => {
+            const s = t._start;
+            const e = t._end;
+            let include = false;
+            if (!s && !e) return null;
+            if (s) {
+                if (dateKey(s) === dateKey(d)) include = true;
+                if (s < dayEnd && (e === null || e > dayStart)) include = true;
+            }
+            if (!include) return null;
+            const displayMinutes = s ? ((s < dayStart) ? 0 : (s.getHours()*60 + s.getMinutes())) : null;
+            return { ...t, _displayMinutes: displayMinutes };
+        }).filter(Boolean);
+    };
 
     /* ---------- layout ---------- */
     //jedna hodina ma 80px
@@ -199,8 +220,9 @@ export default function Kalendar3Dni({
                                 {/* events */}
 
                                 {eventsForDay(d).map(ev => {
-                                    const top = ev._minutes !== null
-                                        ? (ev._minutes / (24 * 60)) * totalHeight
+                                    const minutes = ev._displayMinutes != null ? ev._displayMinutes : ev._minutes;
+                                    const top = minutes !== null && minutes !== undefined
+                                        ? (minutes / (24 * 60)) * totalHeight
                                         : null;
 
                                     const badgeBg = getCategoryColor(ev.category) || '#e6f4ea';

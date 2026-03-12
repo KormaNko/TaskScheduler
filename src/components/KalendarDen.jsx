@@ -22,25 +22,47 @@ export default function KalendarDen({
     };
     //AI
     /* -------------------- TASK PARSING -------------------- */
+    // Parse plannedStart/plannedEnd first, fallback to deadline. Store _start/_end and minutes from _start.
     const parsedTasks = useMemo(() => (
         Array.isArray(tasks) ? tasks.map(t => {
-            const d = t.deadline
-                ? new Date(String(t.deadline).replace(' ', 'T'))
-                : null;
+            const tryParse = (v) => {
+                if (!v) return null;
+                const dt = new Date(String(v).replace(' ', 'T'));
+                return isNaN(dt.getTime()) ? null : dt;
+            };
+
+            const start = tryParse(t.plannedStart) || tryParse(t.deadline) || null;
+            const end = tryParse(t.plannedEnd) || null;
 
             return {
                 ...t,
-                _date: d && !isNaN(d) ? d : null,
-                _minutes: d ? d.getHours() * 60 + d.getMinutes() : null
+                _start: start,
+                _end: end,
+                _minutes: start ? start.getHours() * 60 + start.getMinutes() : null
             };
         }) : []
     ), [tasks]);
 
     //zoznam udalostí pre daný deň ktore maju deadline samozrejme
-    const eventsForDay = d =>
-        parsedTasks.filter(t =>
-            t._date && dateKey(t._date) === dateKey(d)
-        );
+    // include tasks whose start falls on the day OR whose (start,end) interval overlaps the day
+     const eventsForDay = d => {
+         const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+         const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+        return parsedTasks.map(t => {
+            const s = t._start;
+            const e = t._end;
+            let include = false;
+            if (!s && !e) return null;
+            if (s) {
+                if (dateKey(s) === dateKey(d)) include = true;
+                if (s < dayEnd && (e === null || e > dayStart)) include = true;
+            }
+            if (!include) return null;
+            // compute display minutes relative to day: if start before day, show at 00:00
+            const displayMinutes = s ? ((s < dayStart) ? 0 : (s.getHours() * 60 + s.getMinutes())) : null;
+            return { ...t, _displayMinutes: displayMinutes };
+        }).filter(Boolean);
+     };
 
     /* -------------------- LAYOUT -------------------- */
     const slotHeight = 80;
@@ -157,14 +179,15 @@ export default function KalendarDen({
 
                     {/* EVENTS */}
                     {eventsForDay(date).map(ev => {
-                        const top = ev._minutes != null
-                            ? (ev._minutes / (24 * 60)) * totalHeight
+                        const minutes = ev._displayMinutes != null ? ev._displayMinutes : ev._minutes;
+                        const top = minutes != null
+                            ? (minutes / (24 * 60)) * totalHeight
                             : null;
 
                         const bg = getCategoryColor(ev.category) || '#e6f4ea';
 
-                        const timeLabel = ev._date
-                            ? ev._date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        const timeLabel = ev._start
+                            ? ev._start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                             : '';
 
                         if (top === null) return null;

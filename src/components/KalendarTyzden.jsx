@@ -28,14 +28,36 @@ export default function KalendarTyzden({
         return d;
     });
 
-    // Vyfiltruje úlohy pre konkrétny deň
-    const eventsFor = d =>
-        (Array.isArray(tasks) ? tasks : []).filter(t => {
-            if (!t?.deadline) return false;
-            const dd = new Date(String(t.deadline).replace(' ', 'T'));
-            if (isNaN(dd.getTime())) return false;
-            return dateKey(dd) === dateKey(d);
-        });
+    // parse plannedStart/plannedEnd first, fallback to deadline. store _start/_end and base minutes
+    const parsedTasks = (Array.isArray(tasks) ? tasks : []).map(t => {
+        const tryParse = v => {
+            if (!v) return null;
+            const dt = new Date(String(v).replace(' ', 'T'));
+            return isNaN(dt.getTime()) ? null : dt;
+        };
+        const start = tryParse(t.plannedStart) || tryParse(t.deadline) || null;
+        const end = tryParse(t.plannedEnd) || null;
+        return { ...t, _start: start, _end: end, _minutes: start ? (start.getHours()*60 + start.getMinutes()) : null };
+    });
+
+    // Vyberie úlohy pre deň: ak ich plánovaný interval zasahuje tento deň
+    const eventsFor = d => {
+        const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+        const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1);
+        return parsedTasks.map(t => {
+            const s = t._start;
+            const e = t._end;
+            let include = false;
+            if (!s && !e) return null;
+            if (s) {
+                if (dateKey(s) === dateKey(d)) include = true;
+                if (s < dayEnd && (e === null || e > dayStart)) include = true;
+            }
+            if (!include) return null;
+            const displayMinutes = s ? ((s < dayStart) ? 0 : (s.getHours()*60 + s.getMinutes())) : null;
+            return { ...t, _displayMinutes: displayMinutes };
+        }).filter(Boolean);
+    };
 
     // Zistí farbu kategórie (očekáváme objekt alebo null)
     const getCategoryColor = cat => {
@@ -194,10 +216,10 @@ export default function KalendarTyzden({
 
                                 {/* Eventy */}
                                 {eventsFor(d).map(ev => {
-                                    const min = minutesOfDay(ev.deadline);
-                                    if (min === null) return null;
+                                    const minutes = ev._displayMinutes != null ? ev._displayMinutes : ev._minutes;
+                                    if (minutes === null || minutes === undefined) return null;
 
-                                    const top = (min / (24 * 60)) * totalHeight;
+                                    const top = (minutes / (24 * 60)) * totalHeight;
                                     // rely only on ev.category object or null
                                     const bg = getCategoryColor(ev.category) || '#e6f4ea';
 

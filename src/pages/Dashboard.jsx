@@ -27,7 +27,7 @@ export default function Dashboard() {
 
     const [showCreate, setShowCreate] = useState(false);
     // `time_to_complete` stored in form as string '' (empty) or numeric-string; converted before submit
-    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0 });
+    const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
     const [editing, setEditing] = useState(null);
     const [search, setSearch] = useState('');
     const [sortOrder, setSortOrder] = useState('none'); // 'none' | 'priority_asc' | 'priority_desc' | 'title_asc' | 'title_desc' | 'time_asc' | 'time_desc'
@@ -248,6 +248,10 @@ export default function Dashboard() {
             // send only category_id per new contract
             if (form.category_id !== undefined && form.category_id !== null && form.category_id !== '') params.append('category_id', String(form.category_id));
 
+            // planned_start / planned_end: allow empty string to clear, otherwise convert
+            if (form.planned_start) params.append('planned_start', fromInputDateTimeToBackend(form.planned_start)); else params.append('planned_start', '');
+            if (form.planned_end) params.append('planned_end', fromInputDateTimeToBackend(form.planned_end)); else params.append('planned_end', '');
+
             // time_to_complete: allow empty string to indicate "clear", otherwise integer >= 0
             const ttcRaw = form.time_to_complete;
             if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
@@ -272,7 +276,7 @@ export default function Dashboard() {
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setShowCreate(false);
-            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0 });
+            setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
             setSuccess('Task created');
         } catch (err) {
             console.error('createTask', err);
@@ -322,7 +326,16 @@ export default function Dashboard() {
         const ttc = task?.timeToComplete ?? null;
         const atomic = task?.atomicTask ?? 0;
         const dynamic = task?.isDynamic ?? 0;
-        setEditing({ ...task, deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '', category_id, time_to_complete: ttc === null || ttc === undefined ? '' : String(ttc), atomic_task: atomic === null || atomic === undefined ? 0 : (Number(atomic) ? 1 : 0), is_dynamic: dynamic === null || dynamic === undefined ? 0 : (Number(dynamic) ? 1 : 0) });
+        setEditing({
+            ...task,
+            deadline: task?.deadline ? toInputDateTimeBackend(task.deadline) : '',
+            category_id,
+            time_to_complete: ttc === null || ttc === undefined ? '' : String(ttc),
+            atomic_task: atomic === null || atomic === undefined ? 0 : (Number(atomic) ? 1 : 0),
+            is_dynamic: dynamic === null || dynamic === undefined ? 0 : (Number(dynamic) ? 1 : 0),
+            planned_start: task?.plannedStart ? toInputDateTimeBackend(task.plannedStart) : '',
+            planned_end: task?.plannedEnd ? toInputDateTimeBackend(task.plannedEnd) : '',
+        });
     }
 
     // When editing opens, measure the form height and decide whether to show full-screen edit
@@ -380,6 +393,10 @@ export default function Dashboard() {
             params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
             // send only category_id
             if (editing.category_id !== undefined && editing.category_id !== null && editing.category_id !== '') params.append('category_id', String(editing.category_id));
+
+            // planned_start / planned_end: always include (empty string clears)
+            params.append('planned_start', editing.planned_start ? fromInputDateTimeToBackend(editing.planned_start) : '');
+            params.append('planned_end', editing.planned_end ? fromInputDateTimeToBackend(editing.planned_end) : '');
 
             // time_to_complete handling: allow empty string to clear, otherwise integer >= 0
             const ttcRaw = editing.time_to_complete;
@@ -539,8 +556,14 @@ export default function Dashboard() {
                             <label className="block text-sm font-medium mt-4">{t ? t('deadline') : 'Deadline'}</label>
                             <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
 
-                            <label className="block text-sm font-medium mt-4">{t ? t('timeToComplete') : 'Time to complete (minutes)'}</label>
+                            <label className="block text-sm font-medium mt-4">Time to complete (minutes)</label>
                             <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
+
+                            <label className="block text-sm font-medium mt-4">Planned start</label>
+                            <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
+
+                            <label className="block text-sm font-medium mt-4">Planned end</label>
+                            <input name="planned_end" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={(e) => updateForm('planned_end', e.target.value)} />
 
                             {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
                             <div className="mt-4">
@@ -636,6 +659,8 @@ export default function Dashboard() {
                             <div><strong>Priority:</strong> <span className="ml-2">{detailTask.priority ?? '-'}</span></div>
                             <div><strong>Category:</strong> <span className="ml-2">{detailTask?.category?.name ?? '-'}</span></div>
                             <div><strong>Deadline:</strong> <span className="ml-2">{detailTask.deadline ? String(detailTask.deadline).replace(' ', 'T') : '-'}</span></div>
+                            <div><strong>Planned start:</strong> <span className="ml-2">{detailTask.plannedStart ? String(detailTask.plannedStart).replace(' ', 'T') : '-'}</span></div>
+                            <div><strong>Planned end:</strong> <span className="ml-2">{detailTask.plannedEnd ? String(detailTask.plannedEnd).replace(' ', 'T') : '-'}</span></div>
                             <div><strong>Time to complete:</strong> <span className="ml-2">{(() => { const ft = formatTimeToComplete(detailTask.timeToComplete); return ft ? ft : (detailTask.timeToComplete === null ? (t ? t('notSet') : 'Not set') : '-'); })()}</span></div>
                             {Number(detailTask.atomicTask) === 1 ? (<div><strong>Atomic:</strong> <span className="ml-2">{t ? t('atomic') : 'Atomic'}</span></div>) : null}
                             {Number(detailTask.isDynamic) === 1 ? (<div><strong>Dynamic:</strong> <span className="ml-2">{t ? t('dynamic') : 'Dynamic'}</span></div>) : null}
@@ -697,9 +722,14 @@ export default function Dashboard() {
                                          <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                      </div>
 
-                                    <div className="w-full md:w-40">
-                                         <label className="text-sm font-medium">Time to complete (min)</label>
-                                         <input name="time_to_complete" type="number" min="0" step="1" value={editing.time_to_complete ?? ''} onChange={(e) => setEditing({ ...editing, time_to_complete: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
+                                    <div className="w-full md:w-auto">
+                                         <label className="text-sm font-medium">Planned start</label>
+                                         <input type="datetime-local" value={editing.planned_start ?? ''} onChange={(e) => setEditing({ ...editing, planned_start: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
+                                     </div>
+
+                                    <div className="w-full md:w-auto">
+                                         <label className="text-sm font-medium">Planned end</label>
+                                         <input type="datetime-local" value={editing.planned_end ?? ''} onChange={(e) => setEditing({ ...editing, planned_end: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                      </div>
 
                                      {/* atomic_task for edit form: hidden input then checkbox so plain HTML forms send 0/1; controlled via editing.atomic_task */}
@@ -710,15 +740,15 @@ export default function Dashboard() {
                                              <span className="text-sm">{t ? t('atomicTask') : 'Atomic'}</span>
                                          </label>
                                      </div>
-+
-+                                    {/* is_dynamic for edit form */}
-+                                    <div className="w-full md:w-auto flex items-center">
-+                                        <label className="inline-flex items-center gap-2">
-+                                            <input type="hidden" name="is_dynamic" value="0" />
-+                                            <input type="checkbox" name="is_dynamic" value="1" checked={Number(editing.is_dynamic) === 1} onChange={(e) => setEditing({ ...editing, is_dynamic: e.target.checked ? 1 : 0 })} className="rounded" />
-+                                            <span className="text-sm">{t ? t('isDynamic') : 'Dynamic'}</span>
-+                                        </label>
-+                                    </div>
+
+                                    {/* is_dynamic for edit form */}
+                                    <div className="w-full md:w-auto flex items-center">
+                                        <label className="inline-flex items-center gap-2">
+                                            <input type="hidden" name="is_dynamic" value="0" />
+                                            <input type="checkbox" name="is_dynamic" value="1" checked={Number(editing.is_dynamic) === 1} onChange={(e) => setEditing({ ...editing, is_dynamic: e.target.checked ? 1 : 0 })} className="rounded" />
+                                            <span className="text-sm">{t ? t('isDynamic') : 'Dynamic'}</span>
+                                        </label>
+                                    </div>
                                 </div>
 
                                 {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
