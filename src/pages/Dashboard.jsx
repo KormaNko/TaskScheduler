@@ -560,7 +560,7 @@ export default function Dashboard() {
                             <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
 
                             <label className="block text-sm font-medium mt-4">Planned start</label>
-                            <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
+                            <input name="planned_start" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.planned_start} onChange={(e) => updateForm('planned_start', e.target.value)} />
 
                             <label className="block text-sm font-medium mt-4">Planned end</label>
                             <input name="planned_end" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={(e) => updateForm('planned_end', e.target.value)} />
