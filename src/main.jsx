@@ -9,10 +9,12 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import CategoryManager from "./pages/CategoryManager.jsx";
 import Options from "./pages/Options.jsx";
+import MissedTasks from "./pages/MissedTasks.jsx";
 import "../index.css"; // fix: correct path inside src
 
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx';
 import { OptionsProvider } from './contexts/OptionsContext.jsx';
+import ToastProvider from './components/ToastContext.jsx';
 
 function Spinner() {
     return (
@@ -52,6 +54,7 @@ function AppInner() {
                 <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/calendar" element={<Calendar />} />
+                    <Route path="/missed-tasks" element={<MissedTasks />} />
                     <Route path="/categories" element={<CategoryManager />} />
                     <Route path="/users" element={<Users />} />
                     <Route path="/options" element={<Options />} />
@@ -67,9 +70,11 @@ function App() {
     return (
         <AuthProvider>
             <OptionsProvider>
-                <BrowserRouter>
-                    <AppInner />
-                </BrowserRouter>
+                <ToastProvider>
+                    <BrowserRouter>
+                        <AppInner />
+                    </BrowserRouter>
+                </ToastProvider>
             </OptionsProvider>
         </AuthProvider>
     );

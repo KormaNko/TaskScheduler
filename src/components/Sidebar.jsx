@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { CheckSquare, Calendar, Users, LayoutDashboard, Tag, Settings } from "lucide-react";
+import { CheckSquare, Calendar, Users, LayoutDashboard, Tag, Settings, Clock } from "lucide-react";
 import LogoutButton from "./LogoutButton.jsx";
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
@@ -41,6 +41,7 @@ export default function Sidebar() {
                 <nav className="flex flex-col gap-2 text-gray-700">
                     <NavItem to="/" icon={<LayoutDashboard size={18} />} label={t ? t('dashboard') : 'Dashboard'} />
                     <NavItem to="/calendar" icon={<Calendar size={18} />} label={t ? t('calendar') : 'Calendar'} />
+                    <NavItem to="/missed-tasks" icon={<Clock size={18} />} label={t ? t('missedTasks') : 'Missed Tasks'} />
                     <NavItem to="/categories" icon={<Tag size={18} />} label={t ? t('categories') : 'Categories'} />
                     <NavItem to="/users" icon={<Users size={18} />} label={t ? t('users') : 'Users'} />
                     <NavItem to="/options" icon={<Settings size={18} />} label={t ? t('settings') : 'Settings'} />
