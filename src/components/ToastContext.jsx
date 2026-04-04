@@ -26,7 +26,6 @@ export default function ToastProvider({ children }) {
   }
 
   const api = React.useMemo(() => ({
-    info: (m, title) => addToast({ type: 'info', title: title || '', message: m }),
     success: (m, title) => addToast({ type: 'success', title: title || '', message: m }),
     error: (m, title) => addToast({ type: 'error', title: title || '', message: m, timeout: 6000 }),
     remove: removeToast
@@ -47,4 +46,3 @@ export default function ToastProvider({ children }) {
     </ToastContext.Provider>
   );
 }
-

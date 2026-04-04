@@ -18,7 +18,6 @@ export default function MissedTasks() {
   const dateFormatter = React.useMemo(() => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }), []);
   function formatDate(s) {
     if (!s) return '';
-    // backend often returns 'YYYY-MM-DD HH:MM:SS' — convert to ISO-ish for Date parsing
     const iso = String(s).replace(' ', 'T');
     const d = new Date(iso);
     if (isNaN(d.getTime())) return String(s);
@@ -45,8 +44,8 @@ export default function MissedTasks() {
     setLoading(true);
     setError(null);
     try {
-      const arr = await fetchMissedRaw();
-      setTasks(arr);
+      const data = await api.get(ENDPOINTS.list);
+      setTasks(Array.isArray(data) ? data : data?.data ?? []);
     } catch (e) {
       setError(e?.message || 'Failed to load missed tasks');
     } finally {
@@ -54,71 +53,15 @@ export default function MissedTasks() {
     }
   }
 
-  // fetch raw data from server and return array (tries query-style then REST fallback)
-  async function fetchMissedRaw() {
-    try {
-      const data = await api.get(ENDPOINTS.list);
-      return Array.isArray(data) ? data : data?.data ?? [];
-    } catch (e) {
-      if (e && e.status === 404) {
-        try {
-          const data2 = await api.get('/missed-tasks');
-          return Array.isArray(data2) ? data2 : data2?.data ?? [];
-        } catch (e2) {
-          console.debug('REST fallback failed', e2);
-        }
-      }
-      throw e;
-    }
-  }
-
-  // wait helper
-  function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
   async function markCompleted(id) {
     if (!window.confirm(t ? t('confirmMarkCompleted') : 'Mark this task as completed?')) return;
     setProcessing(p => ({ ...p, [id]: true }));
     try {
-      // send id in querystring like other endpoints in the app (backend expects id param)
       const res = await api.post(`${ENDPOINTS.complete}&id=${encodeURIComponent(id)}`, {});
-      // poll server up to a few times to ensure the task no longer appears on the missed list
-      let gone = false;
-      for (let i = 0; i < 4; i++) {
-        const arr = await fetchMissedRaw();
-        if (!arr.find(x => String(x.id) === String(id))) { gone = true; break; }
-        await wait(300);
-      }
-      // final fetch to update UI
       await fetchMissed();
-      if (gone) {
-        toast.success(res?.message || (t ? t('taskMarkedCompleted') : 'Task marked as completed'));
-      } else {
-        toast.error(t ? t('warnPersistDelay') : 'Marked locally but server still reports task as missed — retrying shortly');
-      }
+      toast.success(res?.message || (t ? t('taskMarkedCompleted') : 'Task marked as completed'));
     } catch (e) {
-      // fallback to REST-style POST if first attempt returned 404
-      if (e && e.status === 404) {
-        try {
-          const res2 = await api.post(`/missed-tasks/${id}/complete`, {});
-          let gone2 = false;
-          for (let i = 0; i < 4; i++) {
-            const arr = await fetchMissedRaw();
-            if (!arr.find(x => String(x.id) === String(id))) { gone2 = true; break; }
-            await wait(300);
-          }
-          await fetchMissed();
-          if (gone2) {
-            toast.success(res2?.message || (t ? t('taskMarkedCompleted') : 'Task marked as completed'));
-          } else {
-            toast.error(t ? t('warnPersistDelay') : 'Marked locally but server still reports task as missed — retrying shortly');
-          }
-        } catch (e2) {
-          console.debug('REST fallback complete failed', e2);
-        }
-      }
-      const msg = e?.response?.message || e?.message || (t ? t('failedMarkCompleted') : 'Failed to mark completed');
-      toast.error(msg);
-      console.debug('markCompleted error response:', e?.response ?? e);
+      toast.error(e?.message || (t ? t('failedMarkCompleted') : 'Failed to mark completed'));
     } finally {
       setProcessing(p => ({ ...p, [id]: false }));
     }
@@ -129,42 +72,10 @@ export default function MissedTasks() {
     setProcessing(p => ({ ...p, [id]: true }));
     try {
       const res = await api.post(`${ENDPOINTS.notComplete}&id=${encodeURIComponent(id)}`, {});
-      let gone = false;
-      for (let i = 0; i < 4; i++) {
-        const arr = await fetchMissedRaw();
-        if (!arr.find(x => String(x.id) === String(id))) { gone = true; break; }
-        await wait(300);
-      }
       await fetchMissed();
-      if (gone) {
-        toast.success(res?.message || (t ? t('taskReenabled') : 'Task re-enabled and scheduler triggered'));
-      } else {
-        toast.error(t ? t('warnPersistDelay') : 'Operation reported success but server still returns task as missed');
-      }
+      toast.success(res?.message || (t ? t('taskReenabled') : 'Task re-enabled and scheduler triggered'));
     } catch (e) {
-      // fallback to REST-style POST if first attempt returned 404
-      if (e && e.status === 404) {
-        try {
-          const res2 = await api.post(`/missed-tasks/${id}/not-complete`, {});
-          let gone2 = false;
-          for (let i = 0; i < 4; i++) {
-            const arr = await fetchMissedRaw();
-            if (!arr.find(x => String(x.id) === String(id))) { gone2 = true; break; }
-            await wait(300);
-          }
-          await fetchMissed();
-          if (gone2) {
-            toast.success(res2?.message || (t ? t('taskReenabled') : 'Task re-enabled and scheduler triggered'));
-          } else {
-            toast.error(t ? t('warnPersistDelay') : 'Operation reported success but server still returns task as missed');
-          }
-        } catch (e2) {
-          console.debug('REST fallback not-complete failed', e2);
-        }
-      }
-      const msg = e?.response?.message || e?.message || (t ? t('failedUpdateTask') : 'Failed to update task');
-      toast.error(msg);
-      console.debug('markNotCompleted error response:', e?.response ?? e);
+      toast.error(e?.message || (t ? t('failedUpdateTask') : 'Failed to update task'));
     } finally {
       setProcessing(p => ({ ...p, [id]: false }));
     }
