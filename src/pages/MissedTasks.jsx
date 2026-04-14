@@ -11,6 +11,10 @@ export default function MissedTasks() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [processing, setProcessing] = React.useState({}); // id -> true
+  // Optional debug storage for raw last response (avoids "setLastResponse is not defined" if left in code)
+  // Keep this in case you want to inspect the raw API response during development.
+  /* eslint-disable-next-line no-unused-vars */
+  const [lastResponse, setLastResponse] = React.useState(null);
 
   const navigate = useNavigate();
 
