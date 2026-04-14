@@ -4,6 +4,7 @@ import NewTaskButton from '../components/NewTaskButton';
 import api from '../lib/api';
 import { Menu } from 'lucide-react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
+import ModalMisscheduledTasks from '../components/ModalMisscheduledTasks.jsx';
 
 const STATUS_OPTIONS = [
     { value: 'pending', label: 'Pending' },
@@ -26,6 +27,7 @@ export default function Dashboard() {
     const [success, setSuccess] = useState(null);
 
     const [showCreate, setShowCreate] = useState(false);
+    const [misScheduledTasks, setMisScheduledTasks] = useState(null); // pre-fetched mis-scheduled tasks for modal
     // `time_to_complete` stored in form as string '' (empty) or numeric-string; converted before submit
     const [form, setForm] = useState({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
     const [editing, setEditing] = useState(null);
@@ -36,6 +38,7 @@ export default function Dashboard() {
     const [isMobile, setIsMobile] = useState(false);
     const [detailTask, setDetailTask] = useState(null);
     const [editFullScreen, setEditFullScreen] = useState(false);
+    const [showMissedModal, setShowMissedModal] = useState(false);
 
     const { opts, t } = useOptions();
 
@@ -278,6 +281,10 @@ export default function Dashboard() {
             setShowCreate(false);
             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
             setSuccess('Task created');
+            // Always open the mis-scheduled modal after creating a task so the user can inspect results.
+            // The modal will fetch `/?c=misscheduledTasks&a=index` directly.
+            setMisScheduledTasks(null);
+            setShowMissedModal(true);
         } catch (err) {
             console.error('createTask', err);
             setError(err.message || 'Create failed');
@@ -762,6 +769,8 @@ export default function Dashboard() {
                  </div>
               )}
 
+            {/* Missed tasks modal: appears after creating a task so user can act on any tasks scheduled in the past */}
+            <ModalMisscheduledTasks open={showMissedModal} onClose={() => setShowMissedModal(false)} onRefresh={fetchTasks} initialTasks={misScheduledTasks} />
         </div>
     );
 }

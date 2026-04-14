@@ -5,11 +5,13 @@ import Kalendar3Dni from '../components/Kalendar3Dni.jsx';
 import KalendarTyzden from '../components/KalendarTyzden.jsx';
 import api from '../lib/api';
 import { useOptions } from '../contexts/OptionsContext.jsx';
+import ModalMisscheduledTasks from '../components/ModalMisscheduledTasks.jsx';
 
 export default function Calendar() {
 
     const [tasks, setTasks] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [misScheduledTasks, setMisScheduledTasks] = useState(null); // pre-fetched mis-scheduled tasks to show in modal
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -23,6 +25,7 @@ export default function Calendar() {
     const [editing, setEditing] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
     const [success, setSuccess] = useState(null);
+    const [showMissedModal, setShowMissedModal] = useState(false);
 
     const { opts, t } = useOptions();
 
@@ -204,6 +207,10 @@ export default function Calendar() {
              setShowCreate(false);
              setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
              setSuccess('Task created');
+            // Always open the mis-scheduled modal after creating a task so the user can see results.
+            // The modal will fetch `/?c=misscheduledTasks&a=index` itself.
+             setMisScheduledTasks(null);
+             setShowMissedModal(true);
          } catch (err) {
              setError(err?.message || 'Create failed');
          } finally {
@@ -396,6 +403,9 @@ export default function Calendar() {
                     </div>
                 </div>
              )}
+
+             {/* Missed tasks modal: shows after creating a task if the scheduler assigned any tasks to the past */}
+             <ModalMisscheduledTasks open={showMissedModal} onClose={() => setShowMissedModal(false)} onRefresh={fetchTasks} initialTasks={misScheduledTasks} />
 
             </div>
         </div>
