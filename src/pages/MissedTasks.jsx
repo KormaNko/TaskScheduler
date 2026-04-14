@@ -44,7 +44,16 @@ export default function MissedTasks() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.get(ENDPOINTS.list);
+      // Send client-side current time as `before` to avoid server/client NOW() mismatch
+      // Add a small future buffer to include borderline tasks (in seconds)
+      const BUFFER_SECONDS = Number(import.meta.env.VITE_MISSED_BUFFER_SEC ?? 30);
+      const now = new Date(Date.now() + (BUFFER_SECONDS * 1000));
+      const pad = (n) => String(n).padStart(2, '0');
+      const before = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const path = `${ENDPOINTS.list}&before=${encodeURIComponent(before)}`;
+      const data = await api.get(path);
+      // store raw response for debugging
+      setLastResponse && setLastResponse(data);
       setTasks(Array.isArray(data) ? data : data?.data ?? []);
     } catch (e) {
       setError(e?.message || 'Failed to load missed tasks');
