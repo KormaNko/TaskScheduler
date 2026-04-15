@@ -354,28 +354,28 @@ export default function Calendar() {
                                 <textarea rows={6} className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={e => updateForm('description', e.target.value)} />
 
                                 <label className="block text-sm font-medium text-gray-700 mt-2">Planned start</label>
-                                <input name="planned_start" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_start} onChange={e => updateForm('planned_start', e.target.value)} />
+                                <input name="planned_start" type="datetime-local" disabled={Number(form.is_dynamic) === 1} className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_start} onChange={e => updateForm('planned_start', e.target.value)} />
 
                                 <label className="block text-sm font-medium text-gray-700 mt-2">Planned end</label>
-                                <input name="planned_end" type="datetime-local" className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={e => updateForm('planned_end', e.target.value)} />
+                                <input name="planned_end" type="datetime-local" disabled={Number(form.is_dynamic) === 1} className="mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={e => updateForm('planned_end', e.target.value)} />
 
                                 {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
-                                <div className="mt-3">
-                                    <label className="inline-flex items-center gap-2">
-                                        <input type="hidden" name="atomic_task" value="0" />
-                                        <input type="checkbox" name="atomic_task" value="1" checked={Number(form.atomic_task) === 1} onChange={(e) => updateForm('atomic_task', e.target.checked ? 1 : 0)} className="rounded" />
-                                        <span className="text-sm">{t ? t('atomicTask') : 'Atomic'}</span>
-                                    </label>
-                                </div>
+                                 <div className="mt-3">
+                                     <label className="inline-flex items-center gap-2">
+                                         <input type="hidden" name="atomic_task" value="0" />
+                                         <input type="checkbox" name="atomic_task" value="1" checked={Number(form.atomic_task) === 1} onChange={(e) => updateForm('atomic_task', e.target.checked ? 1 : 0)} className="rounded" />
+                                         <span className="text-sm">{t ? t('atomicTask') : 'Task that cannot be split'}</span>
+                                     </label>
+                                 </div>
 
-                                {/* is_dynamic checkbox: same pattern as atomic_task */}
-                                <div className="mt-2">
-                                    <label className="inline-flex items-center gap-2">
-                                        <input type="hidden" name="is_dynamic" value="0" />
-                                        <input type="checkbox" name="is_dynamic" value="1" checked={Number(form.is_dynamic) === 1} onChange={(e) => updateForm('is_dynamic', e.target.checked ? 1 : 0)} className="rounded" />
-                                        <span className="text-sm">{t ? t('isDynamic') : 'Dynamic'}</span>
-                                    </label>
-                                </div>
+                                 {/* is_dynamic checkbox: same pattern as atomic_task */}
+                                 <div className="mt-2">
+                                     <label className="inline-flex items-center gap-2">
+                                         <input type="hidden" name="is_dynamic" value="0" />
+                                         <input type="checkbox" name="is_dynamic" value="1" checked={Number(form.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; updateForm('is_dynamic', v); if (v === 1) { updateForm('planned_start', ''); updateForm('planned_end', ''); } }} className="rounded" />
+                                         <span className="text-sm">{t ? t('dynamic') : 'Dynamic'}</span>
+                                     </label>
+                                 </div>
 
                                 <div className="mt-4 flex gap-2">
                                      <button type="submit" disabled={actionLoading} className={`inline-flex items-center gap-2 px-4 py-2 ${actionLoading?"bg-green-500":"bg-green-600"} text-white rounded-md shadow-sm`}>{actionLoading ? 'Creating...' : 'Create'}</button>

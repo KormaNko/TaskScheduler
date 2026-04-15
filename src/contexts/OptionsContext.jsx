@@ -62,6 +62,14 @@ const TRANSLATIONS = {
     title: 'Názov',
     statusLabel: 'Stav',
     prio: 'Prio',
+    // nicer label for priority
+    priority: 'Priorita',
+    // atomic task labels (shorter / nicer)
+    atomicTask: 'Nedeliteľná úloha',
+    atomic: 'Nedeliteľné',
+    // dynamic labels (use just 'Dynamické')
+    isDynamic: 'Dynamické',
+    dynamic: 'Dynamické',
     categoryLabel: 'Kategória',
     deadline: 'Termín',
     created: 'Vytvorené',
@@ -155,7 +163,15 @@ const TRANSLATIONS = {
     title: 'Title',
     statusLabel: 'Status',
     prio: 'Prio',
-    categoryLabel: 'Category',
+    // nicer label for priority
+    priority: 'Priority',
+    // atomic task labels (shorter / nicer)
+    atomicTask: 'Non-splittable task',
+    atomic: 'Non-splittable',
+    // dynamic labels (use just 'Dynamic')
+    isDynamic: 'Dynamic',
+    dynamic: 'Dynamic',
+    categoryLabel: 'Kategória',
     deadline: 'Deadline',
     created: 'Created',
     updated: 'Updated',
