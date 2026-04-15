@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
 // Day view with single left time axis and scrollable timeline
@@ -74,15 +74,15 @@ export default function KalendarDen({
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const nowTop = (nowMinutes / (24 * 60)) * totalHeight;
 
-    function scrollToNow() {
+    const scrollToNow = useCallback(() => {
         const el = scrollRef.current;
         if (!el) return;
         el.scrollTop = Math.max(0, nowTop - el.clientHeight / 2);
-    }
+    }, [nowTop]);
 
     useEffect(() => {
         scrollToNow();
-    }, []);
+    }, [scrollToNow]);
 
     /* -------------------- CLICK → TIME -------------------- */
     //AI
@@ -137,8 +137,8 @@ export default function KalendarDen({
             {/* TIMELINE */}
             <div
                 ref={scrollRef}
-                className="flex bg-white rounded border overflow-y-auto"
-                style={{ maxHeight: '70vh' }}
+                className="flex bg-white rounded overflow-y-auto"
+                style={{ maxHeight: '70vh', border: '1px solid rgba(0,0,0,0.12)' }}
             >
 
                 {/* LEFT AXIS */}

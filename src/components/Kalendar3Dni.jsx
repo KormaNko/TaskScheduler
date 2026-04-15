@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
 
@@ -80,58 +80,59 @@ export default function Kalendar3Dni({
 
     const scrollRef = useRef(null);
     const axisRef = useRef(null);
-    const containerRef = useRef(null);
     const [axisWidth, setAxisWidth] = useState(80);
 
+    // measure axis width to align header columns with timeline (same approach as other views)
+    useEffect(() => {
+        const measure = () => {
+            if (axisRef.current?.offsetWidth) setAxisWidth(axisRef.current.offsetWidth);
+        };
+        measure();
+        window.addEventListener('resize', measure);
+        return () => window.removeEventListener('resize', measure);
+    }, []);
+
     /* ---------- now line ---------- */
-    const now = new Date();
+    const [nowTs, setNowTs] = useState(Date.now());
+    // keep now timestamp updated every 30s so the now-line moves smoothly
+    useEffect(() => {
+        const id = setInterval(() => setNowTs(Date.now()), 30 * 1000);
+        return () => clearInterval(id);
+    }, []);
+    const now = new Date(nowTs);
     const nowTop = ((now.getHours() * 60 + now.getMinutes()) / (24 * 60)) * totalHeight;
 
-    // now-line positioning (measured relative to the .bg-white container)
-    const [nowLinePos, setNowLinePos] = useState({ left: 0, width: 0, top: 0 });
-    //AI
-    function updateNowLinePos() {
-        const sc = scrollRef.current;
-        const ct = containerRef.current;
-        if (!sc || !ct) return;
-        // left and width of the scroll area relative to container
-        const left = sc.offsetLeft;
-        const width = sc.clientWidth;
-        // top relative to container: position of scroll area + nowTop - how much it's scrolled
-        const top = sc.offsetTop + nowTop - sc.scrollTop;
-        setNowLinePos({ left, width, top });
-    }
-
-    function scrollToNow() {
+    const scrollToNow = useCallback(() => {
         const el = scrollRef.current;
-        if (el) el.scrollTop = Math.max(0, nowTop - el.clientHeight / 2);
-        // update now-line after scrolling
-        requestAnimationFrame(updateNowLinePos);
-    }
+        if (!el) return;
+        el.scrollTop = Math.max(0, nowTop - el.clientHeight / 2);
+    }, [nowTop]);
+
     //AI
     useEffect(() => {
         scrollToNow();
-        window.addEventListener('resize', () => {
-            updateNowLinePos();
+        // named resize handler so it can be removed properly
+        const onResize = () => {
             // keep scroll centered
             scrollToNow();
-        });
-        return () => window.removeEventListener('resize', scrollToNow);
-    }, []);
+        };
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, [scrollToNow]);
 
     useEffect(() => {
         const a = axisRef.current;
         if (a?.offsetWidth) setAxisWidth(a.offsetWidth);
         // initial measurement of now-line
-        updateNowLinePos();
     }, []);
 
     // update now-line while user scrolls inside the scroll area
     useEffect(() => {
         const sc = scrollRef.current;
         if (!sc) return;
-        const onScroll = () => updateNowLinePos();
+        const onScroll = () => {};
         sc.addEventListener('scroll', onScroll);
+        // also update when the scroll container resizes (Mutation/resize observers could be used, but window resize covers most cases)
         return () => sc.removeEventListener('scroll', onScroll);
     }, []);
 
@@ -147,129 +148,74 @@ export default function Kalendar3Dni({
         return d;
     }
 
-    const headerGridStyle = {
-        display: 'grid',
-        gridTemplateColumns: `${axisWidth}px repeat(3, minmax(0, 1fr))`,
-        gap: '0.5rem',
-        alignItems: 'center'
-    };
-    //AI
+    // header grid alignment handled inline where needed; removed unused `headerGridStyle` constant
     return (
-        <div style={{ overflowX: 'hidden', width: '100%' }}>
-            <div className="flex justify-end mb-2">
-                <button onClick={scrollToNow}
-                        className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">
-                    {t ? t('now') : 'Now'}
-                </button>
+        <div className="calendar-root" style={{ overflowX: 'hidden' }}>
+            {/* Control bar */}
+            <div className="calendar-control-bar flex justify-between items-center mb-2">
+                <div>
+                    <div className="text-lg font-semibold">{days[0].toLocaleDateString()} — {days[days.length-1].toLocaleDateString()}</div>
+                    {/* use the correct translation key for the 3-day view */}
+                    <div className="text-sm text-gray-500">{t ? t('view_3days') : '3-day view'}</div>
+                </div>
+                <div className="flex gap-2">
+                    <button onClick={scrollToNow} className="px-3 py-1 bg-indigo-600 text-white rounded text-sm">{t ? t('now') : 'Now'}</button>
+                    <button className="w-8 h-8 rounded-full bg-green-600 text-white" onClick={() => { const d = new Date(startDate); d.setHours(9,0,0,0); onDayClick(d); }}>+</button>
+                </div>
             </div>
 
-            <div ref={containerRef} className="bg-white rounded border p-4" style={{ position: 'relative' }}>
-                <div style={headerGridStyle} className="mb-2">
-                    <div />
-                    {days.map((d, i) => (
-                        <div key={i} className="text-center">
-                            <div className="text-xs text-gray-500 uppercase">
-                                {d.toLocaleDateString(undefined, { weekday: 'short' })}
-                            </div>
-                            <div className="text-lg font-semibold">{d.getDate()}</div>
-                        </div>
-                    ))}
-                </div>
+            {/* Container with header grid + timeline (same pattern as week view) */}
+            <div className="bg-white rounded p-4" style={{ display: 'grid', gridTemplateColumns: `${axisWidth}px repeat(3, minmax(0, 1fr))`, gap: '0.5rem' }}>
+                <div />
+                {days.map((d, i) => (
+                    <div key={i} className="text-center">
+                        <div className="text-xs text-gray-500">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+                        <div className="text-lg font-semibold">{d.getDate()}</div>
+                    </div>
+                ))}
 
-                <div ref={scrollRef} className="flex overflow-y-auto relative" style={{ maxHeight: '70vh' }}>
+                <div ref={scrollRef} className="flex bg-white rounded border overflow-y-auto relative" style={{ gridColumn: '1 / span 4', maxHeight: '70vh' }}>
                     {/* time axis */}
-                    <div ref={axisRef} className="pr-2 sticky left-0 z-10">
+                    <div ref={axisRef} className="w-20 pr-2 sticky left-0 z-10">
                         <div style={{ height: totalHeight }}>
-
                             {Array.from({ length: 24 }).map((_, h) => (
-                                <div key={h} style={{ height: slotHeight }}
-                                     className="text-xs text-gray-500 text-right pr-2">
-                                    {pad(h)}:00
-                                </div>
+                                <div key={h} style={{ height: slotHeight }} className="text-xs text-gray-500 flex justify-end pr-2">{String(h).padStart(2,'0')}:00</div>
                             ))}
                         </div>
                     </div>
 
-                    {/* days */}
-                    <div className="flex-1 grid grid-cols-3 relative">
+                    <div className="grid grid-cols-3 relative flex-1" style={{ height: totalHeight }}>
                         {days.map((d, idx) => (
-                            <div
-                                key={idx}
-                                className="relative border-l last:border-r"
-                                style={{ height: totalHeight }}
-                                onClick={e => onDayClick(dateFromClick(d, e))}
-                            >
-
-                                {/* horizontal hour lines */}
+                            // match KalendarTyzden: use border-l and last:border-r so vertical separators are perfectly straight
+                            <div key={idx} className="relative border-l last:border-r" style={{ height: totalHeight }} onClick={e => onDayClick(dateFromClick(d, e))}>
                                 {Array.from({ length: 24 }).map((_, h) => (
-                                    <div
-                                        key={h}
-                                        style={{
-                                            position: 'absolute',
-                                            left: 0,
-                                            right: 0,
-                                            top: `${h * slotHeight}px`,
-                                            height: 0,
-                                            pointerEvents: 'none'
-                                        }}
-                                    >
+                                    <div key={h} style={{ position: 'absolute', left: 0, right: 0, top: `${h * slotHeight}px`, height: 0 }}>
                                         <div style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }} />
                                     </div>
                                 ))}
 
-                                {/* events */}
-
                                 {eventsForDay(d).map(ev => {
-                                    const minutes = ev._displayMinutes != null ? ev._displayMinutes : ev._minutes;
-                                    const top = minutes !== null && minutes !== undefined
-                                        ? (minutes / (24 * 60)) * totalHeight
-                                        : null;
-
-                                    const badgeBg = getCategoryColor(ev.category) || '#e6f4ea';
-
-                                    return (
-                                        <button
-                                            key={ev.id}
-                                            onClick={e => { e.stopPropagation(); onEventClick(ev); }}
-                                            className="absolute left-2 right-2 bg-white border rounded px-2 py-1 shadow-sm flex gap-2 items-center"
-                                            style={{ top, zIndex: 10 }}
-                                        >
-                                            <span
-                                                style={{
-                                                    width: 8,
-                                                    height: 8,
-                                                    background: badgeBg,
-                                                    borderRadius: 4
-                                                }}
-                                            />
+                                     const minutes = ev._displayMinutes != null ? ev._displayMinutes : ev._minutes;
+                                     const top = minutes !== null && minutes !== undefined ? (minutes / (24 * 60)) * totalHeight : null;
+                                     const badgeBg = getCategoryColor(ev.category) || '#e6f4ea';
+                                     return (
+                                         <button key={ev.id} onClick={e => { e.stopPropagation(); onEventClick(ev); }} className="absolute left-2 right-2 bg-white border rounded px-2 py-1 shadow-sm flex gap-2 items-center" style={{ top, zIndex: 10 }}>
+                                            <span style={{ width: 8, height: 8, background: badgeBg, borderRadius: 4 }} />
                                             {ev.title}
                                         </button>
-                                    );
-                                })}
+                                     );
+                                 })}
                             </div>
-                        ))}
+                         ))}
 
                     </div>
 
-                </div>
-
-                {/* now line: rendered relative to the outer container so it spans full visual width */}
-                {nowTop >= 0 && nowTop <= totalHeight && (
-                    <div
-                        aria-hidden
-                        style={{
-                            position: 'absolute',
-                            left: nowLinePos.left,
-                            width: nowLinePos.width,
-                            top: nowLinePos.top,
-                            pointerEvents: 'none',
-                            zIndex: 40
-                        }}
-                    >
-                        <div style={{ borderTop: '2px solid rgba(220,38,38,0.9)' }} />
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
+                    {/* NOW LINE placed here so it spans the entire timeline container (same as KalendarTyzden) */}
+                    {nowTop >= 0 && nowTop <= totalHeight && (
+                        <div style={{ position: 'absolute', top: nowTop, left: 0, right: 0, borderTop: '2px solid rgba(220,38,38,0.9)', pointerEvents: 'none', zIndex: 20 }} />
+                    )}
+                 </div>
+             </div>
+         </div>
+     );
+ }
