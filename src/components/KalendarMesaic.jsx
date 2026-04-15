@@ -21,7 +21,7 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
             const b = parseInt(h.substring(4,6),16)/255;
             const lum = 0.2126*r + 0.7152*g + 0.0722*b;
             return lum > 0.6 ? '#111827' : '#ffffff';
-        } catch (e) { return '#ffffff'; }
+        } catch { return '#ffffff'; }
     };
 
     // Názvy mesiacov v slovenčine
@@ -74,6 +74,37 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     if (Array.isArray(tasks) && tasks.length) {
         for (const t of tasks) {
             if (!t) continue;
+
+            // Prefer explicit plan range when present (backend may use plan_from / plan_to)
+            const pf = t.plan_from ?? t.planFrom ?? null;
+            const pt = t.plan_to ?? t.planTo ?? null;
+
+            if (pf || pt) {
+                // If only one end is provided, treat it as a single-day range
+                const startRaw = pf ? String(pf).replace(' ', 'T') : (pt ? String(pt).replace(' ', 'T') : null);
+                const endRaw = pt ? String(pt).replace(' ', 'T') : startRaw;
+                const startDate = startRaw ? new Date(startRaw) : null;
+                const endDate = endRaw ? new Date(endRaw) : null;
+
+                if (startDate && !isNaN(startDate.getTime()) && endDate && !isNaN(endDate.getTime())) {
+                    // iterate each day in the inclusive range and add the task to matching days in the shown month
+                    const s = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+                    const e = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+                    for (let cur = new Date(s); cur <= e; cur.setDate(cur.getDate() + 1)) {
+                        // only include days that belong to the currently rendered month/year
+                        if (cur.getFullYear() !== effectiveYear) continue;
+                        if (cur.getMonth() !== monthIndex) continue;
+                        const day = cur.getDate();
+                        if (!eventsByDay[day]) eventsByDay[day] = [];
+                        eventsByDay[day].push(t);
+                    }
+                    // range handled, continue to next task
+                    continue;
+                }
+                // if range parsing failed, fall through to fallback handling below
+            }
+
+            // Fallback: use deadline/date/start as before
             const raw = t.deadline ?? t.date ?? t.start ?? null;
             if (!raw) continue;
             const d = new Date(String(raw).replace(' ', 'T'));
