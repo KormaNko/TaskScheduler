@@ -215,7 +215,7 @@ export function OptionsProvider({ children }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   // watch auth so we can reload/clear user-specific options on login/logout
-  const { auth, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // helper: normalize theme to canonical 'light'|'dark'
   const normalizeTheme = (raw) => {
@@ -243,7 +243,7 @@ export function OptionsProvider({ children }) {
       setLoading(true);
       setError(null);
       try {
-        if (!auth) {
+        if (!user) {
           // not authenticated: use default/empty options
           if (!cancelled) setOpts(normalize({}));
           return;
@@ -263,7 +263,7 @@ export function OptionsProvider({ children }) {
     if (authLoading) return; // wait until auth check completes
     load();
     return () => { cancelled = true; };
-  }, [auth, authLoading]);
+  }, [user, authLoading]);
 
  //AI
   useEffect(() => {

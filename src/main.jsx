@@ -26,13 +26,13 @@ function Spinner() {
 }
 //aa
 function AppInner() {
-    const { auth, loading } = useAuth();
+    const { user, loading } = useAuth();
 
     // While auth is being checked, show a small spinner to avoid any protected content rendering
     if (loading) return <Spinner />;
 
     // If not authenticated, expose only public routes (login/register). Any other path redirects to /login.
-    if (!auth) {
+    if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <main className="w-full max-w-2xl p-6">

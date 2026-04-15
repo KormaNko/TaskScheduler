@@ -2,10 +2,12 @@
 import React, { useEffect, useState } from "react"; // React a základné hooky
 import api from '../lib/api';
 import { useOptions } from '../contexts/OptionsContext.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
 
 // Hlavný React komponent pre správu používateľov
 export default function UsersPage() {
     const { t } = useOptions();
+    const { user, isAdmin } = useAuth();
 
 
     // Zoznam používateľov z databázy
@@ -23,32 +25,17 @@ export default function UsersPage() {
     // Chyby konkrétnych polí formulára
     const [fieldErrors, setFieldErrors] = useState({}); // objekt mapujúci pole -> chyba
 
-    // Aktuálny prihlasený používateľ (napr. {id,name}) - čítané z localStorage a aktualizované cez udalosti
-    const [currentUser, setCurrentUser] = useState(() => {
-        try { return JSON.parse(localStorage.getItem('currentUser') || 'null'); } catch (e) { return null; }
-    });
-
-    // Clear in-memory users when app logs out
-    React.useEffect(() => {
-        function onLoggedOut() {
+    // When auth changes (user logs out), clear component state
+    useEffect(() => {
+        if (!user) {
             setUsers([]);
             setLoadingList(false);
             setLoadingAction(false);
             setError("");
             setFieldErrors({});
             setShowForm(false);
-            setCurrentUser(null);
         }
-        function onLoggedIn() {
-            try { setCurrentUser(JSON.parse(localStorage.getItem('currentUser') || 'null')); } catch (e) { setCurrentUser(null); }
-        }
-        window.addEventListener('app:logged-out', onLoggedOut);
-        window.addEventListener('app:logged-in', onLoggedIn);
-        return () => {
-            window.removeEventListener('app:logged-out', onLoggedOut);
-            window.removeEventListener('app:logged-in', onLoggedIn);
-        };
-    }, []);
+    }, [user]);
 
     // Preddefinovaný prázdny formulár
     const emptyForm = {
@@ -252,7 +239,7 @@ export default function UsersPage() {
             <div className="flex items-center justify-between mb-4">{/* header s titulkom a tlačidlom */}
                 <h1 className="text-2xl font-bold">{t ? t('usersTitle') : 'Používatelia'}</h1>{/* názov sekcie */}
                 <div className="flex items-center gap-2">{/* wrapper pre tlačidlá */}
-                    { Number(currentUser?.id) === 16 && (
+                    { isAdmin && (
                         <button
                             type="button"
                             onClick={openCreate}
@@ -298,7 +285,7 @@ export default function UsersPage() {
                                             <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
                                             <td className="p-2 text-right">
                                                 {/* Edit only for admin; delete only for admin and not deleting self */}
-                                                {Number(currentUser?.id) === 16 && (
+                                                {isAdmin && (
                                                     <button
                                                         onClick={() => openEdit(u)}
                                                         className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -307,7 +294,7 @@ export default function UsersPage() {
                                                     </button>
                                                 )}
                                                  {
-                                                     (Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
+                                                    (isAdmin && Number(u.id) !== Number(user?.id)) && (
                                                          <button
                                                              onClick={() => handleDelete(u.id)}
                                                              className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
@@ -319,10 +306,10 @@ export default function UsersPage() {
                                              </td>
                                         </tr>
                                     ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+                                 )}
+                             </tbody>
+                         </table>
+                     </div>
 
                     {/* MOBILE / CARD VIEW - visible on small screens */}
                     <div className="md:hidden space-y-3">
@@ -340,19 +327,19 @@ export default function UsersPage() {
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         {/* Mobile: edit only for admin; delete only for admin and not self */}
-                                        {Number(currentUser?.id) === 16 && (
+                                        {isAdmin && (
                                             <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
                                         )}
-                                         {(Number(currentUser?.id) === 16 && Number(u.id) !== Number(currentUser?.id)) && (
+                                         {(isAdmin && Number(u.id) !== Number(user?.id)) && (
                                              <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
                                          )}
                                      </div>
                                 </div>
                             ))
-                        )}
-                    </div>
-                </>
-            )}
+                         )}
+                     </div>
+                 </>
+             )}
 
             {showForm && (
                 <form onSubmit={handleSubmit} className="mt-6 bg-white p-4 shadow rounded max-w-lg">{/* formulár */}

@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext.jsx';
 export default function LogoutButton() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const { setAuth } = useAuth();
+    const { setUser } = useAuth();
 
     async function handleLogout(e) {
         e?.preventDefault?.();
@@ -19,7 +19,7 @@ export default function LogoutButton() {
             try { localStorage.removeItem('currentUser'); } catch (e) {}
             // notify app and set auth false
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
-            try { setAuth(false); } catch (e) {}
+            try { setUser(null); } catch (e) {}
             navigate('/login', { replace: true });
          } catch (err) {
             console.warn('Logout request failed', err);
@@ -27,7 +27,7 @@ export default function LogoutButton() {
             try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (e) {}
             try { localStorage.removeItem('currentUser'); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
-            try { setAuth(false); } catch (e) {}
+            try { setUser(null); } catch (e) {}
             navigate('/login', { replace: true });
          } finally {
             setLoading(false);

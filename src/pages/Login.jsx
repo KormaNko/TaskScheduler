@@ -23,13 +23,13 @@ export default function Login() {
     const [success, setSuccess] = useState("");
 
     const navigate = useNavigate(); // na presmerovanie po prihlásení
-    const { setAuth } = useAuth();
+    // use updated AuthContext which provides user, setUser and loading
+    const { user, setUser, loading: authLoading } = useAuth();
 
     // Redirect to dashboard if already authenticated
-    const { auth, loading: authLoading } = useAuth();
     React.useEffect(() => {
-        if (!authLoading && auth) navigate('/');
-    }, [auth, authLoading]);
+        if (!authLoading && user) navigate('/');
+    }, [user, authLoading]);
 
     // Funkcia na validáciu údajov na strane klienta
     function validateClientSide() {
@@ -81,13 +81,18 @@ export default function Login() {
             try { localStorage.setItem("isLoggedIn", "1"); } catch (e) {}
             // Persist basic user info returned from backend so other parts of the app can read it
             try {
-                if (data && data.status === 'ok') {
-                    const user = { id: data.id, name: data.name };
-                    localStorage.setItem('currentUser', JSON.stringify(user));
+                // backend may return several shapes. accept:
+                // 1) { authenticated: true, id, name, role }
+                // 2) { status: 'ok', id, name, role }
+                // 3) { id, name, role } (treated as success if id present)
+                const success = !!(data && (data.authenticated === true || data.status === 'ok' || data.id));
+                if (success) {
+                    const u = { id: data.id, name: data.name, role: data.role ?? 'user' };
+                    localStorage.setItem('currentUser', JSON.stringify(u));
+                    // update auth context so the app knows user is logged in
+                    try { setUser(u); } catch (e) {}
                 }
             } catch (e) {}
-            //AI
-            try { setAuth(true); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-in')); } catch (e) {}
             setLoading(false);
             navigate('/');

@@ -4,7 +4,8 @@ import api from '../lib/api';
 const AuthContext = createContext(null);
 //cela logika triedy bola AI
 export function AuthProvider({ children }) {
-  const [auth, setAuth] = useState(false);
+  // change: store full user object (or null) and loading
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // initial session check
@@ -14,21 +15,24 @@ export function AuthProvider({ children }) {
     async function check() {
       setLoading(true);
       try {
-        // Prefer the dedicated session endpoint which returns { authenticated:true, id, name }
+        // Prefer the dedicated session endpoint which returns { authenticated:true, id, name, role }
         const data = await api.get('/?c=login&a=me');
         if (cancelled) return;
         if (data && data.authenticated) {
-          setAuth(true);
+          // normalize role: treat null/undefined as 'user'
+          const role = data.role ?? 'user';
+          const u = { id: data.id, name: data.name, role };
+          setUser(u);
           try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
-          try { if (data.id || data.name) localStorage.setItem('currentUser', JSON.stringify({ id: data.id, name: data.name })); } catch (e) {}
+          try { if (data.id || data.name) localStorage.setItem('currentUser', JSON.stringify(u)); } catch (e) {}
         } else {
-          setAuth(false);
+          setUser(null);
           try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
           try { localStorage.removeItem('currentUser'); } catch (e) {}
         }
       } catch (err) {
         if (cancelled) return;
-        setAuth(false);
+        setUser(null);
         try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
         try { localStorage.removeItem('currentUser'); } catch (e) {}
       } finally {
@@ -39,15 +43,28 @@ export function AuthProvider({ children }) {
 
     // listen for global logout events (from api wrapper or other parts)
     function onLoggedOut() {
-      setAuth(false);
+      setUser(null);
       try { localStorage.removeItem('isLoggedIn'); } catch (e) {}
       try { localStorage.removeItem('currentUser'); } catch (e) {}
     }
 
     // also listen for explicit login events and mark auth true (currentUser should already be stored by Login component)
     function onLoggedIn() {
-      setAuth(true);
-      try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
+      // when something else fires app:logged-in we just re-run check quickly
+      (async () => {
+        try {
+          const d = await api.get('/?c=login&a=me');
+          if (d && d.authenticated) {
+            const role = d.role ?? 'user';
+            const u = { id: d.id, name: d.name, role };
+            setUser(u);
+            try { localStorage.setItem('isLoggedIn', '1'); } catch (e) {}
+            try { localStorage.setItem('currentUser', JSON.stringify(u)); } catch (e) {}
+          }
+        } catch (e) {
+          // ignore
+        }
+      })();
     }
 
     window.addEventListener('app:logged-out', onLoggedOut);
@@ -61,8 +78,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const value = {
-    auth,
-    setAuth,
+    user,
+    setUser,
+    isAdmin: !!(user && user.role === 'admin'),
     loading,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
