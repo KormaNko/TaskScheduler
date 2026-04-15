@@ -137,8 +137,9 @@ export default function KalendarDen({
             {/* TIMELINE */}
             <div
                 ref={scrollRef}
-                className="flex bg-white rounded overflow-y-auto"
-                style={{ maxHeight: '70vh', border: '1px solid rgba(0,0,0,0.12)' }}
+                // match other calendar views: background, rounded corners, border and relative positioning
+                className="flex bg-white rounded border overflow-y-auto relative"
+                style={{ maxHeight: '70vh' }}
             >
 
                 {/* LEFT AXIS */}
@@ -158,7 +159,8 @@ export default function KalendarDen({
 
                 {/* DAY COLUMN */}
                 <div
-                    className="flex-1 relative"
+                    // add border-l so there's a vertical separator next to the time axis (consistent with week/3-day views)
+                    className="flex-1 relative border-l last:border-r"
                     style={{ height: totalHeight }}
                     onClick={e => onDayClick(dateFromClick(date, e))}
                 >
@@ -219,23 +221,23 @@ export default function KalendarDen({
                             </button>
                         );
                     })}
-
-                    {/* NOW LINE */}
-                    {nowTop >= 0 && nowTop <= totalHeight && (
-                        <div
-                            style={{
-                                position: 'absolute',
-                                top: nowTop,
-                                left: 0,
-                                right: 0,
-                                borderTop: '2px solid rgba(220,38,38,0.9)',
-                                pointerEvents: 'none',
-                                zIndex: 20
-                            }}
-                        />
-                    )}
                 </div>
-            </div>
-        </div>
-    );
-}
+
+                {/* NOW LINE placed in timeline container so it spans axis + day column like other views */}
+                {nowTop >= 0 && nowTop <= totalHeight && (
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: nowTop,
+                            left: 0,
+                            right: 0,
+                            borderTop: '2px solid rgba(220,38,38,0.9)',
+                            pointerEvents: 'none',
+                            zIndex: 20
+                        }}
+                    />
+                )}
+             </div>
+         </div>
+     );
+ }
