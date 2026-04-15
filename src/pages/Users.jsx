@@ -45,6 +45,7 @@ export default function UsersPage() {
         email: "", // email
         password: "", // heslo (iba pri vytváraní alebo ak sa mení)
         isStudent: false, // boolean indikujúci študenta
+        role: 'user', // 'user' or 'admin' (only editable by admins)
     };
 
     // Stav pre formulár
@@ -98,6 +99,7 @@ export default function UsersPage() {
             email: user.email ?? "",
             password: "",       // heslo ostane prázdne pri editácii
             isStudent: !!user.isStudent, // prekonvertuj na boolean
+            role: user.role ?? 'user',
         });
 
         setIsEditing(true);   // prepnutie do režimu úpravy
@@ -177,6 +179,8 @@ export default function UsersPage() {
                     password: form.password,
                     isStudent: form.isStudent ? 1 : 0,
                 };
+                // admin may set role on create
+                if (isAdmin && form.role) payload.role = form.role;
                 try {
                     await api.post('/?c=users&a=create', payload);
                     setShowForm(false);
@@ -196,6 +200,8 @@ export default function UsersPage() {
                 };
 
                 if (form.password) body.password = form.password; // pridaj heslo len ak je zadané
+                // admin may change role
+                if (isAdmin && form.role) body.role = form.role;
 
                 try {
                     await api.post(`/?c=users&a=update&id=${encodeURIComponent(form.id)}`, body);
@@ -268,13 +274,14 @@ export default function UsersPage() {
                                     <th className="text-left p-2">{t ? t('lastName') : 'Priezvisko'}</th>
                                     <th className="text-left p-2">{t ? t('email') : 'Email'}</th>
                                     <th className="text-left p-2">{t ? t('isStudent') : 'Študent'}</th>
+                                    <th className="text-left p-2">{t ? t('role') : 'Úloha'}</th>
                                     <th className="text-right p-2">{t ? t('actions') : 'Akcie'}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="p-4 text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</td>
+                                        <td colSpan={6} className="p-4 text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</td>
                                     </tr>
                                 ) : (
                                     users.map((u) => (
@@ -283,9 +290,10 @@ export default function UsersPage() {
                                             <td className="p-2">{u.lastName}</td>
                                             <td className="p-2">{u.email}</td>
                                             <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
+                                            <td className="p-2">{u.role === 'admin' ? (t ? t('admin') : 'Administrátor') : (t ? t('user') : 'Používateľ')}</td>
                                             <td className="p-2 text-right">
                                                 {/* Edit only for admin; delete only for admin and not deleting self */}
-                                                {isAdmin && (
+                                                {(isAdmin || Number(user?.id) === Number(u.id)) && (
                                                     <button
                                                         onClick={() => openEdit(u)}
                                                         className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -304,8 +312,8 @@ export default function UsersPage() {
                                                      )
                                                  }
                                              </td>
-                                        </tr>
-                                    ))
+                                         </tr>
+                                     ))
                                  )}
                              </tbody>
                          </table>
@@ -327,15 +335,15 @@ export default function UsersPage() {
                                     </div>
                                     <div className="flex gap-2 mt-2">
                                         {/* Mobile: edit only for admin; delete only for admin and not self */}
-                                        {isAdmin && (
+                                        {(isAdmin || Number(user?.id) === Number(u.id)) && (
                                             <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
                                         )}
                                          {(isAdmin && Number(u.id) !== Number(user?.id)) && (
                                              <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
                                          )}
-                                     </div>
-                                </div>
-                            ))
+                                      </div>
+                                 </div>
+                             ))
                          )}
                      </div>
                  </>
@@ -393,6 +401,17 @@ export default function UsersPage() {
                         <input type="checkbox" checked={!!form.isStudent} onChange={onChange("isStudent")} className="h-4 w-4" />
                         <span className="text-sm">{t ? t('isStudent') : 'Je študent'}</span>
                     </label>
+
+                    {/* Role select - only visible to admins */}
+                    {isAdmin && (
+                      <label className="block mb-4">
+                        <span className="text-sm">Role</span>
+                        <select value={form.role} onChange={onChange('role')} className="mt-1 block w-full p-2 border rounded">
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                      </label>
+                    )}
 
                     <div className="flex items-center gap-2">{/* tlačidlá uložiť / zrušiť */}
                         <button type="submit" disabled={loadingAction} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
