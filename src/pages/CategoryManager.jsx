@@ -47,32 +47,33 @@ function apiUrl(action, id = null) {
 //AI
 function CategoryRow({ cat, onEdit, onDelete }) {
     const { t } = useOptions();
+    // Visual style similar to MissedTasks: colored left border + faint background tint
+    const catColor = cat.color || null;
+    const borderStyle = catColor ? { borderLeft: `6px solid ${catColor}` } : {};
+    const cardStyle = { ...borderStyle, backgroundColor: catColor ? hexToRGBA(catColor, 0.06) : undefined };
+    const badgeBg = catColor || '#eee';
+    const badgeColor = getContrastYIQ(badgeBg);
+
     return (
-        <tr className="border-t">
-            <td className="p-3">{cat.id}</td>
-            <td className="p-3">
-                <div className="flex items-center gap-2">
-                    <div style={{ width: 12, height: 12, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 4 }} />
-                    <div className="font-medium">{cat.name}</div>
-                    {/* atomic badge removed for categories */}
+        <div className="p-3 bg-white rounded shadow-sm flex items-center justify-between" style={cardStyle}>
+            <div className="flex items-center gap-3 min-w-0">
+                <div style={{ width: 12, height: 12, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 4 }} />
+                <div className="min-w-0">
+                    <div className="font-medium text-base truncate">{cat.name}</div>
+                    <div className="text-sm text-gray-500 truncate">
+                        {cat.id} · {cat.planFrom || '—'}{cat.planFrom && cat.planTo ? '–' : ''}{cat.planTo || ''} · {cat.maxDuration ? `${cat.maxDuration} min` : '—'}
+                    </div>
                 </div>
-            </td>
-            <td className="p-3 text-center">
-                <div className="mx-auto" style={{ width: 34, height: 20, background: cat.color || '#ffffff', border: '1px solid #e5e7eb', borderRadius: 6 }} />
-            </td>
-            <td className="p-3 text-center">
-                {cat.planFrom || cat.planTo ? (
-                    <div className="text-sm text-gray-700">{cat.planFrom || ''}{cat.planFrom && cat.planTo ? '–' : ''}{cat.planTo || ''}</div>
-                ) : (
-                    <div className="text-sm text-gray-400">—</div>
-                )}
-            </td>
-            <td className="p-3 text-center">{cat.maxDuration ? `${cat.maxDuration} min` : <span className="text-sm text-gray-400">—</span>}</td>
-            <td className="p-3 text-right">
-                <button type="button" onClick={() => onEdit(cat)} className="mr-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">{t ? t('edit') : 'Edit'}</button>
-                <button type="button" onClick={() => onDelete(cat)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">{t ? t('delete') : 'Delete'}</button>
-            </td>
-        </tr>
+            </div>
+
+            <div className="flex items-center gap-2 ml-4">
+                {/* small pill showing color/name */}
+                <span className="inline-block px-2 py-0.5 rounded-full text-xs" style={{ background: badgeBg, color: badgeColor }}>{cat.name}</span>
+
+                <button type="button" onClick={() => onEdit(cat)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-blue-500 shadow-sm hover:from-indigo-600 hover:to-blue-600">{t ? t('edit') : 'Edit'}</button>
+                <button type="button" onClick={() => onDelete(cat)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium text-white bg-red-600 hover:bg-red-700">{t ? t('delete') : 'Delete'}</button>
+            </div>
+        </div>
     );
 }
 //AI
@@ -111,38 +112,50 @@ export default function CategoryManager() {
                     headers: Object.fromEntries(res.headers.entries()),
                     body: txt,
                 };
-                const err = new Error(msg);
-                err.details = details;
-                throw err;
-            }
-            //AI
-            const ct = (res.headers.get('content-type') || '').toLowerCase();
-            let data;
-            if (ct.includes('application/json')) {
-                data = await res.json().catch(() => {
-                    const details = { status: res.status, statusText: res.statusText, contentType: ct };
-                    const e = new Error('Invalid JSON response from server');
-                    e.details = details;
-                    throw e;
-                });
-            } else {
-                const txt = await res.text().catch(() => null);
-                if (txt === null) {
-                    const e = new Error('Empty response from server');
-                    e.details = { status: res.status, statusText: res.statusText, contentType: ct };
-                    throw e;
-                }
-                try {
-                    data = JSON.parse(txt);
-                } catch (e) {
-                    const details = { status: res.status, statusText: res.statusText, contentType: ct, body: txt };
-                    const err = new Error(`Unexpected content-type (${ct || 'none'}) with body: ${txt}`);
-                    err.details = details;
-                    throw err;
-                }
+                console.error('Category fetch failed:', msg, details);
+                setError(msg);
+                setErrorDetails(details);
+                setLoading(false);
+                return; // stop further processing
             }
 
-            // AI
+            // parse response safely
+            const ct = (res.headers.get('content-type') || '').toLowerCase();
+            let data;
+            try {
+                if (ct.includes('application/json')) {
+                    data = await res.json();
+                } else {
+                    const txt = await res.text().catch(() => null);
+                    if (txt === null) {
+                        const details = { status: res.status, statusText: res.statusText, contentType: ct };
+                        const msg = 'Empty response from server';
+                        console.error(msg, details);
+                        setError(msg);
+                        setErrorDetails(details);
+                        setLoading(false);
+                        return;
+                    }
+                    try {
+                        data = JSON.parse(txt);
+                    } catch (parseErr) {
+                        const details = { status: res.status, statusText: res.statusText, contentType: ct, body: txt };
+                        const msg = `Unexpected content-type (${ct || 'none'}) with body: ${txt}`;
+                        console.error(msg, details);
+                        setError(msg);
+                        setErrorDetails(details);
+                        setLoading(false);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Category fetch error parsing response:', e);
+                setError(e.message || 'Invalid JSON response from server');
+                setErrorDetails(e?.details || null);
+                setLoading(false);
+                return;
+            }
+
             const list = Array.isArray(data) ? data : (data.data ?? []);
             setCategories(list);
         } catch (e) {
@@ -193,7 +206,11 @@ export default function CategoryManager() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok) {
-                throw new Error(body?.message || `Delete failed (${res.status})`);
+                const msg = body?.message || `Delete failed (${res.status})`;
+                console.error('Category delete failed:', msg, body);
+                setError(msg);
+                setErrorDetails(body);
+                return;
             }
             setCategories((prev) => prev.filter(c => c.id !== cat.id));
             if (editing && editing.id === cat.id) resetForm();
@@ -241,8 +258,6 @@ export default function CategoryManager() {
             // perform real save via API
             let res;
             if (editing && editing.id) {
-                // Backend expects POST for update with id in query string
-                // include id in body optionally
                 const bodyToSend = { id: editing.id, ...payload };
                 res = await fetch(apiUrl('update', editing.id), {
                     method: 'POST',
@@ -251,7 +266,6 @@ export default function CategoryManager() {
                     body: JSON.stringify(bodyToSend),
                 });
             } else {
-                // Create
                 res = await fetch(apiUrl('create'), {
                     method: 'POST',
                     credentials: 'include',
@@ -262,13 +276,19 @@ export default function CategoryManager() {
 
             const body = await res.json().catch(() => null);
             if (!res.ok) {
-                // If validation errors object present, map to message
                 if (body && body.errors) {
-                    // show first error
                     const firstKey = Object.keys(body.errors)[0];
-                    throw new Error(body.errors[firstKey] || 'Save failed (validation)');
+                    const msg = body.errors[firstKey] || 'Save failed (validation)';
+                    setError(msg);
+                    setErrorDetails(body);
+                    setSaving(false);
+                    return;
                 }
-                throw new Error(body?.message || `Save failed (${res.status})`);
+                const msg = body?.message || `Save failed (${res.status})`;
+                setError(msg);
+                setErrorDetails(body);
+                setSaving(false);
+                return;
             }
             const saved = body?.data ?? body;
             if (editing && editing.id) {
@@ -289,7 +309,7 @@ export default function CategoryManager() {
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-semibold">{t ? t('categoryManager') : 'Category Manager'}</h1>
                 <div className="flex items-center gap-2">
-                    <button onClick={startCreate} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold">{t ? t('newCategory') : 'New Category'}</button>
+                    <button onClick={startCreate} className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full hover:from-green-600 hover:to-emerald-600 font-semibold">{t ? t('newCategory') : 'New Category'}</button>
                 </div>
             </div>
 
@@ -300,30 +320,15 @@ export default function CategoryManager() {
                 <pre className="mb-4 p-3 bg-gray-100 rounded text-sm overflow-auto">{JSON.stringify(errorDetails, null, 2)}</pre>
             )}
 
-            <div className="overflow-x-auto bg-white rounded shadow">
-                <table className="w-full table-auto">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="text-left p-3">{t ? t('id') : 'ID'}</th>
-                            <th className="text-left p-3">{t ? t('name') : 'Name'}</th>
-                            <th className="p-3">{t ? t('color') : 'Color'}</th>
-                            <th className="p-3">{t ? t('plan') : 'Plan'}</th>
-                            <th className="p-3">{t ? t('maxDuration') : 'Max'}</th>
-                            <th className="text-right p-3">{t ? t('actions') : 'Actions'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {categories.length === 0 ? (
-                            <tr>
-                                <td colSpan={6} className="p-6 text-center text-gray-500">{t ? t('noCategories') : 'No categories'}</td>
-                            </tr>
-                        ) : (
-                            categories.map(cat => (
-                                <CategoryRow key={cat.id} cat={cat} onEdit={startEdit} onDelete={handleDelete} />
-                            ))
-                        )}
-                    </tbody>
-                </table>
+            {/* Replaced table layout with card-style list like MissedTasks */}
+            <div className="grid gap-3">
+                {categories.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 bg-white rounded shadow">{t ? t('noCategories') : 'No categories'}</div>
+                ) : (
+                    categories.map(cat => (
+                        <CategoryRow key={cat.id} cat={cat} onEdit={startEdit} onDelete={handleDelete} />
+                    ))
+                )}
             </div>
 
             {editing !== null && (
@@ -384,4 +389,36 @@ export default function CategoryManager() {
             )}
         </div>
     );
+}
+
+// utility to compute readable text color based on background
+function getContrastYIQ(hexcolor) {
+    try {
+        let c = String(hexcolor || '').replace('#', '');
+        if (c.length === 3) c = c.split('').map(s => s + s).join('');
+        const r = parseInt(c.substr(0,2),16);
+        const g = parseInt(c.substr(2,2),16);
+        const b = parseInt(c.substr(4,2),16);
+        const yiq = ((r*299)+(g*587)+(b*114))/1000;
+        return (yiq >= 128) ? '#111' : '#fff';
+    } catch (e) {
+        return '#111';
+    }
+}
+
+// convert hex color to rgba string with given alpha (fallbacks included)
+function hexToRGBA(hex, alpha = 0.06) {
+    try {
+        if (!hex) return undefined;
+        let c = String(hex).trim();
+        if (c[0] === '#') c = c.slice(1);
+        if (c.length === 3) c = c.split('').map(ch => ch + ch).join('');
+        if (c.length !== 6) return undefined;
+        const r = parseInt(c.slice(0,2), 16);
+        const g = parseInt(c.slice(2,4), 16);
+        const b = parseInt(c.slice(4,6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } catch (e) {
+        return undefined;
+    }
 }

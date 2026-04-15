@@ -1,13 +1,13 @@
 // Import React knižnice a hookov useState a useEffect
-import React, { useEffect, useState } from "react"; // React a základné hooky
+import React, { useEffect, useState, useMemo } from "react"; // React a základné hooky
 import api from '../lib/api';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 
-// Hlavný React komponent pre správu používateľov
-export default function UsersPage() {
-    const { t } = useOptions();
-    const { user, isAdmin } = useAuth();
+ // Hlavný React komponent pre správu používateľov
+ export default function UsersPage() {
+     const { t } = useOptions();
+     const { user, isAdmin } = useAuth();
 
 
     // Zoznam používateľov z databázy
@@ -24,6 +24,18 @@ export default function UsersPage() {
 
     // Chyby konkrétnych polí formulára
     const [fieldErrors, setFieldErrors] = useState({}); // objekt mapujúci pole -> chyba
+    // Search query for filtering the list
+    const [search, setSearch] = useState('');
+
+    // Derived visible list filtered by search (name, email, id)
+    const visibleUsers = useMemo(() => {
+        const q = String(search || '').trim().toLowerCase();
+        if (!q) return users;
+        return users.filter(u => {
+            const hay = [u.firstName, u.lastName, u.email, String(u.id)].filter(Boolean).join(' ').toLowerCase();
+            return hay.includes(q);
+        });
+    }, [users, search]);
 
     // When auth changes (user logs out), clear component state
     useEffect(() => {
@@ -242,20 +254,32 @@ export default function UsersPage() {
         //AI
     return (
         <div className="p-6">{/* hlavný kontajner s paddingom */}
-            <div className="flex items-center justify-between mb-4">{/* header s titulkom a tlačidlom */}
-                <h1 className="text-2xl font-bold">{t ? t('usersTitle') : 'Používatelia'}</h1>{/* názov sekcie */}
-                <div className="flex items-center gap-2">{/* wrapper pre tlačidlá */}
+            <div className="mb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-2xl font-bold">{t ? t('usersTitle') : 'Používatelia'}</h1>
                     { isAdmin && (
                         <button
                             type="button"
                             onClick={openCreate}
                             className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
                         >
-                            {t ? t('newUser') : 'Nový používateľ'}{/* text tlačidla */}
+                            {t ? t('newUser') : 'Nový používateľ'}
                         </button>
                     )}
-                 </div>
-             </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-1/2">
+                    <input
+                        type="search"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        placeholder={t ? t('searchUsers') : 'Search users by name, email or id...'}
+                        aria-label={t ? t('searchUsers') : 'Search users'}
+                        className="w-full px-3 py-2 border rounded shadow-sm"
+                    />
+                    <div className="text-sm text-gray-600">{visibleUsers.length} {t ? t('visible') : 'visible'}</div>
+                </div>
+            </div>
 
             {error && (
                 <div className="mb-4 text-sm text-red-600">{error}</div> // zobrazenie globálnej chyby
@@ -265,87 +289,45 @@ export default function UsersPage() {
                 <div className="text-gray-500">{t ? t('loadingUsers') : 'Načítavam používateľov...'}</div> // loading indikátor pre zoznam
             ) : (
                 <>
-                    {/* DESKTOP / TABLE VIEW - visible on md+ */}
-                    <div className="hidden md:block overflow-x-auto bg-white rounded shadow">
-                        <table className="w-full table-auto">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="text-left p-2">{t ? t('firstName') : 'Meno'}</th>
-                                    <th className="text-left p-2">{t ? t('lastName') : 'Priezvisko'}</th>
-                                    <th className="text-left p-2">{t ? t('email') : 'Email'}</th>
-                                    <th className="text-left p-2">{t ? t('isStudent') : 'Študent'}</th>
-                                    <th className="text-left p-2">{t ? t('role') : 'Úloha'}</th>
-                                    <th className="text-right p-2">{t ? t('actions') : 'Akcie'}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="p-4 text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</td>
-                                    </tr>
-                                ) : (
-                                    users.map((u) => (
-                                        <tr key={u.id} className="border-t">
-                                            <td className="p-2">{u.firstName}</td>
-                                            <td className="p-2">{u.lastName}</td>
-                                            <td className="p-2">{u.email}</td>
-                                            <td className="p-2">{u.isStudent ? (t ? t('yes') : 'Áno') : (t ? t('no') : 'Nie')}</td>
-                                            <td className="p-2">{u.role === 'admin' ? (t ? t('admin') : 'Administrátor') : (t ? t('user') : 'Používateľ')}</td>
-                                            <td className="p-2 text-right">
-                                                {/* Edit only for admin; delete only for admin and not deleting self */}
-                                                {(isAdmin || Number(user?.id) === Number(u.id)) && (
-                                                    <button
-                                                        onClick={() => openEdit(u)}
-                                                        className="mr-2 px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                                    >
-                                                        {t ? t('edit') : 'Upraviť'}
-                                                    </button>
-                                                )}
-                                                 {
-                                                    (isAdmin && Number(u.id) !== Number(user?.id)) && (
-                                                         <button
-                                                             onClick={() => handleDelete(u.id)}
-                                                             className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                                                         >
-                                                             {t ? t('delete') : 'Zmazať'}
-                                                         </button>
-                                                     )
-                                                 }
-                                             </td>
-                                         </tr>
-                                     ))
-                                 )}
-                             </tbody>
-                         </table>
-                     </div>
-
-                    {/* MOBILE / CARD VIEW - visible on small screens */}
-                    <div className="md:hidden space-y-3">
-                        {users.length === 0 ? (
-                            <div className="p-4 bg-white rounded shadow text-center text-gray-500">{t ? t('noUsers') : 'Žiadni používatelia'}</div>
+                    {/* Unified card list (desktop & mobile) styled like MissedTasks / CategoryManager */}
+                    <div className="grid gap-3">
+                        {visibleUsers.length === 0 ? (
+                            users.length === 0 ? (
+                                <div className="p-6 text-center text-gray-500 bg-white rounded shadow">{t ? t('noUsers') : 'Žiadni používatelia'}</div>
+                            ) : (
+                                <div className="p-6 text-center text-gray-500 bg-white rounded shadow">{t ? t('noUsersMatch') : 'No users match your search'}</div>
+                            )
                         ) : (
-                            users.map((u) => (
-                                <div key={u.id} className="bg-white rounded shadow p-4 flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className="font-medium">{u.firstName} {u.lastName}</div>
-                                            <div className="text-sm text-gray-500">{u.email}</div>
+                            visibleUsers.map((u) => (
+                                <div key={u.id} className="p-3 bg-white rounded shadow-sm flex items-center justify-between">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="flex flex-col min-w-0">
+                                            <div className="font-medium text-base truncate">{u.firstName} {u.lastName}</div>
+                                            <div className="text-sm text-gray-500 truncate">{u.email}</div>
+                                            <div className="text-sm text-gray-400 mt-1 truncate">ID: {u.id}</div>
                                         </div>
-                                        <div className="text-sm text-gray-600">{u.isStudent ? (t ? t('isStudent') : 'Študent') : ''}</div>
                                     </div>
-                                    <div className="flex gap-2 mt-2">
-                                        {/* Mobile: edit only for admin; delete only for admin and not self */}
+
+                                    <div className="flex items-center gap-3 ml-4">
+                                        {/* role badge */}
+                                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${u.role === 'admin' ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white' : 'bg-gray-100 text-gray-800'}`}>{u.role === 'admin' ? (t ? t('admin') : 'Admin') : (t ? t('user') : 'User')}</span>
+
+                                        {/* student pill */}
+                                        {u.isStudent ? <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">{t ? t('isStudent') : 'Študent'}</span> : null}
+
+                                        {/* actions */}
                                         {(isAdmin || Number(user?.id) === Number(u.id)) && (
-                                            <button onClick={() => openEdit(u)} className="flex-1 px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Upraviť'}</button>
+                                            <button onClick={() => openEdit(u)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium text-white bg-gradient-to-r from-indigo-500 to-blue-500 shadow-sm hover:from-indigo-600 hover:to-blue-600">{t ? t('edit') : 'Upraviť'}</button>
                                         )}
-                                         {(isAdmin && Number(u.id) !== Number(user?.id)) && (
-                                             <button onClick={() => handleDelete(u.id)} className="flex-1 px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Zmazať'}</button>
-                                         )}
-                                      </div>
-                                 </div>
-                             ))
-                         )}
-                     </div>
+
+                                        {(isAdmin && Number(u.id) !== Number(user?.id)) && (
+                                            <button onClick={() => handleDelete(u.id)} className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium text-white bg-red-600 hover:bg-red-700">{t ? t('delete') : 'Zmazať'}</button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                  </>
              )}
 
