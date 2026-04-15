@@ -211,6 +211,9 @@ export default function Dashboard() {
 
     function updateForm(k, v) { setForm((s) => ({ ...s, [k]: v })); }
 
+    // derived helper for readability in JSX
+    const isDynamic = Number(form.is_dynamic) === 1;
+
     function toInputDateTimeBackend(dateString) {
         if (!dateString) return '';
         const d = new Date(String(dateString).replace(' ', 'T'));
@@ -251,7 +254,9 @@ export default function Dashboard() {
             params.append('title', form.title);
             params.append('description', form.description || '');
             params.append('priority', String(form.priority ?? 2));
-            if (form.deadline) params.append('deadline', fromInputDateTimeToBackend(form.deadline));
+            // only include deadline when task is dynamic (is_dynamic === 1)
+            const idVal = (form.is_dynamic === undefined || form.is_dynamic === null) ? 0 : (Number(form.is_dynamic) ? 1 : 0);
+            if (idVal === 1 && form.deadline) params.append('deadline', fromInputDateTimeToBackend(form.deadline));
             // send only category_id per new contract
             if (form.category_id !== undefined && form.category_id !== null && form.category_id !== '') params.append('category_id', String(form.category_id));
 
@@ -275,9 +280,7 @@ export default function Dashboard() {
             const atVal = (atRaw === undefined || atRaw === null) ? 0 : (Number(atRaw) ? 1 : 0);
             params.append('atomic_task', String(atVal));
 
-            // is_dynamic: always include explicit 0 or 1
-            const idRaw = form.is_dynamic;
-            const idVal = (idRaw === undefined || idRaw === null) ? 0 : (Number(idRaw) ? 1 : 0);
+            // is_dynamic: always include explicit 0 or 1 (reuse earlier `idVal` computed above)
             params.append('is_dynamic', String(idVal));
 
             await api.request('/?c=task&a=create', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
@@ -401,7 +404,10 @@ export default function Dashboard() {
             params.append('description', editing.description ?? '');
             if (editing.status !== undefined && editing.status !== null) params.append('status', editing.status);
             if (editing.priority !== undefined && editing.priority !== null) params.append('priority', String(editing.priority));
-            params.append('deadline', editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
+            // only include deadline when editing.is_dynamic === 1, otherwise clear it
+            const editingIsDynamic = editing.is_dynamic !== undefined && editing.is_dynamic !== null ? Number(editing.is_dynamic) : 0;
+            params.append('deadline', editingIsDynamic === 1 && editing.deadline ? fromInputDateTimeToBackend(editing.deadline) : '');
+
             // send only category_id
             if (editing.category_id !== undefined && editing.category_id !== null && editing.category_id !== '') params.append('category_id', String(editing.category_id));
 
@@ -634,16 +640,24 @@ export default function Dashboard() {
                             </select>
 
                             <label className="block text-sm font-medium mt-4">{t ? t('deadline') : 'Deadline'}</label>
-                            <input type="datetime-local" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.deadline} onChange={(e) => updateForm('deadline', e.target.value)} />
+                            <input
+                                type="datetime-local"
+                                disabled={!isDynamic}
+                                className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`}
+                                value={form.deadline}
+                                onChange={(e) => updateForm('deadline', e.target.value)}
+                            />
+                            {!isDynamic && <div className="text-xs text-gray-400 mt-1">({t ? t('dynamic') : 'Dynamické'} must be enabled to set a deadline)</div>}
 
                             <label className="block text-sm font-medium mt-4">Time to complete (minutes)</label>
-                            <input name="time_to_complete" type="number" min="0" step="1" className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
+                            <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
+                            {!isDynamic && <div className="text-xs text-gray-400 mt-1">({t ? t('dynamic') : 'Dynamické'} must be enabled to set time to complete)</div>}
 
                             <label className="block text-sm font-medium mt-4">Planned start</label>
-                            <input name="planned_start" type="datetime-local" disabled={Number(form.is_dynamic) === 1} className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.planned_start} onChange={(e) => updateForm('planned_start', e.target.value)} />
+                            <input name="planned_start" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_start} onChange={(e) => updateForm('planned_start', e.target.value)} />
 
                             <label className="block text-sm font-medium mt-4">Planned end</label>
-                            <input name="planned_end" type="datetime-local" disabled={Number(form.is_dynamic) === 1} className="mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" value={form.planned_end} onChange={(e) => updateForm('planned_end', e.target.value)} />
+                            <input name="planned_end" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_end} onChange={(e) => updateForm('planned_end', e.target.value)} />
 
                             {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
                              <div className="mt-4">
@@ -658,7 +672,7 @@ export default function Dashboard() {
                              <div className="mt-2">
                                  <label className="inline-flex items-center gap-2">
                                      <input type="hidden" name="is_dynamic" value="0" />
-                                     <input type="checkbox" name="is_dynamic" value="1" checked={Number(form.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; updateForm('is_dynamic', v); if (v === 1) { updateForm('planned_start', ''); updateForm('planned_end', ''); } }} className="rounded" />
+                                     <input type="checkbox" name="is_dynamic" value="1" checked={Number(form.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; updateForm('is_dynamic', v); if (v === 1) { updateForm('planned_start', ''); updateForm('planned_end', ''); } else { updateForm('deadline', ''); } }} className="rounded" />
                                      <span className="text-sm">{t ? t('dynamic') : 'Dynamic'}</span>
                                  </label>
                              </div>
@@ -822,7 +836,7 @@ export default function Dashboard() {
 
                                     <div className="w-full md:w-auto">
                                          <label className="text-sm font-medium">Deadline</label>
-                                         <input type="datetime-local" value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
+                                         <input type="datetime-local" disabled={Number(editing.is_dynamic) === 0} value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 disabled:opacity-60" />
                                      </div>
 
                                      <div className="w-full md:w-auto">
@@ -848,7 +862,7 @@ export default function Dashboard() {
                                      <div className="w-full md:w-auto flex items-center">
                                          <label className="inline-flex items-center gap-2">
                                              <input type="hidden" name="is_dynamic" value="0" />
-                                             <input type="checkbox" name="is_dynamic" value="1" checked={Number(editing.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; setEditing({ ...editing, is_dynamic: v, ...(v === 1 ? { planned_start: '', planned_end: '' } : {}) }); }} className="rounded" />
+                                             <input type="checkbox" name="is_dynamic" value="1" checked={Number(editing.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; setEditing({ ...editing, is_dynamic: v, ...(v === 1 ? { planned_start: '', planned_end: '' } : { deadline: '' }) }); }} className="rounded" />
                                              <span className="text-sm">{t ? t('dynamic') : 'Dynamic'}</span>
                                          </label>
                                      </div>
