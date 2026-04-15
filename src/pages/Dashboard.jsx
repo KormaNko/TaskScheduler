@@ -25,6 +25,8 @@ export default function Dashboard() {
     const [actionLoading, setActionLoading] = useState(false);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    // selection state for batch actions: array of selected task ids
+    const [selectedIds, setSelectedIds] = useState([]);
 
     const [showCreate, setShowCreate] = useState(false);
     const [misScheduledTasks, setMisScheduledTasks] = useState(null); // pre-fetched mis-scheduled tasks for modal
@@ -187,6 +189,8 @@ export default function Dashboard() {
             // Backend now guarantees `task.category` is either an object or null.
             // Store tasks as-is.
             setTasks(Array.isArray(list) ? list : []);
+            // clear any selection because the set of visible tasks may have changed
+            setSelectedIds([]);
          } catch (e) {
              console.error('fetchTasks', e);
              setError(e.message || 'Failed to load tasks');
@@ -457,6 +461,7 @@ export default function Dashboard() {
         } catch (e) { /* ignore */ }
     }
 
+    // details helpers: open/close the detail modal for a single task
     function openDetails(task) {
         setDetailTask(task);
     }
@@ -464,6 +469,74 @@ export default function Dashboard() {
     function closeDetails() {
         setDetailTask(null);
     }
+
+    // selection helpers
+    function toggleSelect(id) {
+        setSelectedIds(prev => {
+            const s = Array.isArray(prev) ? prev.slice() : [];
+            const idx = s.findIndex(x => String(x) === String(id));
+            if (idx >= 0) { s.splice(idx, 1); } else { s.push(id); }
+            return s;
+        });
+    }
+    function clearSelection() { setSelectedIds([]); }
+    function selectAllVisible() {
+        const ids = (displayedTasks || []).map(t => t.id);
+        const allSelected = ids.length > 0 && ids.every(id => selectedIds.find(s => String(s) === String(id)));
+        if (allSelected) setSelectedIds([]); else setSelectedIds(ids);
+    }
+
+    // batch actions
+    async function batchChangeStatus(ids, newStatus) {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        setError(null); setActionLoading(true);
+        const prevSnapshot = Array.isArray(tasks) ? tasks.slice() : [];
+        try {
+            // optimistic update
+            setTasks((s) => s.map(t => ids.find(id => String(id) === String(t.id)) ? { ...t, status: String(newStatus) } : t));
+            for (const id of ids) {
+                const params = new URLSearchParams(); params.append('id', String(id)); params.append('status', String(newStatus));
+                await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+            }
+            setSuccess('Status updated');
+            clearSelection();
+        } catch (err) {
+            console.error('batchChangeStatus', err);
+            // revert to the previous snapshot
+            setTasks(prevSnapshot);
+            setError(err.message || 'Failed to update status');
+        } finally { setActionLoading(false); }
+    }
+
+    async function batchDelete(ids) {
+        if (!Array.isArray(ids) || ids.length === 0) return;
+        if (!confirm(`Delete ${ids.length} task${ids.length>1?'s':''}?`)) return;
+        setError(null); setActionLoading(true);
+        const prevSnapshot = Array.isArray(tasks) ? tasks.slice() : [];
+        try {
+            // optimistic: remove from list
+            setTasks((s) => s.filter(t => !ids.find(id => String(id) === String(t.id))));
+            for (const id of ids) {
+                const p = new URLSearchParams(); p.append('id', String(id));
+                await api.request('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+            }
+            setSuccess('Tasks deleted');
+            clearSelection();
+        } catch (err) {
+            console.error('batchDelete', err);
+            // revert to the previous snapshot
+            setTasks(prevSnapshot);
+            setError(err.message || 'Delete failed');
+        } finally { setActionLoading(false); }
+    }
+
+    function editSelected() {
+        if (selectedIds.length !== 1) return;
+        const id = selectedIds[0];
+        const task = tasks.find(t => String(t.id) === String(id));
+        if (task) openEdit(task);
+    }
+
     //AI
     return (
         <div className="p-6">
@@ -599,6 +672,24 @@ export default function Dashboard() {
                 </form>
             )}
 
+            {/* Batch toolbar: visible when at least one task is selected */}
+            {selectedIds.length > 0 && (
+                <div className="mb-4 p-3 rounded bg-gray-50 border border-gray-100 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                        <strong>{selectedIds.length}</strong>
+                        <span className="text-sm text-gray-600">selected</span>
+                        <button type="button" onClick={() => selectAllVisible()} className="px-2 py-1 ml-2 border rounded text-sm">Toggle select all</button>
+                        <button type="button" onClick={() => clearSelection()} className="px-2 py-1 ml-2 border rounded text-sm">Clear</button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'in_progress')} disabled={actionLoading} className="px-3 py-1 bg-yellow-500 text-white rounded">Start</button>
+                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'completed')} disabled={actionLoading} className="px-3 py-1 bg-green-600 text-white rounded">Complete</button>
+                        {selectedIds.length === 1 && <button type="button" onClick={() => editSelected()} disabled={actionLoading} className="px-3 py-1 bg-blue-600 text-white rounded">Edit</button>}
+                        <button type="button" onClick={() => batchDelete(selectedIds)} disabled={actionLoading} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                    </div>
+                </div>
+            )}
+
             <section className="bg-white rounded shadow-md ring-1 ring-indigo-50">
                 <div ref={tableWrapperRef} className="overflow-x-auto">
                 <table ref={tableRef} className="w-full table-auto">
@@ -609,6 +700,9 @@ export default function Dashboard() {
                         </tr>
                     ) : (
                         <tr>
+                            <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">
+                                <input type="checkbox" aria-label="Select all" checked={(displayedTasks.length>0 && displayedTasks.every(dt => selectedIds.find(s => String(s)===String(dt.id))))} onChange={selectAllVisible} />
+                            </th>
                             <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('id') : 'ID'}</th>
                             <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('title') : 'Title'}</th>
                             <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('statusLabel') : 'Status'}</th>
@@ -620,14 +714,14 @@ export default function Dashboard() {
                             <th className="p-3 text-left text-sm font-semibold text-indigo-700 border-b border-indigo-100">{t ? t('actions') : 'Actions'}</th>
                         </tr>
                     )}
-                    </thead>
-                    <tbody>
+                     </thead>
+                     <tbody>
                     {loading ? (
-                        <tr><td colSpan={9} className="p-4">{t ? t('loading') : 'Loading...'}</td></tr>
+                        <tr><td colSpan={(viewMode === 'simple') ? 9 : 10} className="p-4">{t ? t('loading') : 'Loading...'}</td></tr>
                     ) : tasks.length === 0 ? (
-                        <tr><td colSpan={9} className="p-4">{t ? t('noTasks') : 'No tasks'}</td></tr>
+                        <tr><td colSpan={(viewMode === 'simple') ? 9 : 10} className="p-4">{t ? t('noTasks') : 'No tasks'}</td></tr>
                     ) : filteredTasks.length === 0 ? (
-                        <tr><td colSpan={9} className="p-4">{t ? t('noMatchingTasks') : 'No matching tasks'}</td></tr>
+                        <tr><td colSpan={(viewMode === 'simple') ? 9 : 10} className="p-4">{t ? t('noMatchingTasks') : 'No matching tasks'}</td></tr>
                     ) : displayedTasks.map((t) => (
                         <TaskCard
                             key={t.id}
@@ -639,12 +733,14 @@ export default function Dashboard() {
                             actionLoading={actionLoading}
                             viewMode={viewMode}
                             onOpenDetails={openDetails}
+                            isSelected={selectedIds.find(s => String(s) === String(t.id))}
+                            onToggleSelect={() => toggleSelect(t.id)}
                         />
                      ))}
-                       </tbody>
-                   </table>
-                 </div>
-               </section>
+                        </tbody>
+                    </table>
+                  </div>
+                </section>
 
             {/* Detail modal: show all details for a single task on mobile when a task is clicked */}
             {detailTask && (
