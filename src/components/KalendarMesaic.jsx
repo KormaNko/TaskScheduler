@@ -75,9 +75,12 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
         for (const t of tasks) {
             if (!t) continue;
 
-            // Prefer explicit plan range when present (backend may use plan_from / plan_to)
-            const pf = t.plan_from ?? t.planFrom ?? null;
-            const pt = t.plan_to ?? t.planTo ?? null;
+            // Prefer explicit plan range when present. Backend may use different field names:
+            // - snake_case: plan_from / plan_to or planned_start / planned_end
+            // - camelCase: planFrom / planTo or plannedStart / plannedEnd
+            // Accept all common aliases so month view honors planned ranges rather than deadline.
+            const pf = t.plan_from ?? t.planFrom ?? t.planned_start ?? t.plannedStart ?? null;
+            const pt = t.plan_to ?? t.planTo ?? t.planned_end ?? t.plannedEnd ?? null;
 
             if (pf || pt) {
                 // If only one end is provided, treat it as a single-day range
