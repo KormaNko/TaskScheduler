@@ -105,6 +105,12 @@ const TRANSLATIONS = {
     taskFilter: 'Filter úloh',
     taskSort: 'Zoradenie úloh',
     loadingSettings: 'Načítavam nastavenia...',
+    // missed tasks / bulk UI
+    selectAll: 'Vybrať všetko',
+    selected: 'označené',
+    visible: 'zobrazené',
+    selectToAct: 'Označte úlohy hore pre akcie',
+    notCompleteYet: 'Ešte nesplnené',
   },
   EN: {
     settings: 'Settings',
@@ -206,6 +212,12 @@ const TRANSLATIONS = {
     taskFilter: 'Task filter',
     taskSort: 'Task sorting',
     loadingSettings: 'Loading settings...',
+    // missed tasks / bulk UI
+    selectAll: 'Select all',
+    selected: 'selected',
+    visible: 'visible',
+    selectToAct: 'Select tasks above to act',
+    notCompleteYet: 'Not complete yet',
   }
 };
 
