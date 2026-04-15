@@ -647,11 +647,9 @@ export default function Dashboard() {
                                 value={form.deadline}
                                 onChange={(e) => updateForm('deadline', e.target.value)}
                             />
-                            {!isDynamic && <div className="text-xs text-gray-400 mt-1">({t ? t('dynamic') : 'Dynamické'} must be enabled to set a deadline)</div>}
 
                             <label className="block text-sm font-medium mt-4">Time to complete (minutes)</label>
                             <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
-                            {!isDynamic && <div className="text-xs text-gray-400 mt-1">({t ? t('dynamic') : 'Dynamické'} must be enabled to set time to complete)</div>}
 
                             <label className="block text-sm font-medium mt-4">Planned start</label>
                             <input name="planned_start" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_start} onChange={(e) => updateForm('planned_start', e.target.value)} />
