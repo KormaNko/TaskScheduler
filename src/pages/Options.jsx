@@ -37,6 +37,9 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState('light');
     const [taskFilter, setTaskFilter] = useState('all');
     const [taskSort, setTaskSort] = useState('none');
+    // workday times
+    const [workdayStart, setWorkdayStart] = useState('09:00');
+    const [workdayEnd, setWorkdayEnd] = useState('17:00');
     const [localError, setLocalError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -49,6 +52,9 @@ export default function SettingsPage() {
         setTheme(opts.theme ?? 'light');
         setTaskFilter(opts.taskFilter ?? 'all');
         setTaskSort(opts.taskSort ?? 'none');
+        // initialize workday times from opts if present (support snake_case and camelCase)
+        setWorkdayStart(opts.workdayStart ?? opts.workday_start ?? '09:00');
+        setWorkdayEnd(opts.workdayEnd ?? opts.workday_end ?? '17:00');
         // local state now reflects opts; further local changes may be pushed to context
 
         // ensure document theme matches saved opts when we first load
@@ -61,6 +67,9 @@ export default function SettingsPage() {
             }
         } catch (e) { /* ignore */ }
     }, [opts]);
+
+    // expose setLocal so we can persist the workday times to local context (no backend yet)
+    const { setLocal } = useOptions();
 
     // Preview theme locally when user changes the select, but do not write to context immediately.
     // This prevents a loop where updating context triggers other effects and causes flicker.
@@ -89,6 +98,14 @@ export default function SettingsPage() {
             const res = await saveOptions(payload);
             if (!res.ok) {
                 setLocalError(res?.error?.message || (t ? t('actionFailed') : 'Failed to save'));
+            }
+            // Save workday times into local options (no backend integration yet)
+            try {
+                setLocal('workday_start', workdayStart);
+                setLocal('workday_end', workdayEnd);
+            } catch (e) {
+                // setLocal may not be available in some contexts — swallow errors but log
+                console.debug('Failed to set local workday times', e);
             }
         } catch (e) {
             setLocalError(e?.message || String(e));
@@ -146,6 +163,21 @@ export default function SettingsPage() {
                     >
                         {SORT_VALUES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
+                </div>
+
+                {/* Workday start/end inputs (local-only for now) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t ? t('workdayStart') : 'Workday start'}</label>
+                        <input type="time" value={workdayStart} onChange={(e) => setWorkdayStart(e.target.value)} className="block w-full rounded border-gray-300 shadow-sm p-2" />
+                        <p className="text-xs text-gray-500 mt-1">Select when your workday begins.</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">{t ? t('workdayEnd') : 'Workday end'}</label>
+                        <input type="time" value={workdayEnd} onChange={(e) => setWorkdayEnd(e.target.value)} className="block w-full rounded border-gray-300 shadow-sm p-2" />
+                        <p className="text-xs text-gray-500 mt-1">Select when your workday ends.</p>
+                    </div>
                 </div>
 
                 <div className="flex items-center space-x-3">

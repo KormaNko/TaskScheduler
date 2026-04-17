@@ -8,6 +8,9 @@ const TRANSLATIONS = {
   SK: {
     settings: 'Nastavenia',
     saveSettings: 'Uložiť nastavenia',
+    // workday labels
+    workdayStart: 'Začiatok pracovného dňa',
+    workdayEnd: 'Koniec pracovného dňa',
     reset: 'Obnoviť',
     tasksDashboard: 'Zoznam úloh',
     switchToSimple: 'Prepnúť na jednoduchý',
@@ -115,6 +118,9 @@ const TRANSLATIONS = {
   EN: {
     settings: 'Settings',
     saveSettings: 'Save settings',
+    // workday labels
+    workdayStart: 'Workday start',
+    workdayEnd: 'Workday end',
     reset: 'Reset',
     tasksDashboard: 'Tasks Dashboard',
     switchToSimple: 'Switch to Simple',
