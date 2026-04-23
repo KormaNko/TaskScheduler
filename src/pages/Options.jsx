@@ -2,35 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 
-const LANG_VALUES = [
-    { value: 'SK', label: 'Slovenčina (SK)' },
-    { value: 'EN', label: 'English (EN)' },
-];
-
-const THEME_VALUES = [
-    { value: 'light', label: 'Light' },
-    { value: 'dark', label: 'Dark' },
-];
-
-const FILTER_VALUES = [
-    { value: 'all', label: 'All' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In progress' },
-    { value: 'completed', label: 'Completed' },
-];
-
-const SORT_VALUES = [
-    { value: 'none', label: 'None' },
-    { value: 'priority_asc', label: 'Priority ↑' },
-    { value: 'priority_desc', label: 'Priority ↓' },
-    { value: 'title_asc', label: 'Title A → Z' },
-    { value: 'title_desc', label: 'Title Z → A' },
-    { value: 'deadline_asc', label: 'Deadline: soonest first' },
-    { value: 'deadline_desc', label: 'Deadline: latest first' },
-];
-
 export default function SettingsPage() {
-    const { opts, loading, saving, error, saveOptions, t } = useOptions();
+    const { opts, loading, saving, error, saveOptions, t, setLocal } = useOptions();
 
     // local form state mirrors the options so user can edit and save
     const [language, setLanguage] = useState('SK');
@@ -43,22 +16,17 @@ export default function SettingsPage() {
     const [localError, setLocalError] = useState(null);
     const [isSaving, setIsSaving] = useState(false);
 
-
     // initialize from context opts
-    //AI
     useEffect(() => {
         if (!opts) return;
         setLanguage(opts.language ?? 'SK');
         setTheme(opts.theme ?? 'light');
-        setTaskFilter(opts.taskFilter ?? 'all');
-        setTaskSort(opts.taskSort ?? 'none');
+        setTaskFilter(opts.taskFilter ?? opts.task_filter ?? 'all');
+        setTaskSort(opts.taskSort ?? opts.task_sort ?? 'none');
         // initialize workday times from opts if present (support snake_case and camelCase)
         setWorkdayStart(opts.workdayStart ?? opts.workday_start ?? '09:00');
         setWorkdayEnd(opts.workdayEnd ?? opts.workday_end ?? '17:00');
-        // local state now reflects opts; further local changes may be pushed to context
-
         // ensure document theme matches saved opts when we first load
-        //AI
         try {
             const el = document?.documentElement;
             if (el) {
@@ -68,12 +36,7 @@ export default function SettingsPage() {
         } catch (e) { /* ignore */ }
     }, [opts]);
 
-    // expose setLocal so we can persist the workday times to local context (no backend yet)
-    const { setLocal } = useOptions();
-
-    // Preview theme locally when user changes the select, but do not write to context immediately.
-    // This prevents a loop where updating context triggers other effects and causes flicker.
-    //AI
+    // Preview theme locally when user changes the select
     useEffect(() => {
         try {
             const el = document?.documentElement;
@@ -81,8 +44,35 @@ export default function SettingsPage() {
             if (theme === 'dark') el.classList.add('app-dark');
             else el.classList.remove('app-dark');
         } catch (e) { /* ignore */ }
-
     }, [theme]);
+
+    // build option arrays using centralized translations
+    const langOptions = [
+        { value: 'SK', label: t ? t('lang_sl') : 'Slovenčina (SK)' },
+        { value: 'EN', label: t ? t('lang_en') : 'English (EN)' },
+    ];
+
+    const themeOptions = [
+        { value: 'light', label: t ? t('theme_light') : 'Light' },
+        { value: 'dark', label: t ? t('theme_dark') : 'Dark' },
+    ];
+
+    const filterOptions = [
+        { value: 'all', label: t ? t('all') : 'All' },
+        { value: 'pending', label: t ? t('pending') : 'Pending' },
+        { value: 'in_progress', label: t ? t('in_progress') : 'In progress' },
+        { value: 'completed', label: t ? t('completed') : 'Completed' },
+    ];
+
+    const sortOptions = [
+        { value: 'none', label: t ? t('sort_none') : 'None' },
+        { value: 'priority_asc', label: t ? t('sort_priority_asc') : 'Priority ↑' },
+        { value: 'priority_desc', label: t ? t('sort_priority_desc') : 'Priority ↓' },
+        { value: 'title_asc', label: t ? t('sort_title_asc') : 'Title A → Z' },
+        { value: 'title_desc', label: t ? t('sort_title_desc') : 'Title Z → A' },
+        { value: 'deadline_asc', label: t ? t('sort_deadline_asc') : 'Deadline: soonest first' },
+        { value: 'deadline_desc', label: t ? t('sort_deadline_desc') : 'Deadline: latest first' },
+    ];
 
     async function handleSave(e) {
         e?.preventDefault?.();
@@ -104,7 +94,6 @@ export default function SettingsPage() {
                 setLocal('workday_start', workdayStart);
                 setLocal('workday_end', workdayEnd);
             } catch (e) {
-                // setLocal may not be available in some contexts — swallow errors but log
                 console.debug('Failed to set local workday times', e);
             }
         } catch (e) {
@@ -114,21 +103,21 @@ export default function SettingsPage() {
         }
     }
 
-    if (loading) return <div className="p-6">{t ? t('loading') : 'Loading settings...'}</div>;
-    //AI
+    if (loading) return <div className="p-6">{t ? t('loadingSettings') : 'Loading settings...'}</div>;
+
     return (
         <div className="max-w-2xl mx-auto p-6">
             <h1 className="text-2xl font-semibold mb-4">{t ? t('settings') : 'Settings'}</h1>
-            {(error || localError) && <div className="mb-4 text-red-600">Error: {localError || error}</div>}
+            {(error || localError) && <div className="mb-4 text-red-600">{t ? t('errorPrefix') : 'Error:'} {localError || error}</div>}
             <form onSubmit={handleSave} className="space-y-6">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t ? t('name') : 'Language'}</label>
+                    <label className="block text-sm font-medium mb-1">{t ? t('language') : 'Language'}</label>
                     <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
-                        {LANG_VALUES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {langOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
 
@@ -139,29 +128,29 @@ export default function SettingsPage() {
                         onChange={(e) => setTheme(e.target.value)}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
-                        {THEME_VALUES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {themeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t ? t('tasks') : 'Task filter'}</label>
+                    <label className="block text-sm font-medium mb-1">{t ? t('taskFilter') : 'Task filter'}</label>
                     <select
                         value={taskFilter}
                         onChange={(e) => setTaskFilter(e.target.value)}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
-                        {FILTER_VALUES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {filterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t ? t('prio') : 'Task sorting'}</label>
+                    <label className="block text-sm font-medium mb-1">{t ? t('taskSort') : 'Task sorting'}</label>
                     <select
                         value={taskSort}
                         onChange={(e) => setTaskSort(e.target.value)}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
-                        {SORT_VALUES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
 
@@ -170,13 +159,13 @@ export default function SettingsPage() {
                     <div>
                         <label className="block text-sm font-medium mb-1">{t ? t('workdayStart') : 'Workday start'}</label>
                         <input type="time" value={workdayStart} onChange={(e) => setWorkdayStart(e.target.value)} className="block w-full rounded border-gray-300 shadow-sm p-2" />
-                        <p className="text-xs text-gray-500 mt-1">Select when your workday begins.</p>
+                        <p className="text-xs text-gray-500 mt-1">{t ? t('selectWorkdayStartHelp') : 'Select when your workday begins.'}</p>
                     </div>
 
                     <div>
                         <label className="block text-sm font-medium mb-1">{t ? t('workdayEnd') : 'Workday end'}</label>
                         <input type="time" value={workdayEnd} onChange={(e) => setWorkdayEnd(e.target.value)} className="block w-full rounded border-gray-300 shadow-sm p-2" />
-                        <p className="text-xs text-gray-500 mt-1">Select when your workday ends.</p>
+                        <p className="text-xs text-gray-500 mt-1">{t ? t('selectWorkdayEndHelp') : 'Select when your workday ends.'}</p>
                     </div>
                 </div>
 

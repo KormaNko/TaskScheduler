@@ -114,6 +114,21 @@ const TRANSLATIONS = {
     visible: 'zobrazené',
     selectToAct: 'Označte úlohy hore pre akcie',
     notCompleteYet: 'Ešte nesplnené',
+    // additional keys used by Options page
+    lang_sl: 'Slovenčina (SK)',
+    lang_en: 'English (EN)',
+    theme_light: 'Svetlá',
+    theme_dark: 'Tmavá',
+    sort_none: 'Žiadne',
+    sort_priority_asc: 'Priorita ↑',
+    sort_priority_desc: 'Priorita ↓',
+    sort_title_asc: 'Názov A → Z',
+    sort_title_desc: 'Názov Z → A',
+    sort_deadline_asc: 'Termín: najskôr',
+    sort_deadline_desc: 'Termín: najneskôr',
+    selectWorkdayStartHelp: 'Vyberte, kedy začína váš pracovný deň.',
+    selectWorkdayEndHelp: 'Vyberte, kedy končí váš pracovný deň.',
+    errorPrefix: 'Chyba:',
   },
   EN: {
     settings: 'Settings',
@@ -224,6 +239,21 @@ const TRANSLATIONS = {
     visible: 'visible',
     selectToAct: 'Select tasks above to act',
     notCompleteYet: 'Not complete yet',
+    // additional keys used by Options page
+    lang_sl: 'Slovenčina (SK)',
+    lang_en: 'English (EN)',
+    theme_light: 'Light',
+    theme_dark: 'Dark',
+    sort_none: 'None',
+    sort_priority_asc: 'Priority ↑',
+    sort_priority_desc: 'Priority ↓',
+    sort_title_asc: 'Title A → Z',
+    sort_title_desc: 'Title Z → A',
+    sort_deadline_asc: 'Deadline: soonest first',
+    sort_deadline_desc: 'Deadline: latest first',
+    selectWorkdayStartHelp: 'Select when your workday begins.',
+    selectWorkdayEndHelp: 'Select when your workday ends.',
+    errorPrefix: 'Error:',
   }
 };
 
