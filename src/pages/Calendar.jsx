@@ -155,8 +155,14 @@ export default function Calendar() {
          // set datetime-local value
          const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
          const s = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${hhmm}`;
+         // also create a default planned end 1 hour later
+         const d2 = new Date(d);
+         d2.setHours(d2.getHours() + 1);
+         const hhmm2 = `${pad(d2.getHours())}:${pad(d2.getMinutes())}`;
+         const s2 = `${d2.getFullYear()}-${pad(d2.getMonth()+1)}-${pad(d2.getDate())}T${hhmm2}`;
          // reset form to defaults but prefill the deadline so atomic/is_dynamic are default (0)
-         setForm({ title: '', description: '', priority: 2, deadline: s, category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
+         // For non-dynamic tasks we prefer to set planned_start/planned_end (not deadline)
+         setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: s, planned_end: s2 });
          setShowCreate(true);
      }
 
@@ -208,6 +214,7 @@ export default function Calendar() {
 
              await fetchTasks();
              setShowCreate(false);
+             // reset including the new UI-only workday fields
              setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
              setSuccess('Task created');
             // Always open the mis-scheduled modal after creating a task so the user can see results.
@@ -350,8 +357,10 @@ export default function Calendar() {
                                 <label className="block text-sm font-medium text-gray-700">Title</label>
                                 <input autoFocus className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Title" value={form.title} onChange={e => updateForm('title', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
-                                <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
+                                 {/* workday start/end removed per request */}
+
+                                 <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
+                                 <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
 
                                 <label className="block text-sm font-medium text-gray-700 mt-3">Description</label>
                                 <textarea rows={6} className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={e => updateForm('description', e.target.value)} />
