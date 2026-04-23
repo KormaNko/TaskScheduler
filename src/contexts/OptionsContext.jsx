@@ -134,6 +134,27 @@ const TRANSLATIONS = {
     errorPrefix: 'Chyba:',
     // misc
     now: 'Teraz',
+    // calendar/modal specific
+    title: 'Názov',
+    titleRequired: 'Názov je povinný',
+    timeToCompleteLabel: 'Čas dokončenia (minúty)',
+    // short label used in some components
+    timeToComplete: 'Čas dokončenia',
+    timeToCompleteInvalid: 'Čas dokončenia musí byť celé číslo ≥ 0',
+    plannedStart: 'Plánovaný začiatok',
+    plannedEnd: 'Plánovaný koniec',
+    taskCreated: 'Úloha vytvorená',
+    close: 'Zavrieť',
+    task: 'Úloha',
+    notSet: 'Nie je nastavené',
+    // dashboard-specific messages
+    confirmDeleteTask: 'Naozaj zmazať túto úlohu?',
+    taskDeleted: 'Úloha zmazaná',
+    deleteFailed: 'Zmazanie zlyhalo',
+    titleRequired: 'Názov je povinný',
+    statusUpdated: 'Stav aktualizovaný',
+    tasksDeleted: 'Úlohy zmazané',
+    updateFailed: 'Aktualizácia zlyhala',
   },
   EN: {
     settings: 'Settings',
@@ -264,6 +285,27 @@ const TRANSLATIONS = {
     errorPrefix: 'Error:',
     // misc
     now: 'Now',
+    // calendar/modal specific
+    title: 'Title',
+    titleRequired: 'Title is required',
+    timeToCompleteLabel: 'Time to complete (minutes)',
+    // short label used in some components
+    timeToComplete: 'Time to complete',
+    timeToCompleteInvalid: 'Time to complete must be an integer >= 0',
+    plannedStart: 'Planned start',
+    plannedEnd: 'Planned end',
+    taskCreated: 'Task created',
+    close: 'Close',
+    task: 'Task',
+    notSet: 'Not set',
+    // dashboard-specific messages
+    confirmDeleteTask: 'Delete task?',
+    taskDeleted: 'Task deleted',
+    deleteFailed: 'Delete failed',
+    titleRequired: 'Title is required',
+    statusUpdated: 'Status updated',
+    tasksDeleted: 'Tasks deleted',
+    updateFailed: 'Update failed',
   }
 };
 
@@ -339,24 +381,24 @@ export function OptionsProvider({ children }) {
     setSaving(true);
     setError(null);
     // optimistic update: apply payload locally immediately so UI responds quickly.
-    const prevOpts = opts;
+    let prevOpts;
     try {
-      // apply optimistic local state
-      setOpts(normalize(payload || {}));
-      const data = await api.post('/?c=options&a=update', payload);
-      // prefer server-returned normalized data, but fall back to payload if server returns nothing
-      const n = normalize(data || payload || {});
-      setOpts(n);
-      return { ok: true, data: n };
-    } catch (e) {
-      // revert optimistic change on failure
-      try { setOpts(prevOpts); } catch (err) { /* ignore */ }
-      setError(e?.message || String(e));
-      return { ok: false, error: e };
-    } finally {
-      setSaving(false);
-    }
-  }
+      // apply optimistic local state while capturing previous opts for revert
+      setOpts((s) => { prevOpts = s; return normalize(payload || {}); });
+       const data = await api.post('/?c=options&a=update', payload);
+       // prefer server-returned normalized data, but fall back to payload if server returns nothing
+       const n = normalize(data || payload || {});
+       setOpts(n);
+       return { ok: true, data: n };
+     } catch (e) {
+       // revert optimistic change on failure
+      try { if (prevOpts !== undefined) setOpts(prevOpts); } catch (err) { /* ignore */ }
+       setError(e?.message || String(e));
+       return { ok: false, error: e };
+     } finally {
+       setSaving(false);
+     }
+   }
 
   // convenience setter that updates local opts only (not persisted)
   function setLocal(k, v) {

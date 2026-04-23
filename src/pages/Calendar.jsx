@@ -92,7 +92,7 @@ export default function Calendar() {
             const list = Array.isArray(data) ? data : data?.data ?? [];
             setTasks(Array.isArray(list) ? list : []);
         } catch (e) {
-            setError('Failed to load tasks');
+            setError(t ? t('actionFailed') : 'Failed to load tasks');
         } finally { setLoading(false); }
      }
 
@@ -170,7 +170,7 @@ export default function Calendar() {
      async function createTask(e) {
          e.preventDefault();
          setError(null); setSuccess(null);
-         if (!form.title || !form.title.trim()) { setError('Title is required'); return; }
+         if (!form.title || !form.title.trim()) { setError(t ? t('titleRequired') : 'Title is required'); return; }
          setActionLoading(true);
          try {
              const p = new URLSearchParams();
@@ -189,7 +189,7 @@ export default function Calendar() {
              const ttcRaw = form.time_to_complete;
              if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
                  const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
-                 if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); setActionLoading(false); return; }
+                 if (isNaN(ttcInt) || ttcInt < 0) { setError(t ? t('timeToCompleteInvalid') : 'Time to complete must be an integer >= 0'); setActionLoading(false); return; }
                  p.append('time_to_complete', String(ttcInt));
              } else {
                  p.append('time_to_complete', '');
@@ -215,13 +215,15 @@ export default function Calendar() {
              setShowCreate(false);
              // reset including the new UI-only workday fields
              setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
-             setSuccess('Task created');
+-            setSuccess('Task created');
++            setSuccess(t ? t('taskCreated') : 'Task created');
             // Always open the mis-scheduled modal after creating a task so the user can see results.
             // The modal will fetch `/?c=misscheduledTasks&a=index` itself.
              setMisScheduledTasks(null);
              setShowMissedModal(true);
          } catch (err) {
-             setError(err?.message || 'Create failed');
+-            setError(err?.message || 'Create failed');
++            setError(err?.message || (t ? t('createFailed') : 'Create failed'));
          } finally {
              setActionLoading(false);
          }
@@ -353,24 +355,24 @@ export default function Calendar() {
                         {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">Title</label>
-                                <input autoFocus className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder="Title" value={form.title} onChange={e => updateForm('title', e.target.value)} />
+                                <label className="block text-sm font-medium text-gray-700">{t ? t('title') : 'Title'}</label>
+                                <input autoFocus className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder={t ? t('title') : 'Title'} value={form.title} onChange={e => updateForm('title', e.target.value)} />
 
                                  {/* workday start/end removed per request */}
 
-                                 <label className="block text-sm font-medium text-gray-700 mt-2">Time to complete (minutes)</label>
+                                 <label className="block text-sm font-medium text-gray-700 mt-2">{t ? t('timeToCompleteLabel') : 'Time to complete (minutes)'}</label>
                                  <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={e => updateForm('time_to_complete', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-3">Description</label>
+                                <label className="block text-sm font-medium text-gray-700 mt-3">{t ? t('description') : 'Description'}</label>
                                 <textarea rows={6} className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" value={form.description} onChange={e => updateForm('description', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Planned start</label>
+                                <label className="block text-sm font-medium text-gray-700 mt-2">{t ? t('plannedStart') : 'Planned start'}</label>
                                 <input name="planned_start" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_start} onChange={e => updateForm('planned_start', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Planned end</label>
+                                <label className="block text-sm font-medium text-gray-700 mt-2">{t ? t('plannedEnd') : 'Planned end'}</label>
                                 <input name="planned_end" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_end} onChange={e => updateForm('planned_end', e.target.value)} />
 
-                                <label className="block text-sm font-medium text-gray-700 mt-2">Deadline</label>
+                                <label className="block text-sm font-medium text-gray-700 mt-2">{t ? t('deadline') : 'Deadline'}</label>
                                 <input name="deadline" type="datetime-local" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-2 rounded-md focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.deadline} onChange={e => updateForm('deadline', e.target.value)} />
 
                                 {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
@@ -392,8 +394,8 @@ export default function Calendar() {
                                  </div>
 
                                 <div className="mt-4 flex gap-2">
-                                     <button type="submit" disabled={actionLoading} className={`inline-flex items-center gap-2 px-4 py-2 ${actionLoading?"bg-green-500":"bg-green-600"} text-white rounded-md shadow-sm`}>{actionLoading ? 'Creating...' : 'Create'}</button>
-                                     <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-md bg-white text-gray-700">Cancel</button>
+                                     <button type="submit" disabled={actionLoading} className={`inline-flex items-center gap-2 px-4 py-2 ${actionLoading?"bg-green-500":"bg-green-600"} text-white rounded-md shadow-sm`}>{actionLoading ? (t ? t('creating') : 'Creating...') : (t ? t('create') : 'Create')}</button>
+                                     <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 border border-gray-200 rounded-md bg-white text-gray-700">{t ? t('cancel') : 'Cancel'}</button>
                                  </div>
                               </div>
                           </div>
@@ -407,16 +409,16 @@ export default function Calendar() {
                     <div className="bg-white p-4 rounded w-full max-w-md">
                         <div className="text-lg font-semibold mb-2">{editing.title}</div>
                         <div className="text-sm text-gray-500 mb-2">{editing.deadline ? new Date(String(editing.deadline).replace(' ', 'T')).toLocaleString() : ''}</div>
-                        <div className="text-sm text-gray-500 mb-2">Planned start: {editing.plannedStart ? new Date(String(editing.plannedStart).replace(' ', 'T')).toLocaleString() : '-'}</div>
-                        <div className="text-sm text-gray-500 mb-2">Planned end: {editing.plannedEnd ? new Date(String(editing.plannedEnd).replace(' ', 'T')).toLocaleString() : '-'}</div>
-                        <div className="mb-2">{editing?.category?.name ?? ''}</div>
-                        {editing.description ? <div className="mb-4 text-gray-700">{editing.description}</div> : null}
-                        <div className="flex justify-end gap-2">
-                            <button onClick={() => setEditing(null)} className="bg-gray-200 px-4 py-2 rounded">Close</button>
+                        <div className="text-sm text-gray-500 mb-2">{t ? t('plannedStart') : 'Planned start'}: {editing.plannedStart ? new Date(String(editing.plannedStart).replace(' ', 'T')).toLocaleString() : '-'}</div>
+                        <div className="text-sm text-gray-500 mb-2">{t ? t('plannedEnd') : 'Planned end'}: {editing.plannedEnd ? new Date(String(editing.plannedEnd).replace(' ', 'T')).toLocaleString() : '-'}</div>
+                         <div className="mb-2">{editing?.category?.name ?? ''}</div>
+                         {editing.description ? <div className="mb-4 text-gray-700">{editing.description}</div> : null}
+                         <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditing(null)} className="bg-gray-200 px-4 py-2 rounded">{t ? t('close') : 'Close'}</button>
                         </div>
-                    </div>
-                </div>
-             )}
+                     </div>
+                 </div>
+              )}
 
              {/* Missed tasks modal: shows after creating a task if the scheduler assigned any tasks to the past */}
              <ModalMisscheduledTasks open={showMissedModal} onClose={() => setShowMissedModal(false)} onRefresh={fetchTasks} initialTasks={misScheduledTasks} />

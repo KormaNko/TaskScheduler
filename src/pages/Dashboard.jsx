@@ -6,14 +6,6 @@ import { Menu } from 'lucide-react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
 import ModalMisscheduledTasks from '../components/ModalMisscheduledTasks.jsx';
 
-const STATUS_OPTIONS = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'in_progress', label: 'In progress' },
-    { value: 'completed', label: 'Completed' },
-];
-
-// CATEGORY_OPTIONS come from the backend user categories. We will fetch them on mount.
-
 export default function Dashboard() {
     const tableWrapperRef = useRef(null);
     const tableRef = useRef(null);
@@ -43,6 +35,13 @@ export default function Dashboard() {
     const [showMissedModal, setShowMissedModal] = useState(false);
 
     const { opts, t } = useOptions();
+
+    // Localized status options (use translation function when available)
+    const STATUS_OPTIONS = useMemo(() => [
+        { value: 'pending', label: t ? t('pending') : 'Pending' },
+        { value: 'in_progress', label: t ? t('in_progress') : 'In progress' },
+        { value: 'completed', label: t ? t('completed') : 'Completed' },
+    ], [t]);
 
     // Map option sort names to dashboard internal sort names
     function mapOptionSortToDashboard(v) {
@@ -243,11 +242,24 @@ export default function Dashboard() {
         return `${h}h ${m}m`;
     }
 
+    // Format backend datetime strings into localized display "dd.mm.yyyy HH:MM".
+    // If the original input doesn't contain a time portion, show "--:--" for the time part as requested.
+    function formatDateForDisplay(dateString) {
+        if (!dateString) return '-';
+        const orig = String(dateString);
+        const d = new Date(orig.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return orig;
+        const pad = (n) => String(n).padStart(2, '0');
+        const hasTime = /[T ]\d{1,2}:\d{2}/.test(orig);
+        const timePart = hasTime ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : '--:--';
+        return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${timePart}`;
+    }
+
     //AI
     async function createTask(e) {
         e?.preventDefault?.();
         setError(null); setSuccess(null);
-        if (!form.title?.trim()) { setError('Title is required'); return; }
+        if (!form.title?.trim()) { setError(t ? t('titleRequired') : 'Title is required'); return; }
         setActionLoading(true);
         try {
             const params = new URLSearchParams();
@@ -268,7 +280,7 @@ export default function Dashboard() {
             const ttcRaw = form.time_to_complete;
             if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
                 const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
-                if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); return; }
+                if (isNaN(ttcInt) || ttcInt < 0) { setError(t ? t('timeToCompleteInvalid') : 'time_to_complete must be an integer >= 0'); return; }
                 params.append('time_to_complete', String(ttcInt));
             } else {
                 // send empty string to explicitly clear
@@ -287,28 +299,28 @@ export default function Dashboard() {
             await fetchTasks();
             setShowCreate(false);
             setForm({ title: '', description: '', priority: 2, deadline: '', category_id: '', time_to_complete: '', atomic_task: 0, is_dynamic: 0, planned_start: '', planned_end: '' });
-            setSuccess('Task created');
+            setSuccess(t ? t('taskCreated') : 'Task created');
             // Always open the mis-scheduled modal after creating a task so the user can inspect results.
             // The modal will fetch `/?c=misscheduledTasks&a=index` directly.
             setMisScheduledTasks(null);
             setShowMissedModal(true);
         } catch (err) {
             console.error('createTask', err);
-            setError(err.message || 'Create failed');
+            setError(err.message || (t ? t('createFailed') : 'Create failed'));
         } finally { setActionLoading(false); }
     }
 
     async function handleDelete(id) {
-        if (!confirm('Delete task?')) return;
+        if (!confirm(t ? t('confirmDeleteTask') : 'Delete task?')) return;
         setError(null); setActionLoading(true);
         try {
             const p = new URLSearchParams(); p.append('id', String(id));
             await api.request('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
             setTasks((prev) => prev.filter((t) => String(t.id) !== String(id)));
-            setSuccess('Task deleted');
+            setSuccess(t ? t('taskDeleted') : 'Task deleted');
         } catch (err) {
             console.error('delete', err);
-            setError(err.message || 'Delete failed');
+            setError(err.message || (t ? t('deleteFailed') : 'Delete failed'));
         } finally { setActionLoading(false); }
     }
     //AI
@@ -324,13 +336,13 @@ export default function Dashboard() {
             params.append('id', String(id));
             params.append('status', String(newStatus));
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
-            setSuccess('Status updated');
+            setSuccess(t ? t('statusUpdated') : 'Status updated');
             // do not refetch entire list to avoid visual "refresh"; single-item update is enough
         } catch (err) {
             console.error('changeStatus', err);
             // revert optimistic update on error
             setTasks(prevTasks);
-            setError(err.message || 'Failed to update status');
+            setError(err.message || (t ? t('actionFailed') : 'Failed to update status'));
         } finally { setActionLoading(false); }
     }
 
@@ -419,7 +431,7 @@ export default function Dashboard() {
             const ttcRaw = editing.time_to_complete;
             if (ttcRaw !== undefined && ttcRaw !== null && ttcRaw !== '') {
                 const ttcInt = Number.isNaN(Number(ttcRaw)) ? NaN : parseInt(ttcRaw, 10);
-                if (isNaN(ttcInt) || ttcInt < 0) { setError('time_to_complete must be an integer >= 0'); return; }
+                if (isNaN(ttcInt) || ttcInt < 0) { setError(t ? t('timeToCompleteInvalid') : 'time_to_complete must be an integer >= 0'); return; }
                 params.append('time_to_complete', String(ttcInt));
             } else {
                 params.append('time_to_complete', '');
@@ -440,10 +452,10 @@ export default function Dashboard() {
             await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             await fetchTasks();
             setEditing(null);
-            setSuccess('Task updated');
+            setSuccess(t ? t('statusUpdated') : 'Task updated');
         } catch (err) {
             console.error('saveEdit', err);
-            setError(err.message || 'Update failed');
+            setError(err.message || (t ? t('updateFailed') : 'Update failed'));
         } finally { setActionLoading(false); }
     }
 
@@ -504,13 +516,13 @@ export default function Dashboard() {
                 const params = new URLSearchParams(); params.append('id', String(id)); params.append('status', String(newStatus));
                 await api.request('/?c=task&a=update', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
             }
-            setSuccess('Status updated');
+            setSuccess(t ? t('statusUpdated') : 'Status updated');
             clearSelection();
         } catch (err) {
             console.error('batchChangeStatus', err);
             // revert to the previous snapshot
             setTasks(prevSnapshot);
-            setError(err.message || 'Failed to update status');
+            setError(err.message || (t ? t('actionFailed') : 'Failed to update status'));
         } finally { setActionLoading(false); }
     }
 
@@ -526,13 +538,13 @@ export default function Dashboard() {
                 const p = new URLSearchParams(); p.append('id', String(id));
                 await api.request('/?c=task&a=delete', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
             }
-            setSuccess('Tasks deleted');
+            setSuccess(t ? t('tasksDeleted') : 'Tasks deleted');
             clearSelection();
         } catch (err) {
             console.error('batchDelete', err);
             // revert to the previous snapshot
             setTasks(prevSnapshot);
-            setError(err.message || 'Delete failed');
+            setError(err.message || (t ? t('deleteFailed') : 'Delete failed'));
         } finally { setActionLoading(false); }
     }
 
@@ -567,19 +579,19 @@ export default function Dashboard() {
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                             />
-                            <select className="px-3 py-2 border border-gray-200 rounded-full bg-white shadow-sm w-full md:w-auto min-w-0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title="Sort">
-                                <option value="none">Sort: none</option>
-                                <optgroup label="Priority">
-                                    <option value="priority_asc">Priority ↑</option>
-                                    <option value="priority_desc">Priority ↓</option>
+                            <select className="px-3 py-2 border border-gray-200 rounded-full bg-white shadow-sm w-full md:w-auto min-w-0" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} title={t ? t('taskSort') : 'Sort'}>
+                                <option value="none">{t ? t('sort_none') : 'None'}</option>
+                                <optgroup label={t ? t('priority') : 'Priority'}>
+                                    <option value="priority_asc">{t ? t('sort_priority_asc') : 'Priority ↑'}</option>
+                                    <option value="priority_desc">{t ? t('sort_priority_desc') : 'Priority ↓'}</option>
                                 </optgroup>
-                                <optgroup label="Title">
-                                    <option value="title_asc">Title A → Z</option>
-                                    <option value="title_desc">Title Z → A</option>
+                                <optgroup label={t ? t('title') : 'Title'}>
+                                    <option value="title_asc">{t ? t('sort_title_asc') : 'Title A → Z'}</option>
+                                    <option value="title_desc">{t ? t('sort_title_desc') : 'Title Z → A'}</option>
                                 </optgroup>
-                                <optgroup label="Remaining time">
-                                    <option value="time_asc">Deadline: soonest first</option>
-                                    <option value="time_desc">Deadline: latest first</option>
+                                <optgroup label={t ? t('deadline') : 'Deadline'}>
+                                    <option value="time_asc">{t ? t('sort_deadline_asc') : 'Deadline: soonest first'}</option>
+                                    <option value="time_desc">{t ? t('sort_deadline_desc') : 'Deadline: latest first'}</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -648,13 +660,13 @@ export default function Dashboard() {
                                 onChange={(e) => updateForm('deadline', e.target.value)}
                             />
 
-                            <label className="block text-sm font-medium mt-4">Time to complete (minutes)</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('timeToCompleteLabel') : 'Time to complete (minutes)'}</label>
                             <input name="time_to_complete" type="number" min="0" step="1" disabled={!isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${!isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.time_to_complete} onChange={(e) => updateForm('time_to_complete', e.target.value)} />
 
-                            <label className="block text-sm font-medium mt-4">Planned start</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('plannedStart') : 'Planned start'}</label>
                             <input name="planned_start" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_start} onChange={(e) => updateForm('planned_start', e.target.value)} />
 
-                            <label className="block text-sm font-medium mt-4">Planned end</label>
+                            <label className="block text-sm font-medium mt-4">{t ? t('plannedEnd') : 'Planned end'}</label>
                             <input name="planned_end" type="datetime-local" disabled={isDynamic} className={`mt-1 block w-full border border-gray-200 p-3 rounded-lg shadow-sm focus:outline-none ${isDynamic ? 'opacity-60 cursor-not-allowed bg-gray-50' : 'focus:ring-2 focus:ring-indigo-200'}`} value={form.planned_end} onChange={(e) => updateForm('planned_end', e.target.value)} />
 
                             {/* atomic_task checkbox: include hidden input before checkbox so non-checked state still sends value in plain HTML forms; also controlled via React state */}
@@ -689,15 +701,15 @@ export default function Dashboard() {
                 <div className="mb-4 p-3 rounded bg-gray-50 border border-gray-100 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                         <strong>{selectedIds.length}</strong>
-                        <span className="text-sm text-gray-600">selected</span>
-                        <button type="button" onClick={() => selectAllVisible()} className="px-2 py-1 ml-2 border rounded text-sm">Toggle select all</button>
-                        <button type="button" onClick={() => clearSelection()} className="px-2 py-1 ml-2 border rounded text-sm">Clear</button>
+                        <span className="text-sm text-gray-600">{t ? t('selected') : 'selected'}</span>
+                        <button type="button" onClick={() => selectAllVisible()} className="px-2 py-1 ml-2 border rounded text-sm">{t ? t('selectAll') : 'Toggle select all'}</button>
+                        <button type="button" onClick={() => clearSelection()} className="px-2 py-1 ml-2 border rounded text-sm">{t ? t('clear') : 'Clear'}</button>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'in_progress')} disabled={actionLoading} className="px-3 py-1 bg-yellow-500 text-white rounded">Start</button>
-                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'completed')} disabled={actionLoading} className="px-3 py-1 bg-green-600 text-white rounded">Complete</button>
-                        {selectedIds.length === 1 && <button type="button" onClick={() => editSelected()} disabled={actionLoading} className="px-3 py-1 bg-blue-600 text-white rounded">Edit</button>}
-                        <button type="button" onClick={() => batchDelete(selectedIds)} disabled={actionLoading} className="px-3 py-1 bg-red-600 text-white rounded">Delete</button>
+                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'in_progress')} disabled={actionLoading} className="px-3 py-1 bg-yellow-500 text-white rounded">{t ? t('start') : 'Start'}</button>
+                        <button type="button" onClick={() => batchChangeStatus(selectedIds, 'completed')} disabled={actionLoading} className="px-3 py-1 bg-green-600 text-white rounded">{t ? t('complete') : 'Complete'}</button>
+                        {selectedIds.length === 1 && <button type="button" onClick={() => editSelected()} disabled={actionLoading} className="px-3 py-1 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>}
+                        <button type="button" onClick={() => batchDelete(selectedIds)} disabled={actionLoading} className="px-3 py-1 bg-red-600 text-white rounded">{t ? t('delete') : 'Delete'}</button>
                     </div>
                 </div>
             )}
@@ -769,21 +781,21 @@ export default function Dashboard() {
                         </div>
 
                         <div className="mt-3 space-y-2 text-sm">
-                            {detailTask.description ? <div><strong>Description</strong><div className="text-gray-700 mt-1 whitespace-pre-wrap">{detailTask.description}</div></div> : null}
-                            <div><strong>Status:</strong> <span className="ml-2">{detailTask.status ?? '-'}</span></div>
-                            <div><strong>Priority:</strong> <span className="ml-2">{detailTask.priority ?? '-'}</span></div>
-                            <div><strong>Category:</strong> <span className="ml-2">{detailTask?.category?.name ?? '-'}</span></div>
-                            <div><strong>Deadline:</strong> <span className="ml-2">{detailTask.deadline ? String(detailTask.deadline).replace(' ', 'T') : '-'}</span></div>
-                            <div><strong>Planned start:</strong> <span className="ml-2">{detailTask.plannedStart ? String(detailTask.plannedStart).replace(' ', 'T') : '-'}</span></div>
-                            <div><strong>Planned end:</strong> <span className="ml-2">{detailTask.plannedEnd ? String(detailTask.plannedEnd).replace(' ', 'T') : '-'}</span></div>
-                            <div><strong>Time to complete:</strong> <span className="ml-2">{(() => { const ft = formatTimeToComplete(detailTask.timeToComplete); return ft ? ft : (detailTask.timeToComplete === null ? (t ? t('notSet') : 'Not set') : '-'); })()}</span></div>
+                            {detailTask.description ? <div><strong>{t ? t('description') : 'Description'}</strong><div className="text-gray-700 mt-1 whitespace-pre-wrap">{detailTask.description}</div></div> : null}
+                            <div><strong>{t ? t('statusLabel') : 'Status'}:</strong> <span className="ml-2">{detailTask.status ?? '-'}</span></div>
+                            <div><strong>{t ? t('priority') : 'Priority'}:</strong> <span className="ml-2">{detailTask.priority ?? '-'}</span></div>
+                            <div><strong>{t ? t('categoryLabel') : 'Category'}:</strong> <span className="ml-2">{detailTask?.category?.name ?? '-'}</span></div>
+                            <div><strong>{t ? t('deadline') : 'Deadline'}:</strong> <span className="ml-2">{detailTask.deadline ? formatDateForDisplay(detailTask.deadline) : '-'}</span></div>
+                            <div><strong>{t ? t('plannedStart') : 'Planned start'}:</strong> <span className="ml-2">{detailTask.plannedStart ? formatDateForDisplay(detailTask.plannedStart) : '-'}</span></div>
+                            <div><strong>{t ? t('plannedEnd') : 'Planned end'}:</strong> <span className="ml-2">{detailTask.plannedEnd ? formatDateForDisplay(detailTask.plannedEnd) : '-'}</span></div>
+                            <div><strong>{t ? t('timeToCompleteLabel') : 'Time to complete'}:</strong> <span className="ml-2">{(() => { const ft = formatTimeToComplete(detailTask.timeToComplete); return ft ? ft : (detailTask.timeToComplete === null ? (t ? t('notSet') : 'Not set') : '-'); })()}</span></div>
                             {Number(detailTask.atomicTask) === 1 ? (<div><strong>{t ? t('atomicTask') : 'Task that cannot be split'}:</strong> <span className="ml-2">{t ? t('atomic') : 'Cannot be split'}</span></div>) : null}
                             {Number(detailTask.isDynamic) === 1 ? (<div><strong>{t ? t('dynamic') : 'Dynamic'}:</strong> <span className="ml-2">{t ? t('dynamic') : 'Dynamic'}</span></div>) : null}
                         </div>
 
                         <div className="mt-4 flex justify-end gap-2">
-                            <button onClick={() => { setDetailTask(null); openEdit(detailTask); }} className="px-3 py-2 bg-blue-600 text-white rounded">Edit</button>
-                            <button onClick={() => { handleDelete(detailTask.id); setDetailTask(null); }} className="px-3 py-2 bg-red-600 text-white rounded">Delete</button>
+                            <button onClick={() => { setDetailTask(null); openEdit(detailTask); }} className="px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>
+                            <button onClick={() => { handleDelete(detailTask.id); setDetailTask(null); }} className="px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Delete'}</button>
                         </div>
                     </div>
                 </div>
@@ -797,22 +809,22 @@ export default function Dashboard() {
                     <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-6 md:p-8 box-border flex flex-col overflow-hidden shadow-sm ring-1 ring-gray-100"}>
                         {/* header */}
                         <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold">Edit Task #{editing.id}</h3>
+                            <h3 className="text-lg font-semibold">{t ? `${t('edit')} ${t('task')} #${editing.id}` : `Edit Task #${editing.id}`}</h3>
                             <button type="button" onClick={() => setEditing(null)} className="text-gray-600 hover:text-gray-800 px-2 py-1">✕</button>
                         </div>
 
                         {/* content (non-horizontal-scrollable). place formRef to measure height */}
                         <div className={"flex-1 " + (editFullScreen ? 'overflow-auto' : '')}>
                              <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-4">
-                                 <label className="text-sm font-medium">Title</label>
+                                 <label className="text-sm font-medium">{t ? t('title') : 'Title'}</label>
                                  <input className="border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 w-full" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
 
-                                 <label className="text-sm font-medium">Description</label>
+                                 <label className="text-sm font-medium">{t ? t('description') : 'Description'}</label>
                                  <textarea className="border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 w-full min-h-[120px]" value={editing.description ?? ''} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />
 
                                 <div className="flex flex-col md:flex-row gap-4">
                                     <div className="flex-1">
-                                        <label className="text-sm font-medium">Status</label>
+                                        <label className="text-sm font-medium">{t ? t('statusLabel') : 'Status'}</label>
                                         <select value={editing.status ?? ''} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200">
                                             <option value="">—</option>
                                             {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
@@ -820,12 +832,12 @@ export default function Dashboard() {
                                     </div>
 
                                     <div className="w-full md:w-32">
-                                        <label className="text-sm font-medium">Priority</label>
+                                        <label className="text-sm font-medium">{t ? t('priority') : 'Priority'}</label>
                                         <input type="number" min="1" max="5" value={editing.priority ?? 2} onChange={(e) => setEditing({ ...editing, priority: Number(e.target.value) })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                     </div>
 
                                     <div className="flex-1">
-                                         <label className="text-sm font-medium">Category</label>
+                                         <label className="text-sm font-medium">{t ? t('categoryLabel') : 'Category'}</label>
                                         <select value={editing.category_id ?? ''} onChange={(e) => setEditing({ ...editing, category_id: e.target.value === '' ? '' : Number(e.target.value) })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200">
                                             <option value="">—</option>
                                             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -833,17 +845,17 @@ export default function Dashboard() {
                                      </div>
 
                                     <div className="w-full md:w-auto">
-                                         <label className="text-sm font-medium">Deadline</label>
-                                         <input type="datetime-local" disabled={Number(editing.is_dynamic) === 0} value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 disabled:opacity-60" />
+                                         <label className="text-sm font-medium">{t ? t('deadline') : 'Deadline'}</label>
+                                          <input type="datetime-local" disabled={Number(editing.is_dynamic) === 0} value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 disabled:opacity-60" />
                                      </div>
 
                                      <div className="w-full md:w-auto">
-                                          <label className="text-sm font-medium">Planned start</label>
+                                          <label className="text-sm font-medium">{t ? t('plannedStart') : 'Planned start'}</label>
                                          <input type="datetime-local" disabled={Number(editing.is_dynamic) === 1} value={editing.planned_start ?? ''} onChange={(e) => setEditing({ ...editing, planned_start: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                       </div>
 
                                      <div className="w-full md:w-auto">
-                                          <label className="text-sm font-medium">Planned end</label>
+                                          <label className="text-sm font-medium">{t ? t('plannedEnd') : 'Planned end'}</label>
                                          <input type="datetime-local" disabled={Number(editing.is_dynamic) === 1} value={editing.planned_end ?? ''} onChange={(e) => setEditing({ ...editing, planned_end: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                       </div>
 
@@ -864,12 +876,12 @@ export default function Dashboard() {
                                              <span className="text-sm">{t ? t('dynamic') : 'Dynamic'}</span>
                                          </label>
                                      </div>
-                                 </div>
+                                </div>
 
                                 {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
                                 <div className="mt-2 flex justify-start md:justify-end gap-2">
-                                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm flex-shrink-0">Save</button>
-                                    <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 border border-gray-200 rounded-lg">Cancel</button>
+                                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm flex-shrink-0">{t ? t('save') : 'Save'}</button>
+                                    <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
                                 </div>
                              </form>
                          </div>
