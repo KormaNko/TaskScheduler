@@ -51,6 +51,9 @@ const TRANSLATIONS = {
     newUser: 'Nový používateľ',
     loadingUsers: 'Načítavam používateľov...',
     noUsers: 'Žiadni používatelia',
+    // singular user/admin labels
+    user: 'Používateľ',
+    admin: 'Admin',
     firstName: 'Meno',
     lastName: 'Priezvisko',
     email: 'Email',
@@ -176,6 +179,9 @@ const TRANSLATIONS = {
     newUser: 'New user',
     loadingUsers: 'Loading users...',
     noUsers: 'No users',
+    // singular user/admin labels
+    user: 'User',
+    admin: 'Admin',
     firstName: 'First name',
     lastName: 'Last name',
     email: 'Email',
