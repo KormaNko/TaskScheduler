@@ -132,6 +132,8 @@ const TRANSLATIONS = {
     selectWorkdayStartHelp: 'Vyberte, kedy začína váš pracovný deň.',
     selectWorkdayEndHelp: 'Vyberte, kedy končí váš pracovný deň.',
     errorPrefix: 'Chyba:',
+    // misc
+    now: 'Teraz',
   },
   EN: {
     settings: 'Settings',
@@ -260,6 +262,8 @@ const TRANSLATIONS = {
     selectWorkdayStartHelp: 'Select when your workday begins.',
     selectWorkdayEndHelp: 'Select when your workday ends.',
     errorPrefix: 'Error:',
+    // misc
+    now: 'Now',
   }
 };
 

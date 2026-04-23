@@ -149,8 +149,7 @@ export default function Calendar() {
          if (a instanceof Date) {
              d = a;
          } else {
-             const day = a; // 1-based
-             d = new Date(year, (b - 1), day, 9, 0, 0);
+             d = new Date(year, (b - 1), a, 9, 0, 0);
          }
          // set datetime-local value
          const hhmm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -234,7 +233,7 @@ export default function Calendar() {
 
             <div className="px-6 flex items-center justify-between mb-4 gap-4 flex-wrap">
                  <div className="flex items-center gap-2 w-full md:w-auto min-w-0 self-center">
-                     <h1 className="text-2xl font-bold leading-none m-0">Kalendár</h1>
+                     <h1 className="text-2xl font-bold leading-none m-0">{t ? t('calendar') : 'Kalendár'}</h1>
                  </div>
 
                 {/* view buttons: keep side-by-side even on small screens and use Dashboard-style rounded pills */}
@@ -296,7 +295,7 @@ export default function Calendar() {
                         <span className="hidden sm:inline">{t ? t('next') : 'Nasl'}</span>
                     </button>
                 </div>
-                <div className="text-sm text-gray-600">{t ? t('view') : 'Zobrazenie'}: <strong className="text-indigo-700">{viewMode === 'day' ? (t ? t('view_day') : 'Deň') : viewMode === '3days' ? (t ? t('view_3days') : '3 dni') : viewMode === 'week' ? (t ? t('view_week') : 'Týždeň') : (t ? t('view_month') : 'Mesiac')}</strong> • {baseDate.toLocaleDateString()}</div>
+                <div className="text-sm text-gray-600"><strong className="text-indigo-700">{viewMode === 'day' ? (t ? t('view_day') : 'Deň') : viewMode === '3days' ? (t ? t('view_3days') : '3 dni') : viewMode === 'week' ? (t ? t('view_week') : 'Týždeň') : (t ? t('view_month') : 'Mesiac')}</strong> • {baseDate.toLocaleDateString()}</div>
             </div>
 
             <div className="p-6">
