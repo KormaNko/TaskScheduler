@@ -114,7 +114,11 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">{t ? t('language') : 'Language'}</label>
                     <select
                         value={language}
-                        onChange={(e) => setLanguage(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setLanguage(v);
+                            try { setLocal('language', v); } catch (err) { /* ignore */ }
+                        }}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
                         {langOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -125,7 +129,11 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">{t ? t('theme') : 'Theme'}</label>
                     <select
                         value={theme}
-                        onChange={(e) => setTheme(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setTheme(v);
+                            try { setLocal('theme', v); } catch (err) { /* ignore */ }
+                        }}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
                         {themeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -136,7 +144,11 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">{t ? t('taskFilter') : 'Task filter'}</label>
                     <select
                         value={taskFilter}
-                        onChange={(e) => setTaskFilter(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setTaskFilter(v);
+                            try { setLocal('taskFilter', v); } catch (err) { /* ignore */ }
+                        }}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
                         {filterOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -147,7 +159,11 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium mb-1">{t ? t('taskSort') : 'Task sorting'}</label>
                     <select
                         value={taskSort}
-                        onChange={(e) => setTaskSort(e.target.value)}
+                        onChange={(e) => {
+                            const v = e.target.value;
+                            setTaskSort(v);
+                            try { setLocal('taskSort', v); } catch (err) { /* ignore */ }
+                        }}
                         className="block w-full rounded border-gray-300 shadow-sm p-2"
                     >
                         {sortOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

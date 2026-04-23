@@ -329,7 +329,7 @@ export function OptionsProvider({ children }) {
     setSaving(true);
     setError(null);
     // optimistic update: apply payload locally immediately so UI responds quickly.
-    const prev = opts;
+    const prevOpts = opts;
     try {
       // apply optimistic local state
       setOpts(normalize(payload || {}));
@@ -340,7 +340,7 @@ export function OptionsProvider({ children }) {
       return { ok: true, data: n };
     } catch (e) {
       // revert optimistic change on failure
-      try { setOpts(prev); } catch (err) { /* ignore */ }
+      try { setOpts(prevOpts); } catch (err) { /* ignore */ }
       setError(e?.message || String(e));
       return { ok: false, error: e };
     } finally {
