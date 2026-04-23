@@ -28,6 +28,9 @@ export default function Calendar() {
     const [showMissedModal, setShowMissedModal] = useState(false);
 
     const { opts, t } = useOptions();
+    // detect if the user selected dark theme in options so we can avoid forcing a light background
+    // (some pages used explicit bg-gradient classes which override the `.app-dark` CSS rules)
+    const isDarkTheme = (opts?.theme ?? 'light') === 'dark';
 
     useEffect(() => { fetchTasks(); }, []);
     useEffect(() => { fetchCategories(); }, []);
@@ -229,9 +232,13 @@ export default function Calendar() {
          }
      }
     //AI
+     // ensure we always have a valid Date for display / child props
+     const safeBaseDate = (baseDate instanceof Date && !isNaN(baseDate.getTime())) ? baseDate : new Date();
+
      return (
-        <div className="p-6 bg-gradient-to-b from-slate-50 to-white min-h-screen">
-            <div className="mx-auto max-w-7xl">
+        // when in dark theme avoid the light gradient classes so the global `.app-dark` styles win
+        <div className={`p-6 ${isDarkTheme ? 'min-h-screen' : 'bg-gradient-to-b from-slate-50 to-white min-h-screen'}`}>
+             <div className="mx-auto max-w-7xl">
 
             <div className="px-6 flex items-center justify-between mb-4 gap-4 flex-wrap">
                  <div className="flex items-center gap-2 w-full md:w-auto min-w-0 self-center">
@@ -297,53 +304,58 @@ export default function Calendar() {
                         <span className="hidden sm:inline">{t ? t('next') : 'Nasl'}</span>
                     </button>
                 </div>
-                <div className="text-sm text-gray-600"><strong className="text-indigo-700">{viewMode === 'day' ? (t ? t('view_day') : 'Deň') : viewMode === '3days' ? (t ? t('view_3days') : '3 dni') : viewMode === 'week' ? (t ? t('view_week') : 'Týždeň') : (t ? t('view_month') : 'Mesiac')}</strong> • {baseDate.toLocaleDateString()}</div>
+                <div className="text-sm text-gray-600"><strong className="text-indigo-700">{viewMode === 'day' ? (t ? t('view_day') : 'Deň') : viewMode === '3days' ? (t ? t('view_3days') : '3 dni') : viewMode === 'week' ? (t ? t('view_week') : 'Týždeň') : (t ? t('view_month') : 'Mesiac')}</strong> • {safeBaseDate.toLocaleDateString()}</div>
             </div>
 
             <div className="p-6">
-                <div className="bg-white/80 rounded-lg shadow overflow-hidden border border-gray-100 p-4">
+                {/* Use a slightly translucent white variant in dark theme so the calendar panel keeps contrast
+                    without relying on global `.bg-white` which is overridden by `.app-dark`. */}
+                <div
+                    className={`rounded-lg shadow overflow-hidden border border-gray-100 p-4 ${isDarkTheme ? '' : 'bg-white/80'}`}
+                    style={isDarkTheme ? { backgroundColor: 'rgba(255,255,255,0.09)', color: 'var(--app-text)', minHeight: '60vh' } : undefined}
+                >
                     {viewMode === 'month' && (
-                          <KalendarMesiac
-                           rows={5}
-                           cols={7}
-                           month={baseDate.getMonth()+1}
-                           year={baseDate.getFullYear()}
-                           tasks={normalizedTasks}
-                           loading={loading}
-                           onEventClick={setEditing}
-                           onDayClick={(dt) => openCreateForDate(dt)}
-                          />
-                      )}
+                        <KalendarMesiac
+                            rows={5}
+                            cols={7}
+                            month={safeBaseDate.getMonth() + 1}
+                            year={safeBaseDate.getFullYear()}
+                            tasks={normalizedTasks}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(dt) => openCreateForDate(dt)}
+                        />
+                    )}
 
-                     {viewMode === 'week' && (
-                          <KalendarTyzden
-                              startDate={baseDate}
-                              tasks={normalizedTasks}
-                              loading={loading}
-                              onEventClick={setEditing}
-                              onDayClick={(d) => openCreateForDate(d)}
-                          />
-                      )}
+                    {viewMode === 'week' && (
+                        <KalendarTyzden
+                            startDate={safeBaseDate}
+                            tasks={normalizedTasks}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDate(d)}
+                        />
+                    )}
 
-                     {viewMode === '3days' && (
-                          <Kalendar3Dni
-                              startDate={baseDate}
-                              tasks={normalizedTasks}
-                              loading={loading}
-                              onEventClick={setEditing}
-                              onDayClick={(d) => openCreateForDate(d)}
-                          />
-                      )}
+                    {viewMode === '3days' && (
+                        <Kalendar3Dni
+                            startDate={safeBaseDate}
+                            tasks={normalizedTasks}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDate(d)}
+                        />
+                    )}
 
-                     {viewMode === 'day' && (
-                          <KalendarDen
-                              date={baseDate}
-                              tasks={normalizedTasks}
-                              loading={loading}
-                              onEventClick={setEditing}
-                              onDayClick={(d) => openCreateForDate(d)}
-                          />
-                      )}
+                    {viewMode === 'day' && (
+                        <KalendarDen
+                            date={safeBaseDate}
+                            tasks={normalizedTasks}
+                            loading={loading}
+                            onEventClick={setEditing}
+                            onDayClick={(d) => openCreateForDate(d)}
+                        />
+                    )}
                 </div>
             </div>
 

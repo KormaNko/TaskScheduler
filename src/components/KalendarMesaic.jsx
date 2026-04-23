@@ -5,7 +5,9 @@ import { useOptions } from '../contexts/OptionsContext.jsx';
 // Komponent mesačného kalendára
 // Props: rows, cols, month, year, tasks (array), onEventClick(fn), loading, onDayClick
 export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks = [], onEventClick = () => {}, loading = false, onDayClick = () => {} }) {
-    const { t } = useOptions();
+    const { t, opts } = useOptions();
+    const isDarkTheme = (opts?.theme ?? 'light') === 'dark';
+
     // helper: get category color by object
     const getCategoryColor = (cat) => {
         // Under the new contract `cat` is either a category object or null.
@@ -128,10 +130,22 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
     const titleStyle = { textAlign: 'center', fontWeight: 600, flex: 1 };
     const gridWrapperStyle = { overflowY: 'auto', overflowX: 'hidden', borderRadius: '8px', maxWidth: '100%', height: `calc(100vh - 220px)` };
     const gridStyle = { display: 'grid', gap: '6px', padding: '6px', background: 'transparent', ...{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }, alignContent: 'start', height: '100%' };
-    const headerStyle = { height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, background: '#ffffff', border: '1px solid #e5e7eb', borderRadius: '6px', color: '#111827' };
-    const cellStyle = { background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', display: 'flex', flexDirection: 'column', padding: '8px', minHeight: cellMinHeight, boxSizing: 'border-box', fontSize: '14px', color: '#111827', minWidth: 0 };
-    const dateNumberStyle = { fontSize: '12px', fontWeight: 500, color: '#374151' };
-    const eventsStyle = { marginTop: '6px', fontSize: '12px', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+    // Colors for dark mode vs light mode
+    const headerBg = isDarkTheme ? '#0f1724' : '#ffffff';
+    const headerBorder = isDarkTheme ? '1px solid rgba(255,255,255,0.04)' : '1px solid #e5e7eb';
+    const headerColor = isDarkTheme ? '#e6eef8' : '#111827';
+
+    const cellBg = isDarkTheme ? '#0b1220' : '#f9fafb';
+    const cellBorder = isDarkTheme ? '1px solid rgba(255,255,255,0.04)' : '1px solid #e5e7eb';
+    const cellColor = isDarkTheme ? '#d1d9e6' : '#111827';
+
+    const dateNumberColor = isDarkTheme ? '#cbd5e1' : '#374151';
+    const eventsColor = isDarkTheme ? '#9aa5b2' : '#6b7280';
+
+    const headerStyle = { height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, background: headerBg, border: headerBorder, borderRadius: '6px', color: headerColor };
+    const cellStyle = { background: cellBg, border: cellBorder, borderRadius: '6px', display: 'flex', flexDirection: 'column', padding: '8px', minHeight: cellMinHeight, boxSizing: 'border-box', fontSize: '14px', color: cellColor, minWidth: 0 };
+    const dateNumberStyle = { fontSize: '12px', fontWeight: 500, color: dateNumberColor };
+    const eventsStyle = { marginTop: '6px', fontSize: '12px', color: eventsColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
     function cellCombinedStyle(isEmpty) { return { ...cellStyle, background: isEmpty ? 'transparent' : cellStyle.background, minWidth: 0 }; }
     const eventPillStyleBase = { display: 'block', padding: '2px 6px', borderRadius: '999px', cursor: 'pointer', marginTop: '4px', fontSize: '12px', overflow: 'hidden', textOverflow: 'ellipsis' };
 
@@ -192,29 +206,33 @@ export default function KalendarMesiac({ rows = 6, cols = 7, month, year, tasks 
                                             const stripe = getCategoryColor(category) || '#e6f4ea';
                                             const catColor = getCategoryColor(category) || null;
                                             const catName = category?.name ?? '';
-                                             const pillTextColor = textColorForBg(catColor);
-                                              return (
-                                                  <div key={String(ev.id) + '-' + idx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); onEventClick(ev); }} title={ev.title}>
-                                                      <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
-                                                      <div style={{ flex: 1, overflow: 'hidden' }}>
-                                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                              <div style={{ fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ev.title}</div>
-                                                              {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
-                                                          </div>
-                                                          <div style={{ fontSize: 11, color: '#6b7280' }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
-                                                      </div>
-                                                  </div>
-                                              );
+                                            const pillTextColor = textColorForBg(catColor);
+                                            return (
+                                                <div
+                                                    key={String(ev.id) + '-' + idx}
+                                                    style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginTop: 6, cursor: 'pointer' }}
+                                                    onClick={(e) => { e.stopPropagation(); onEventClick(ev); }}
+                                                    title={ev.title}
+                                                >
+                                                    <div style={{ width: 6, minHeight: 28, background: stripe, borderRadius: 4 }} />
+                                                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                            <div style={{ fontSize: 12, fontWeight: 600, color: cellColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{ev.title}</div>
+                                                            {catColor ? (<span style={{ ...eventPillStyleBase, background: catColor, color: pillTextColor }}>{catName}</span>) : null}
+                                                        </div>
+                                                        <div style={{ fontSize: 11, color: eventsColor }}>{ev.deadline ? new Date(String(ev.deadline).replace(' ', 'T')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                                                    </div>
+                                                </div>
+                                            );
                                           })}
-                                          {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: '#374151', fontSize: 12 }}>+{eventsByDay[v].length - 2} {t ? t('more') : 'more'}</div>) : null}
+                                          {eventsByDay[v].length > 2 ? (<div style={{ marginTop: 4, color: headerColor, fontSize: 12 }}>+{eventsByDay[v].length - 2} {t ? t('more') : 'more'}</div>) : null}
                                       </>
                                   ) : null}
                              </div>
                          </div>
                      ))}
-                 </div>
-             </div>
-
-         </div>
-     );
- }
+                </div>
+            </div>
+        </div>
+    );
+}
