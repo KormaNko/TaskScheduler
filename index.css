@@ -101,3 +101,99 @@
 .app-dark .text-white { color: #fff !important; }
 
 /* end dark mode overrides */
+
+/* Additional dark-mode mappings to improve contrast for common Tailwind utilities
+   and some project-specific helper classes (extra.css). These make elements that
+   explicitly use bg-white, bg-gray-50, light gradients, or indigo text readable
+   when `.app-dark` is present.
+*/
+.app-dark {
+  /* ensure custom properties exist (already set above) */
+}
+
+/* map common light background utilities to dark surface */
+.app-dark .bg-white,
+.app-dark .bg-white\/80,
+.app-dark .bg-gray-50,
+.app-dark .bg-gray-100,
+.app-dark .bg-slate-50,
+.app-dark .bg-indigo-50,
+.app-dark .from-indigo-50,
+.app-dark .via-white,
+.app-dark .to-sky-50,
+.app-dark .from-slate-50 {
+  background-color: var(--app-surface) !important;
+  color: var(--app-text) !important;
+}
+
+/* remove very-light gradients which look washed-out in dark mode */
+.app-dark .bg-gradient-to-r,
+.app-dark .bg-gradient-to-b,
+.app-dark .from-indigo-50,
+.app-dark .to-sky-50,
+.app-dark .via-white {
+  background-image: none !important;
+}
+
+/* ensure text that used gray/indigo shades remain legible */
+.app-dark .text-gray-700,
+.app-dark .text-gray-600,
+.app-dark .text-gray-500,
+.app-dark .text-indigo-700,
+.app-dark .text-indigo-600,
+.app-dark .text-indigo-500 {
+  color: var(--app-text) !important;
+}
+
+/* active / accent buttons that relied on white background should use the surface */
+.app-dark .bg-white.border,
+.app-dark button.bg-white,
+.app-dark .bg-white.rounded,
+.app-dark .bg-white.p-2 {
+  background-color: var(--app-surface) !important;
+  border-color: var(--app-border) !important;
+  color: var(--app-text) !important;
+}
+
+/* inputs and disabled inputs */
+.app-dark input,
+.app-dark textarea,
+.app-dark select,
+.app-dark .form-input,
+.app-dark .bg-gray-50 {
+  background-color: rgba(255,255,255,0.03) !important;
+  color: var(--app-text) !important;
+  border-color: var(--app-border) !important;
+}
+
+/* placeholders should be slightly muted but readable */
+.app-dark input::placeholder,
+.app-dark textarea::placeholder {
+  color: rgba(230,238,248,0.7) !important;
+}
+
+/* modal panels and cards that used shadow on white should use surface color */
+.app-dark .shadow,
+.app-dark .shadow-sm,
+.app-dark .shadow-md,
+.app-dark .shadow-lg {
+  /* keep shadows but ensure surfaces are dark so contrast remains */
+}
+
+/* project-specific helper classes in extra.css */
+.app-dark .extra-rule-1 { color: var(--app-text) !important; }
+.app-dark .extra-rule-2 { background-color: var(--app-surface) !important; }
+
+/* ensure border utilities map to dark border color */
+.app-dark .border-gray-200,
+.app-dark .border-gray-100,
+.app-dark .ring-gray-100,
+.app-dark .border-gray-300 {
+  border-color: var(--app-border) !important;
+}
+
+/* ensure accent text on dark surfaces has enough contrast when white text was used */
+.app-dark .text-white { color: #ffffff !important; }
+
+/* small helpers for elements that used bg-indigo-600 + text-white (keep as-is) */
+.app-dark .bg-indigo-600 { background-color: #334155 !important; }
