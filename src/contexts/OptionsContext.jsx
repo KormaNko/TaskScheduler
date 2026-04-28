@@ -117,6 +117,19 @@ const TRANSLATIONS = {
     visible: 'zobrazené',
     selectToAct: 'Označte úlohy hore pre akcie',
     notCompleteYet: 'Ešte nesplnené',
+    // translations used by ModalMisscheduledTasks
+    misScheduledTasks: 'Nesprávne naplánované úlohy',
+    confirmRemoveCategory: 'Naozaj odstrániť kategóriu z tejto úlohy?',
+    categoryRemoved: 'Kategória odstránená',
+    confirmRemoveCategorySelected: 'Naozaj odstrániť kategóriu z vybraných úloh?',
+    categoriesRemoved: 'Kategórie odstránené',
+    confirmRemoveCategoryAll: 'Naozaj odstrániť kategóriu zo všetkých úloh?',
+    selectAllWithCategory: 'Vybrať všetky s kategóriou',
+    removeSelected: 'Odstrániť vybrané',
+    removeAll: 'Odstrániť všetky kategórie',
+    plannedAfterDeadline: 'Plánované po termíne',
+    removeCategory: 'Odstrániť kategóriu',
+    removing: 'Odstraňovanie…',
     // additional keys used by Options page
     lang_sl: 'Slovenčina (SK)',
     lang_en: 'English (EN)',
@@ -138,6 +151,19 @@ const TRANSLATIONS = {
     title: 'Názov',
     titleRequired: 'Názov je povinný',
     timeToCompleteLabel: 'Čas dokončenia (minúty)',
+    // category manager specific
+    planFrom: 'Plánovať od',
+    planTo: 'Plánovať do',
+    maxDuration: 'Maximálna dĺžka (minúty)',
+    noColorSelected: 'Žiadna farba',
+    // category manager validation / labels
+    categoryNamePlaceholder: 'Názov kategórie',
+    categoryNameRequired: 'Názov kategórie je povinný',
+    colorInvalid: 'Farba musí byť hex #RRGGBB alebo prázdna',
+    planFromInvalid: 'Plán od musí byť čas vo formáte HH:MM alebo HH:MM:SS',
+    planToInvalid: 'Plán do musí byť čas vo formáte HH:MM alebo HH:MM:SS',
+    maxDurationInvalid: 'Maximálna dĺžka musí byť celé číslo ≥ 0 (minúty)',
+    confirmDeleteCategory: 'Naozaj zmazať kategóriu "{name}"?',
     // short label used in some components
     timeToComplete: 'Čas dokončenia',
     timeToCompleteInvalid: 'Čas dokončenia musí byť celé číslo ≥ 0',
@@ -298,6 +324,11 @@ const TRANSLATIONS = {
     close: 'Close',
     task: 'Task',
     notSet: 'Not set',
+    // category manager specific
+    planFrom: 'Plan from',
+    planTo: 'Plan to',
+    maxDuration: 'Max duration (minutes)',
+    noColorSelected: 'No color selected',
     // dashboard-specific messages
     confirmDeleteTask: 'Delete task?',
     taskDeleted: 'Task deleted',

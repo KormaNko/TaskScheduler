@@ -195,7 +195,9 @@ export default function CategoryManager() {
     };
     //AI
     const handleDelete = async (cat) => {
-        if (!window.confirm(`Delete category "${cat.name}"?`)) return;
+        // use translated confirmation with simple interpolation
+        const confirmText = t ? (t('confirmDeleteCategory') || `Delete category "{name}"?`).replace('{name}', cat.name) : `Delete category "${cat.name}"?`;
+        if (!window.confirm(confirmText)) return;
         setError(null);
         try {
             // Backend expects POST with id in query param (?c=category&a=delete&id=ID)
@@ -225,23 +227,23 @@ export default function CategoryManager() {
 
         const trimmedName = (name || '').trim();
         if (trimmedName === '') {
-            setError('Name is required');
+            setError(t ? t('categoryNameRequired') : 'Name is required');
             return;
         }
         if (color && color !== '' && !COLOR_REGEX.test(color)) {
-            setError('Color must be hex like #RRGGBB or empty');
+            setError(t ? t('colorInvalid') : 'Color must be hex like #RRGGBB or empty');
             return;
         }
         if (planFrom && planFrom !== '' && !TIME_REGEX.test(planFrom)) {
-            setError('planFrom must be a time like HH:MM or HH:MM:SS');
+            setError(t ? t('planFromInvalid') : 'planFrom must be a time like HH:MM or HH:MM:SS');
             return;
         }
         if (planTo && planTo !== '' && !TIME_REGEX.test(planTo)) {
-            setError('planTo must be a time like HH:MM or HH:MM:SS');
+            setError(t ? t('planToInvalid') : 'planTo must be a time like HH:MM or HH:MM:SS');
             return;
         }
         if (maxDuration && maxDuration !== '' && !NONNEG_INT_REGEX.test(maxDuration)) {
-            setError('maxDuration must be a non-negative integer (minutes)');
+            setError(t ? t('maxDurationInvalid') : 'maxDuration must be a non-negative integer (minutes)');
             return;
         }
 
@@ -337,7 +339,7 @@ export default function CategoryManager() {
                     <form onSubmit={handleSave}>
                         <label className="block mb-3">
                             <div className="text-sm font-medium mb-1">{t ? t('name') : 'Name'}</div>
-                            <input value={name} onChange={e => setName(e.target.value)} className={`mt-1 block w-full p-2 border rounded ${saving ? 'opacity-60' : ''}`} placeholder={t ? t('name') : 'Category name'} disabled={saving} />
+                            <input value={name} onChange={e => setName(e.target.value)} className={`mt-1 block w-full p-2 border rounded ${saving ? 'opacity-60' : ''}`} placeholder={t ? t('categoryNamePlaceholder') : 'Category name'} disabled={saving} />
                         </label>
 
                         <div className="mb-3">
@@ -350,7 +352,7 @@ export default function CategoryManager() {
 
                             <div className="flex items-center gap-3 mb-3">
                                 <input type="color" value={color || '#ffffff'} onChange={e => setColor(e.target.value)} disabled={saving} className="w-14 h-10 p-0 border-0" />
-                                <div className="text-sm text-gray-600">{color || (t ? t('noCategories') : 'No color selected')}</div>
++                                <div className="text-sm text-gray-600">{color || (t ? t('noColorSelected') : 'No color selected')}</div>
                                 <button type="button" onClick={() => setColor('')} className="ml-4 px-3 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
                             </div>
 
