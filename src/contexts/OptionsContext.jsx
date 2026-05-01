@@ -130,40 +130,34 @@ const TRANSLATIONS = {
     plannedAfterDeadline: 'Plánované po termíne',
     removeCategory: 'Odstrániť kategóriu',
     removing: 'Odstraňovanie…',
-    // additional keys used by Options page
-    lang_sl: 'Slovenčina (SK)',
-    lang_en: 'English (EN)',
-    theme_light: 'Svetlá',
-    theme_dark: 'Tmavá',
-    sort_none: 'Žiadne',
-    sort_priority_asc: 'Priorita ↑',
-    sort_priority_desc: 'Priorita ↓',
-    sort_title_asc: 'Názov A → Z',
-    sort_title_desc: 'Názov Z → A',
-    sort_deadline_asc: 'Termín: najskôr',
-    sort_deadline_desc: 'Termín: najneskôr',
-    selectWorkdayStartHelp: 'Vyberte, kedy začína váš pracovný deň.',
-    selectWorkdayEndHelp: 'Vyberte, kedy končí váš pracovný deň.',
-    errorPrefix: 'Chyba:',
-    // misc
+    // small misc keys used by modal/page
+    status: 'Stav',
+    noMisScheduled: 'Žiadne nesprávne naplánované úlohy',
+    // keys used by MissedTasks page and related actions
+    missedTasks: 'Zmeškané úlohy',
+    noMissedTasks: 'Žiadne zmeškané úlohy',
+    confirmMarkCompleted: 'Naozaj označiť túto úlohu ako dokončenú?',
+    confirmMarkNotCompleted: 'Naozaj označiť túto úlohu ako NESPLNENÚ a preplánovať?',
+    confirmMarkCompletedMany: 'Naozaj označiť vybrané úlohy ako dokončené?',
+    confirmMarkNotCompletedMany: 'Naozaj označiť vybrané úlohy ako NESPLNENÉ a preplánovať?',
+    tasksMarkedCompleted: 'Úlohy označené ako dokončené',
+    taskMarkedCompleted: 'Úloha označená ako dokončená',
+    failedMarkCompleted: 'Nepodarilo sa označiť ako dokončené',
+    tasksReenabled: 'Úlohy znovu aktivované',
+    taskReenabled: 'Úloha znovu aktivovaná',
+    failedUpdateTask: 'Aktualizácia úlohy zlyhala',
+    someTasksFailed: 'Niektorým úlohám sa zmena nepodarila',
+    searchTasks: 'Hľadať úlohy',
+    ok: 'OK',
+    viewInCalendar: 'Zobraziť v kalendári',
+    iDidIt: 'Urobil som to',
+    notDone: 'Nesplnené',
+    // category table label used in CategoryManager
+    plan: 'Plán',
+    // additional misc
     now: 'Teraz',
     // calendar/modal specific
-    title: 'Názov',
-    titleRequired: 'Názov je povinný',
     timeToCompleteLabel: 'Čas dokončenia (minúty)',
-    // category manager specific
-    planFrom: 'Plánovať od',
-    planTo: 'Plánovať do',
-    maxDuration: 'Maximálna dĺžka (minúty)',
-    noColorSelected: 'Žiadna farba',
-    // category manager validation / labels
-    categoryNamePlaceholder: 'Názov kategórie',
-    categoryNameRequired: 'Názov kategórie je povinný',
-    colorInvalid: 'Farba musí byť hex #RRGGBB alebo prázdna',
-    planFromInvalid: 'Plán od musí byť čas vo formáte HH:MM alebo HH:MM:SS',
-    planToInvalid: 'Plán do musí byť čas vo formáte HH:MM alebo HH:MM:SS',
-    maxDurationInvalid: 'Maximálna dĺžka musí byť celé číslo ≥ 0 (minúty)',
-    confirmDeleteCategory: 'Naozaj zmazať kategóriu "{name}"?',
     // short label used in some components
     timeToComplete: 'Čas dokončenia',
     timeToCompleteInvalid: 'Čas dokončenia musí byť celé číslo ≥ 0',
@@ -312,8 +306,6 @@ const TRANSLATIONS = {
     // misc
     now: 'Now',
     // calendar/modal specific
-    title: 'Title',
-    titleRequired: 'Title is required',
     timeToCompleteLabel: 'Time to complete (minutes)',
     // short label used in some components
     timeToComplete: 'Time to complete',

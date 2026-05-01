@@ -504,6 +504,9 @@ export default function Dashboard() {
         if (allSelected) setSelectedIds([]); else setSelectedIds(ids);
     }
 
+    // derived helper: if exactly one task is selected, reference it for conditional UI (e.g. disable editing when dynamic)
+    const selectedSingleTask = (selectedIds.length === 1) ? tasks.find(t => String(t.id) === String(selectedIds[0])) : null;
+
     // batch actions
     async function batchChangeStatus(ids, newStatus) {
         if (!Array.isArray(ids) || ids.length === 0) return;
@@ -552,7 +555,14 @@ export default function Dashboard() {
         if (selectedIds.length !== 1) return;
         const id = selectedIds[0];
         const task = tasks.find(t => String(t.id) === String(id));
-        if (task) openEdit(task);
+        if (!task) return;
+        // Prevent opening edit for dynamic tasks
+        const dynamicFlag = task.isDynamic ?? task.is_dynamic ?? 0;
+        if (Number(dynamicFlag) === 1) {
+            // do nothing - edit option should not be visible for dynamic tasks
+            return;
+        }
+        openEdit(task);
     }
 
     //AI
@@ -708,7 +718,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-2">
                         <button type="button" onClick={() => batchChangeStatus(selectedIds, 'in_progress')} disabled={actionLoading} className="px-3 py-1 bg-yellow-500 text-white rounded">{t ? t('start') : 'Start'}</button>
                         <button type="button" onClick={() => batchChangeStatus(selectedIds, 'completed')} disabled={actionLoading} className="px-3 py-1 bg-green-600 text-white rounded">{t ? t('complete') : 'Complete'}</button>
-                        {selectedIds.length === 1 && <button type="button" onClick={() => editSelected()} disabled={actionLoading} className="px-3 py-1 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>}
+                        {selectedIds.length === 1 && Number(selectedSingleTask?.isDynamic ?? selectedSingleTask?.is_dynamic ?? 0) !== 1 && <button type="button" onClick={() => editSelected()} disabled={actionLoading} className="px-3 py-1 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>}
                         <button type="button" onClick={() => batchDelete(selectedIds)} disabled={actionLoading} className="px-3 py-1 bg-red-600 text-white rounded">{t ? t('delete') : 'Delete'}</button>
                     </div>
                 </div>
@@ -794,7 +804,9 @@ export default function Dashboard() {
                         </div>
 
                         <div className="mt-4 flex justify-end gap-2">
-                            <button onClick={() => { setDetailTask(null); openEdit(detailTask); }} className="px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>
+                            {Number(detailTask.isDynamic ?? detailTask.is_dynamic ?? 0) !== 1 && (
+                                <button onClick={() => { setDetailTask(null); openEdit(detailTask); }} className="px-3 py-2 bg-blue-600 text-white rounded">{t ? t('edit') : 'Edit'}</button>
+                            )}
                             <button onClick={() => { handleDelete(detailTask.id); setDetailTask(null); }} className="px-3 py-2 bg-red-600 text-white rounded">{t ? t('delete') : 'Delete'}</button>
                         </div>
                     </div>
