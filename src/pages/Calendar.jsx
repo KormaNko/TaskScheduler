@@ -361,12 +361,15 @@ export default function Calendar() {
 
              {/* CREATE MODAL */}
              {showCreate && (
-                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-start md:items-center justify-center z-50">
-                    <div className="relative bg-white w-full max-w-3xl mx-4 rounded-xl shadow-lg p-6 z-10 max-h-[90vh] overflow-y-auto">
-                        {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
-                        {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
+                // center modal vertically on all screen sizes and dim background
+                <form onSubmit={createTask} className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                    {/* constrained modal: full width but capped to max-w-md so it stays compact */}
+                    <div className="relative bg-white rounded-xl shadow-lg z-10 max-h-[90vh] overflow-y-auto w-full max-w-md p-4 mx-4" style={{ boxSizing: 'border-box' }}>
+                         {error && <div className="mb-2 text-sm text-red-600">{error}</div>}
+                         {success && <div className="mb-2 text-sm text-green-600">{success}</div>}
+                         {/* single column form so the modal stays compact horizontally */}
+                         <div className="grid grid-cols-1 gap-4 mx-auto">
+                             <div>
                                 <label className="block text-sm font-medium text-gray-700">{t ? t('title') : 'Title'}</label>
                                 <input autoFocus className="mt-1 block w-full border border-gray-200 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-200" placeholder={t ? t('title') : 'Title'} value={form.title} onChange={e => updateForm('title', e.target.value)} />
 
