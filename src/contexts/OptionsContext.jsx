@@ -355,6 +355,12 @@ export function OptionsProvider({ children }) {
     theme: normalizeTheme(d?.theme ?? d?.the ?? 'light'),
     taskFilter: d?.taskFilter ?? d?.task_filter ?? 'all',
     taskSort: d?.taskSort ?? d?.task_sort ?? 'none',
+    // work day start/end: prefer exact backend keys but accept variants; keep raw seconds if provided
+    work_day_start: d?.work_day_start ?? d?.workDayStart ?? d?.workdayStart ?? d?.workday_start ?? null,
+    work_day_end: d?.work_day_end ?? d?.workDayEnd ?? d?.workdayEnd ?? d?.workday_end ?? null,
+    // convenience camelCase aliases (may be used by older UI code)
+    workdayStart: d?.work_day_start ?? d?.workDayStart ?? d?.workdayStart ?? d?.workday_start ?? null,
+    workdayEnd: d?.work_day_end ?? d?.workDayEnd ?? d?.workdayEnd ?? d?.workday_end ?? null,
     // keep raw data for components that might need other fields
     __raw: d,
   });

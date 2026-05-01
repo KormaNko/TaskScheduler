@@ -23,9 +23,23 @@ export default function SettingsPage() {
         setTheme(opts.theme ?? 'light');
         setTaskFilter(opts.taskFilter ?? opts.task_filter ?? 'all');
         setTaskSort(opts.taskSort ?? opts.task_sort ?? 'none');
-        // initialize workday times from opts if present (support snake_case and camelCase)
-        setWorkdayStart(opts.workdayStart ?? opts.workday_start ?? '09:00');
-        setWorkdayEnd(opts.workdayEnd ?? opts.workday_end ?? '17:00');
+        // initialize workday times from opts if present (support snake_case and camelCase and backend `work_day_*`)
+        // prefer the raw payload returned by the options API (normalize stores it under __raw)
+        const rawPayload = opts.__raw ?? {};
+        const rawStart = rawPayload.work_day_start ?? opts.work_day_start ?? opts.workdayStart ?? opts.workday_start ?? '';
+        const rawEnd = rawPayload.work_day_end ?? opts.work_day_end ?? opts.workdayEnd ?? opts.workday_end ?? '';
+        // backend may store times as "HH:MM:SS" — normalize to "HH:MM" for the <input type=time>
+        const norm = (v, fallback) => {
+            if (!v && v !== 0) return fallback;
+            try {
+                const s = String(v);
+                // extract leading HH:MM if available
+                const m = s.match(/^(\d{1,2}:\d{2})/);
+                return m ? m[1] : s.slice(0,5);
+            } catch (e) { return fallback; }
+        };
+        setWorkdayStart(norm(rawStart, '09:00'));
+        setWorkdayEnd(norm(rawEnd, '17:00'));
         // ensure document theme matches saved opts when we first load
         try {
             const el = document?.documentElement;
@@ -84,6 +98,10 @@ export default function SettingsPage() {
                 theme,
                 task_filter: taskFilter,
                 task_sort: taskSort,
+                // send work day times to backend using exact keys expected by server
+                // backend expects full seconds (HH:MM:SS) — we append :00 if user picked HH:MM
+                work_day_start: workdayStart ? `${workdayStart}:00` : '',
+                work_day_end: workdayEnd ? `${workdayEnd}:00` : '',
             };
             const res = await saveOptions(payload);
             if (!res.ok) {
@@ -91,8 +109,9 @@ export default function SettingsPage() {
             }
             // Save workday times into local options (no backend integration yet)
             try {
-                setLocal('workday_start', workdayStart);
-                setLocal('workday_end', workdayEnd);
+                // store normalized HH:MM locally, use keys that match backend naming
+                setLocal('work_day_start', workdayStart);
+                setLocal('work_day_end', workdayEnd);
             } catch (e) {
                 console.debug('Failed to set local workday times', e);
             }
