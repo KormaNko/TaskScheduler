@@ -11,6 +11,9 @@ const TRANSLATIONS = {
     // workday labels
     workdayStart: 'Začiatok pracovného dňa',
     workdayEnd: 'Koniec pracovného dňa',
+    // help texts for workday inputs
+    selectWorkdayStartHelp: 'Zvoľte, kedy začína váš pracovný deň.',
+    selectWorkdayEndHelp: 'Zvoľte, kedy končí váš pracovný deň.',
     reset: 'Obnoviť',
     tasksDashboard: 'Zoznam úloh',
     switchToSimple: 'Prepnúť na jednoduchý',
@@ -175,6 +178,20 @@ const TRANSLATIONS = {
     statusUpdated: 'Stav aktualizovaný',
     tasksDeleted: 'Úlohy zmazané',
     updateFailed: 'Aktualizácia zlyhala',
+    // sorting labels
+    sort_deadline_asc: 'Termín: najskôr',
+    sort_deadline_desc: 'Termín: najneskôr',
+    // language and theme labels used by the Options page
+    lang_sl: 'Slovenčina (SK)',
+    lang_en: 'English (EN)',
+    theme_light: 'Svetlý',
+    theme_dark: 'Tmavý',
+    // generic sort labels used by the Options page
+    sort_none: 'Žiadne',
+    sort_priority_asc: 'Priorita ↑',
+    sort_priority_desc: 'Priorita ↓',
+    sort_title_asc: 'Názov A → Z',
+    sort_title_desc: 'Názov Z → A',
   },
   EN: {
     settings: 'Settings',
