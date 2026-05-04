@@ -17,6 +17,7 @@ export default function LogoutButton() {
             await api.post('/?c=logout&a=index', {});
             try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (err) {}
             try { localStorage.removeItem('currentUser'); } catch (e) {}
+            try { localStorage.removeItem('csrfToken'); } catch (e) {}
             // notify app and set auth false
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
             try { setUser(null); } catch (e) {}
@@ -26,6 +27,7 @@ export default function LogoutButton() {
             // still clear client state as fallback
             try { localStorage.removeItem('authToken'); localStorage.removeItem('isLoggedIn'); } catch (e) {}
             try { localStorage.removeItem('currentUser'); } catch (e) {}
+            try { localStorage.removeItem('csrfToken'); } catch (e) {}
             try { window.dispatchEvent(new Event('app:logged-out')); } catch (e) {}
             try { setUser(null); } catch (e) {}
             navigate('/login', { replace: true });

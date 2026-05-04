@@ -6,12 +6,41 @@ const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api').replace(/\/$/, '');
 async function request(path, opts = {}) {
   const url = `${API_BASE}${path}`;
   let res;
+
+  // Prepare method and headers, and automatically attach CSRF token for mutating requests
+  const method = (opts.method || 'GET').toUpperCase();
+  const headers = { Accept: 'application/json', ...(opts.headers || {}) };
+
+  // pridať CSRF token pre mutácie
+  if (method !== 'GET') {
+    try {
+      // Try multiple locations: localStorage keys and common cookie names
+      let csrf = null;
+      try { csrf = localStorage.getItem('csrfToken') ?? localStorage.getItem('csrf_token') ?? localStorage.getItem('csrfToken'); } catch (e) { csrf = null; }
+      if (!csrf && typeof document !== 'undefined' && document.cookie) {
+        const cookies = Object.fromEntries(document.cookie.split(';').map(s => s.split('=').map(p => p && p.trim())));
+        const cookieKeys = ['csrfToken','csrf_token','XSRF-TOKEN','XSRF_TOKEN','X-CSRF-Token','token'];
+        for (const k of cookieKeys) {
+          if (cookies[k]) { csrf = decodeURIComponent(cookies[k]); break; }
+        }
+      }
+      if (csrf) csrf = String(csrf).trim();
+      if (csrf) {
+        // Send multiple common header variants so backend accepts whichever it expects
+        headers['X-CSRF-Token'] = csrf;
+        headers['X-XSRF-TOKEN'] = csrf;
+        headers['X-CSRFToken'] = csrf;
+        headers['XSRF-TOKEN'] = csrf;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   try {
     res = await fetch(url, {
-      method: opts.method || 'GET',
+      method,
       mode: 'cors',
       credentials: 'include',
-      headers: { Accept: 'application/json', ...(opts.headers || {}) },
+      headers,
       body: opts.body,
     });
   } catch (err) {
@@ -49,8 +78,25 @@ async function request(path, opts = {}) {
 
 export async function get(path, opts = {}) { return request(path, { method: 'GET', ...opts }); }
 export async function post(path, body, opts = {}) {
+  // Inject CSRF token into JSON body for servers that expect token there
+  let payload = body;
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    try {
+      const token = (typeof localStorage !== 'undefined' && (localStorage.getItem('csrfToken') ?? localStorage.getItem('csrf_token'))) || null;
+      if (token && !payload.csrf_token && !payload.csrfToken) {
+        payload = { ...payload, csrf_token: String(token).trim() };
+      }
+    } catch (e) { /* ignore */ }
+  } else if (!payload) {
+    // ensure body is at least an empty object so we can include token when present
+    try {
+      const token = (typeof localStorage !== 'undefined' && (localStorage.getItem('csrfToken') ?? localStorage.getItem('csrf_token'))) || null;
+      if (token) payload = { csrf_token: String(token).trim() };
+    } catch (e) { /* ignore */ }
+  }
+
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
-  const opts2 = { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body), headers, ...opts };
+  const opts2 = { method: 'POST', body: typeof payload === 'string' ? payload : JSON.stringify(payload), headers, ...opts };
   return request(path, opts2);
 }
 export default { get, post, request, API_BASE };

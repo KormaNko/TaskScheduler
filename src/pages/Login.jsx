@@ -75,6 +75,15 @@ export default function Login() {
             // Odoslanie POST požiadavky na server
             const data = await api.post(`/?c=login&a=login`, { email, password });
 
+            // uložiť CSRF token z login odpovede (ak existuje) — podporiť niekoľko tvarov odpovede
+            try {
+                // Only accept expected token fields from server response
+                const csrf = data?.csrfToken ?? data?.csrf_token ?? null;
+                if (csrf) {
+                    try { localStorage.setItem('csrfToken', String(csrf).trim()); } catch (e) {}
+                }
+            } catch (e) { /* ignore storage errors */ }
+
             // Ak bolo prihlásenie úspešné
             setErrors({});
             setSuccess(data?.message || "Prihlásenie úspešné");

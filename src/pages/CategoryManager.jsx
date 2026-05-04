@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOptions } from '../contexts/OptionsContext.jsx';
+import api from '../lib/api';
 
 /**
  * CategoryManager (backend-compatible)
@@ -200,20 +201,10 @@ export default function CategoryManager() {
         if (!window.confirm(confirmText)) return;
         setError(null);
         try {
-            // Backend expects POST with id in query param (?c=category&a=delete&id=ID)
-            const res = await fetch(apiUrl('delete', cat.id), {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'Accept': 'application/json' },
-            });
-            const body = await res.json().catch(() => null);
-            if (!res.ok) {
-                const msg = body?.message || `Delete failed (${res.status})`;
-                console.error('Category delete failed:', msg, body);
-                setError(msg);
-                setErrorDetails(body);
-                return;
-            }
+            // perform delete using shared API wrapper
+            // Use shared API wrapper which automatically includes CSRF token for mutating requests
+            const resp = await api.post(`/?c=category&a=delete&id=${encodeURIComponent(cat.id)}`, {});
+            // resp may contain shape { data } or plain result; treat as success if no exception thrown
             setCategories((prev) => prev.filter(c => c.id !== cat.id));
             if (editing && editing.id === cat.id) resetForm();
         } catch (e) {
@@ -257,48 +248,21 @@ export default function CategoryManager() {
                 maxDuration: maxDuration === '' ? null : parseInt(maxDuration, 10),
             };
 
-            // perform real save via API
-            let res;
+            // perform real save via shared API wrapper which adds CSRF token for mutating requests
+            let saved;
             if (editing && editing.id) {
                 const bodyToSend = { id: editing.id, ...payload };
-                res = await fetch(apiUrl('update', editing.id), {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(bodyToSend),
-                });
+                const resp = await api.post(`/?c=category&a=update&id=${encodeURIComponent(editing.id)}`, bodyToSend);
+                saved = resp?.data ?? resp;
             } else {
-                res = await fetch(apiUrl('create'), {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-                    body: JSON.stringify(payload),
-                });
+                const resp = await api.post(`/?c=category&a=create`, payload);
+                saved = resp?.data ?? resp;
             }
-
-            const body = await res.json().catch(() => null);
-            if (!res.ok) {
-                if (body && body.errors) {
-                    const firstKey = Object.keys(body.errors)[0];
-                    const msg = body.errors[firstKey] || 'Save failed (validation)';
-                    setError(msg);
-                    setErrorDetails(body);
-                    setSaving(false);
-                    return;
-                }
-                const msg = body?.message || `Save failed (${res.status})`;
-                setError(msg);
-                setErrorDetails(body);
-                setSaving(false);
-                return;
-            }
-            const saved = body?.data ?? body;
             if (editing && editing.id) {
                 setCategories(prev => prev.map(c => (c.id === saved.id ? saved : c)));
             } else {
                 setCategories(prev => [saved, ...prev]);
             }
-            resetForm();
         } catch (e) {
             setError(e.message || 'Failed to save');
         } finally {
@@ -308,13 +272,6 @@ export default function CategoryManager() {
     //AI
     return (
         <div className="p-6 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-semibold">{t ? t('categoryManager') : 'Category Manager'}</h1>
-                <div className="flex items-center gap-2">
-                    <button onClick={startCreate} className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full hover:from-green-600 hover:to-emerald-600 font-semibold">{t ? t('newCategory') : 'New Category'}</button>
-                </div>
-            </div>
-
             {loading && <div className="mb-4 text-sm text-gray-600">{t ? t('loadingCategories') : 'Loading categories…'}</div>}
 
             {error && <div className="mb-4 text-red-600 font-medium">{error}</div>}
@@ -352,7 +309,7 @@ export default function CategoryManager() {
 
                             <div className="flex items-center gap-3 mb-3">
                                 <input type="color" value={color || '#ffffff'} onChange={e => setColor(e.target.value)} disabled={saving} className="w-14 h-10 p-0 border-0" />
-+                                <div className="text-sm text-gray-600">{color || (t ? t('noColorSelected') : 'No color selected')}</div>
+                                <div className="text-sm text-gray-600">{color || (t ? t('noColorSelected') : 'No color selected')}</div>
                                 <button type="button" onClick={() => setColor('')} className="ml-4 px-3 py-1 bg-white border rounded">{t ? t('clear') : 'Clear'}</button>
                             </div>
 
@@ -391,6 +348,7 @@ export default function CategoryManager() {
             )}
         </div>
     );
+
 }
 
 // utility to compute readable text color based on background
