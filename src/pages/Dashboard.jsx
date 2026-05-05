@@ -814,20 +814,22 @@ export default function Dashboard() {
             )}
 
             {editing && (
-                <div
-                    ref={modalRef}
-                    className={"fixed inset-0 bg-black/40 flex " + (editFullScreen ? 'items-stretch' : 'items-end md:items-center') + " justify-center z-50 overflow-hidden"}
-                >
-                    <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-6 md:p-8 box-border flex flex-col overflow-hidden shadow-sm ring-1 ring-gray-100"}>
-                        {/* header */}
-                        <div className="flex items-center justify-between mb-2">
-                            <h3 className="text-lg font-semibold">{t ? `${t('edit')} ${t('task')} #${editing.id}` : `Edit Task #${editing.id}`}</h3>
-                            <button type="button" onClick={() => setEditing(null)} className="text-gray-600 hover:text-gray-800 px-2 py-1">✕</button>
-                        </div>
+                 <div
+                     ref={modalRef}
+                     className={"fixed inset-0 bg-black/40 flex " + (editFullScreen ? 'items-stretch' : 'items-end md:items-center') + " justify-center z-50"}
+                 >
+                     {/* Allow the panel to limit its height on non-fullscreen so it never grows off-screen; make inner area scrollable */}
+                     <div className={"bg-white " + (editFullScreen ? 'w-full h-screen rounded-none' : 'w-full max-w-3xl rounded-t-xl md:rounded mx-auto') + " p-6 md:p-8 box-border flex flex-col min-h-0 shadow-sm ring-1 ring-gray-100"} style={editFullScreen ? undefined : { maxHeight: 'calc(100vh - 80px)' }}>
+                          {/* header */}
+                          <div className="flex items-center justify-between mb-2">
+                              <h3 className="text-lg font-semibold">{t ? `${t('edit')} ${t('task')} #${editing.id}` : `Edit Task #${editing.id}`}</h3>
+                              <button type="button" onClick={() => setEditing(null)} className="text-gray-600 hover:text-gray-800 px-2 py-1">✕</button>
+                          </div>
 
-                        {/* content (non-horizontal-scrollable). place formRef to measure height */}
-                        <div className={"flex-1 " + (editFullScreen ? 'overflow-auto' : '')}>
-                             <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-4">
+                          {/* content (non-horizontal-scrollable). place formRef to measure height */}
+                         {/* make the inner content scrollable so long forms don't get clipped */}
+                         <div className={"flex-1"}>
+                              <form ref={formRef} onSubmit={saveEdit} className="flex flex-col gap-4">
                                  <label className="text-sm font-medium">{t ? t('title') : 'Title'}</label>
                                  <input className="border border-gray-200 p-3 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 w-full" value={editing.title ?? ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
 
@@ -857,49 +859,26 @@ export default function Dashboard() {
                                      </div>
 
                                     <div className="w-full md:w-auto">
-                                         <label className="text-sm font-medium">{t ? t('deadline') : 'Deadline'}</label>
-                                          <input type="datetime-local" disabled={Number(editing.is_dynamic) === 0} value={editing.deadline ?? ''} onChange={(e) => setEditing({ ...editing, deadline: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200 disabled:opacity-60" />
+                                         <label className="text-sm font-medium">{t ? t('plannedStart') : 'Planned start'}</label>
+                                        <input type="datetime-local" value={editing.planned_start ?? ''} onChange={(e) => setEditing({ ...editing, planned_start: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                      </div>
-
-                                     <div className="w-full md:w-auto">
-                                          <label className="text-sm font-medium">{t ? t('plannedStart') : 'Planned start'}</label>
-                                         <input type="datetime-local" disabled={Number(editing.is_dynamic) === 1} value={editing.planned_start ?? ''} onChange={(e) => setEditing({ ...editing, planned_start: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
-                                      </div>
 
                                      <div className="w-full md:w-auto">
                                           <label className="text-sm font-medium">{t ? t('plannedEnd') : 'Planned end'}</label>
-                                         <input type="datetime-local" disabled={Number(editing.is_dynamic) === 1} value={editing.planned_end ?? ''} onChange={(e) => setEditing({ ...editing, planned_end: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
+                                         <input type="datetime-local" value={editing.planned_end ?? ''} onChange={(e) => setEditing({ ...editing, planned_end: e.target.value })} className="border border-gray-200 p-3 w-full rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-200" />
                                       </div>
+                                 </div>
 
-                                      {/* atomic_task for edit form: hidden input then checkbox so plain HTML forms send 0/1; controlled via editing.atomic_task */}
-                                      <div className="w-full md:w-auto flex items-center">
-                                          <label className="inline-flex items-center gap-2">
-                                              <input type="hidden" name="atomic_task" value="0" />
-                                              <input type="checkbox" name="atomic_task" value="1" checked={Number(editing.atomic_task) === 1} onChange={(e) => setEditing({ ...editing, atomic_task: e.target.checked ? 1 : 0 })} className="rounded" />
-                                              <span className="text-sm">{t ? t('atomicTask') : 'Atomic'}</span>
-                                          </label>
-                                      </div>
-
-                                     {/* is_dynamic for edit form */}
-                                     <div className="w-full md:w-auto flex items-center">
-                                         <label className="inline-flex items-center gap-2">
-                                             <input type="hidden" name="is_dynamic" value="0" />
-                                             <input type="checkbox" name="is_dynamic" value="1" checked={Number(editing.is_dynamic) === 1} onChange={(e) => { const v = e.target.checked ? 1 : 0; setEditing({ ...editing, is_dynamic: v, ...(v === 1 ? { planned_start: '', planned_end: '' } : { deadline: '' }) }); }} className="rounded" />
-                                             <span className="text-sm">{t ? t('dynamic') : 'Dynamic'}</span>
-                                         </label>
-                                     </div>
-                                </div>
-
-                                {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
-                                <div className="mt-2 flex justify-start md:justify-end gap-2">
-                                    <button type="submit" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm flex-shrink-0">{t ? t('save') : 'Save'}</button>
-                                    <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
-                                </div>
-                             </form>
-                         </div>
-                     </div>
-                 </div>
-              )}
+                                 {/* footer inside form so submit works; align buttons together left on small, right on md+ */}
+                                 <div className="mt-2 flex justify-start md:justify-end gap-2">
+                                     <button type="submit" className="px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-500 text-white rounded-lg shadow-sm flex-shrink-0">{t ? t('save') : 'Save'}</button>
+                                     <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 border border-gray-200 rounded-lg">{t ? t('cancel') : 'Cancel'}</button>
+                                 </div>
+                              </form>
+                          </div>
+                      </div>
+                  </div>
+               )}
 
             {/* Missed tasks modal: appears after creating a task so user can act on any tasks scheduled in the past */}
             <ModalMisscheduledTasks open={showMissedModal} onClose={() => setShowMissedModal(false)} onRefresh={fetchTasks} initialTasks={misScheduledTasks} />
