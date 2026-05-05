@@ -203,7 +203,7 @@ export default function CategoryManager() {
         try {
             // perform delete using shared API wrapper
             // Use shared API wrapper which automatically includes CSRF token for mutating requests
-            const resp = await api.post(`/?c=category&a=delete&id=${encodeURIComponent(cat.id)}`, {});
+            await api.post(`/?c=category&a=delete&id=${encodeURIComponent(cat.id)}`, {});
             // resp may contain shape { data } or plain result; treat as success if no exception thrown
             setCategories((prev) => prev.filter(c => c.id !== cat.id));
             if (editing && editing.id === cat.id) resetForm();
@@ -272,6 +272,16 @@ export default function CategoryManager() {
     //AI
     return (
         <div className="p-6 max-w-6xl mx-auto">
+            {/* Header with page title and New Category button (uses translations from OptionsContext) */}
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-semibold">{t ? t('categoryManager') : 'Category Manager'}</h1>
+                <div className="flex items-center gap-2">
+                    <button onClick={startCreate} className="px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full hover:from-green-600 hover:to-emerald-600 font-semibold">
+                        {t ? t('newCategory') : 'New Category'}
+                    </button>
+                </div>
+            </div>
+
             {loading && <div className="mb-4 text-sm text-gray-600">{t ? t('loadingCategories') : 'Loading categories…'}</div>}
 
             {error && <div className="mb-4 text-red-600 font-medium">{error}</div>}
@@ -332,7 +342,7 @@ export default function CategoryManager() {
 
                                 <div>
                                     <div className="text-sm font-medium mb-1">{t ? t('maxDuration') : 'Max duration (minutes)'}</div>
-                                    <input type="number" min="0" step="1" value={maxDuration} onChange={e => setMaxDuration(e.target.value)} disabled={saving} className="p-2 border rounded w-full" placeholder="e.g. 120" />
+                                    <input type="number" min="0" step="1" value={maxDuration} onChange={e => setMaxDuration(e.target.value)} disabled={saving} className="p-2 border rounded w-full" placeholder={t ? t('maxDurationPlaceholder') : 'e.g. 120'} />
                                 </div>
                             </div>
 

@@ -192,6 +192,8 @@ const TRANSLATIONS = {
     sort_priority_desc: 'Priorita ↓',
     sort_title_asc: 'Názov A → Z',
     sort_title_desc: 'Názov Z → A',
+    categoryNamePlaceholder: 'Názov kategórie',
+    maxDurationPlaceholder: 'napr. 120',
   },
   EN: {
     settings: 'Settings',
@@ -334,10 +336,10 @@ const TRANSLATIONS = {
     task: 'Task',
     notSet: 'Not set',
     // category manager specific
-    planFrom: 'Plan from',
-    planTo: 'Plan to',
-    maxDuration: 'Max duration (minutes)',
-    noColorSelected: 'No color selected',
+    planFrom: 'Plán od',
+    planTo: 'Plán do',
+    maxDuration: 'Maximálna dĺžka (minúty)',
+    noColorSelected: 'Nie je vybraná žiadna farba',
     // dashboard-specific messages
     confirmDeleteTask: 'Delete task?',
     taskDeleted: 'Task deleted',
